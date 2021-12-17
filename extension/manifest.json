@@ -1,0 +1,13 @@
+{
+    "name": "Scratch Live Collab",
+    "description": "Multiple Scratchers Work together in Real Time on a Single Project",
+    "version": "0.0",
+    "manifest_version": 3,
+    "content_scripts": [
+        {
+            "matches":["https://scratch.mit.edu/projects"],
+            "css":[],
+            "js":["scripts/project.js"]
+        }
+    ]
+}
