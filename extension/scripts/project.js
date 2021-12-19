@@ -1,3 +1,6 @@
+console.log('CollabLive Project Inject Running...')
+console.log(getCurrentTab())
+
 function onChange(e) {
     console.log(e);
 }

@@ -5,9 +5,27 @@
     "manifest_version": 3,
     "content_scripts": [
         {
-            "matches":["https://scratch.mit.edu/projects"],
+            "matches":["https://scratch.mit.edu/projects*editor*"],
+            "css":[],
+            "js":["injectors/editor.js"]
+        },
+        {
+            "matches":["https://scratch.mit.edu/projects/\\d*"],
             "css":[],
             "js":["scripts/project.js"]
         }
-    ]
+    ],
+    "background": {
+        "service_worker":"background.js"
+    },
+    "permissions": [
+        "tabs"
+    ],
+    "web_accessible_resources" : [{
+        "resources":["/scripts/editor.js"],
+        "matches":["<all_urls>"]
+    }],
+    "externally_connectable": {
+        "matches": ["https://scratch.mit.edu/*"]
+    }
 }
