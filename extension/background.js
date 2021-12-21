@@ -12,13 +12,23 @@ chrome.tabs.onUpdated.addListener(function
 
 
 
-
-
-
+let ports = []
+// Connections to scratch editor instances
+chrome.runtime.onConnectExternal.addListener(function(port) {
+  ports.push(port)
+  // console.assert(port.name === "knockknock");
+  port.onMessage.addListener(function(msg) {
+    console.log(msg)
+    if(msg.meta="blockly.event") {
+      ports.forEach(p=>{try{if(p!=port){p.postMessage(msg)}}catch(e){console.log(e)}})
+    }
+  });
+  // port.onDisconnect.addListener((p)=>ports.splice(ports.indexOf(p),1))
+});
 
 
 // Proxy project update messages
-chrome.runtime.onMessage.addListener(
+chrome.runtime.onMessageExternal.addListener(
   function (request, sender, sendResponse) {
-    console.log(request);
+    console.log("external message:" + request);
   });
