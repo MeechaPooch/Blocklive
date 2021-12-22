@@ -5,7 +5,14 @@
     "manifest_version": 3,
     "content_scripts": [
         {
-            "matches":["https://scratch.mit.edu/projects*editor*"],
+            "matches":["https://scratch.mit.edu/*"],
+            "css":[],
+            "run_at": "document_start",
+            "all_frames": true,
+            "js":["injectors/vm.js"]
+        },
+        {
+            "matches":["https://scratch.mit.edu/projects*editor"],
             "css":[],
             "js":["injectors/editor.js"]
         },
@@ -22,7 +29,7 @@
         "tabs"
     ],
     "web_accessible_resources" : [{
-        "resources":["/scripts/editor.js"],
+        "resources":["/scripts/editor.js","/scripts/vm.js"],
         "matches":["<all_urls>"]
     }],
     "externally_connectable": {
