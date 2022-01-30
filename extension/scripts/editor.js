@@ -102,29 +102,214 @@ function stProxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
         // (a,b)=>{vm.runtime.setEditingTarget(a);then?.(a,b)},quit);
 }
 
-
-function blockListener(e) {
-    liveMessage({meta:"blockListen",event:e,json:e.toJson,target:vm.editingTarget.sprite.name,})
+// todo catch shadow create
+function isBadToSend(event, target) {
+    switch(event.type) {
+        // filter out shadow events that shouldnt be proxied
+        case 'create': if(event.xml.nodeName == "SHADOW") {return true}
+        case 'delete': if(event.oldXml?.nodeName == "SHADOW") {return true}
+        case 'move' : if(target.blocks.getBlock(event.blockId)?.shadow) {return true}
+    }
+    return false
 }
+
+// Todo catch bad deletes (var, comment)
+// get current drag id
+// ScratchBlocks.getMainWorkspace().getBlockDragSurface().getCurrentBlock()?.getAttribute('data-id')
+
+function isBadToRun(event, target) {
+    switch (event.type) {
+        // dont run if block already exists
+        case 'create': return !!target.blocks.getBlock(event.blockId);
+        case 'delete': return !target.blocks.getBlock(event.blockId);
+        // dont run if comment already exists
+        case 'comment_create': return event.commentId in target.comments;
+        case 'move': {
+            // dont run if block doesnt exist
+            if(!target.blocks.getBlock(event.blockId)) return true;
+            // dont run if block is already close enough to position (rounded to 1's place)
+            // ...and make sure that the event specifies x and y before checking!
+            if(!!event.newCoordinate?.x && !!event.newCoordinate?.y) {
+                let localBlock = target.blocks.getBlock(event.blockId)
+                if(Math.round(localBlock.x)== Math.round(event.newCoordinate.x) &&
+                Math.round(localBlock.y) == Math.round(event.newCoordinate.y))
+                { return true; }
+            }
+            // dont run if newParentId is the same (assuming exists)
+            if(!!event.newParentId) {
+                let localBlock = target.blocks.getBlock(event.blockId)
+                if(localBlock.parent == event.newParentId){return true;}
+            }
+        }
+    }
+    return false;
+}
+// Interface with ScratchBlocks object
+function isBadToRunBlockly(event,workspace) {
+    switch (event.type) {
+        // dont run if block already exists
+        case 'create': return !!workspace.getBlockById(event.blockId)
+    }
+    
+}
+
+function getStringEventRep(e) {
+    let rep = e.type + e.blockId + e.commentId + e.varId
+    switch(e.type) {
+        case 'move':
+            rep += Math.round(e.newCoordinate?.x)
+            + Math.round(e.newCoordinate?.y)
+            + e.newParentId
+            break;
+        case 'change':
+            rep += e.name + e.newValue + e.element
+        case 'var_create':
+            rep += e.varName + e.isCloud + e.isLocal
+        case 'var_rename':
+            rep += e.newName
+        case 'comment_change':
+            rep += e.newContents_?.text
+        case 'comment_move':
+            rep += rep += Math.round(e.newCoordinate_?.x)
+            + Math.round(e.newCoordinate_?.y)
+    }
+}
+
+oldBlockListener = vm.blockListener
+blockliveEvents = {}
+createEventMap = {}
+toBeMoved = {}
+function blockListener(e) {
+    if(e.type == 'create'){createe = e}
+    if(e.type == 'move'){movee = e}
+    // filter ui events and blocklive
+    let stringRep = getStringEventRep(e)
+    if(stringRep in blockliveEvents) {delete blockliveEvents[stringRep]}
+    else if(
+        !e.isBlocklive && 
+        ["endDrag",'ui','dragOutside'].indexOf(e.type) == -1 &&
+        !isBadToSend(e,vm.editingTarget) &&
+        e.element != 'stackclick'
+    ) {
+        let extrargs = {}
+        
+        // send field locator info
+        if(e.element == 'field') {
+            let fieldInputId = e.blockId
+            let fieldInput = vm.editingTarget.blocks.getBlock(fieldInputId)
+            let parentId = fieldInput.parent
+            if(!!parentId) {
+                let parentBlock = vm.editingTarget.blocks.getBlock(parentId)
+                let inputTag = Object.values(parentBlock.inputs).find(input=>input.block==fieldInputId).name
+
+                extrargs.parentId = parentId
+                extrargs.fieldTag = inputTag
+            }
+        }
+
+        // send block create xml
+        if(!!e.xml) {
+            extrargs.xml = {outerHTML:e.xml.outerHTML}
+        }
+
+        console.log("sending",e,extrargs)
+
+        let message = {meta:"vm.blockListen",type:e.type,extrargs,event:e,json:e.toJson(),target:vm.editingTarget.sprite.name,}
+        
+        // intercept and save create events to send later
+        if(e.type == "create") {
+            createEventMap[e.blockId] = message
+        } else if (e.type == 'comment_create') {
+            createEventMap[e.commentId] = message
+        // intercept auto generated move event
+        } else if (e.type == 'move' && e.blockId in toBeMoved){
+            let moveEvents = toBeMoved[e.blockId]
+            console.log("move events",moveEvents)
+            delete toBeMoved[e.blockId]
+            moveEvents.forEach(moveMessage=>onBlockRecieve(moveMessage))
+        }
+        else {
+            // send held off create events
+            if(e.blockId in createEventMap) {
+                // erase from face of existance
+                if(e.type == 'delete') {
+                    message = null
+                } else { 
+                    liveMessage(createEventMap[e.blockId]) 
+                }
+                delete createEventMap[e.blockId]
+            }
+            if(e.commentId in createEventMap) {
+                if(e.type == 'comment_delete') {
+                    message = null
+                } else { 
+                    liveMessage(createEventMap[e.commentId]) 
+                }
+                delete createEventMap[e.commentId]
+            }
+            if(!!message){liveMessage(message)}
+        }
+    }
+    // Forward (do) event
+    oldBlockListener(e)
+}
+vm.blockListener = blockListener
 
 /// Todo: testing on whether or not to actually execute actions
 // Todo: catch stage not being sprite
 // Remove thing from undo list
+
 function onBlockRecieve(d) {
+    console.log("recieved", d)
     let oldEditingTarget = vm.editingTarget
+    // set editing target
     vm.editingTarget = vm.runtime.getSpriteTargetByName(d.target)
     vm.runtime._editingTarget = vm.editingTarget
+    let vEvent = d.event
+    let bEvent = ScratchBlocks.Events.fromJson(d.json,ScratchBlocks.getMainWorkspace())
+    //set blockly event tag
+    bEvent.isBlocklive = true
 
-    if(oldEditingTarget.sprite.name == d.target) {
-        //inject directly into blockly
-        let event = ScratchBlocks.Events.fromJson(d.json,d.json.type)
-        event.workspaceId = ScratchBlocks.getMainWorkspace().id
+    //........... Modify event ...........//
 
-        event.run(true)
-    } else {
-        vm.editingTarget.blocks.blocklyListen(d.event)
+    // set vm type
+    vEvent.type = d.type
+
+    //find true field
+    if(!!d.extrargs.fieldTag) {
+        let realId = vm.editingTarget.blocks.getBlock(d.extrargs.parentId).inputs[d.extrargs.fieldTag].block
+        vEvent.blockId = realId;
+        bEvent.blockId = realId;
+    }
+    //xml
+    if(!!d.extrargs.xml) {
+        vEvent.xml = d.extrargs.xml
     }
 
+
+    if(oldEditingTarget.sprite.name == d.target) {
+        // save speedy move events for later
+        if(bEvent.type == 'move' && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
+        else{
+        //inject directly into blockly
+        if(!isBadToRunBlockly(bEvent,ScratchBlocks.getMainWorkspace()) && !isBadToRun(bEvent,vm.editingTarget)) {
+            // record newly made block so that we can intercept it's blockly auto-generated move event later
+            if(bEvent.type == 'create'){toBeMoved[bEvent.blockId] = []} 
+            // record played blocklive event
+            blockliveEvents[getStringEventRep(bEvent)] = true
+            // run event
+            bEvent.run(true)
+        }
+    }
+    } else {
+        if(!isBadToRun(vEvent,vm.editingTarget)) {
+            // record played blocklive event
+            blockliveEvents[getStringEventRep(vEvent)] = true
+            vm.editingTarget.blocks.blocklyListen(vEvent)
+        }
+    }
+
+    //reset editing target
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
 }
@@ -132,7 +317,8 @@ function onBlockRecieve(d) {
 // vm.editingTarget = a;
 // vm.emitTargetsUpdate(false /* Don't emit project change */);
 // vm.emitWorkspaceUpdate();
-vm.blockListener = stProxy(vm.blockListener,"blocks",
+// vm.blockListener = 
+stProxy(vm.blockListener,"blocks",
     (args)=>{
         let retVal = {}
         if(args[0].xml) {
@@ -158,9 +344,9 @@ vm.blockListener = stProxy(vm.blockListener,"blocks",
     },
     (data)=>{
         let retVal = []
-        if(data.extrargs.xml){retVal = [{...data.args[0],type:data.extrargs.type,xml:data.extrargs.xml}]}
+        /*tag*/if(data.extrargs.xml){retVal = [{...data.args[0],type:data.extrargs.type,xml:data.extrargs.xml}]}
         else {retVal = [{...data.args[0],type:data.extrargs.type}]}
-        if(data.extrargs.fieldTag) {retVal[0].blockId = vm.editingTarget.blocks.getBlock(data.extrargs.parentId).inputs[data.extrargs.fieldTag].block}
+        /*it*/if(data.extrargs.fieldTag) {retVal[0].blockId = vm.editingTarget.blocks.getBlock(data.extrargs.parentId).inputs[data.extrargs.fieldTag].block}
         return retVal;
     },
     null,
@@ -238,6 +424,8 @@ port.onMessage.addListener(function(msg) {
         runEventFromMessageData(msg.data)
     } else if (msg.meta=="sprite.proxy") {
         proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
+    } else if (msg.meta =="vm.blockListen") {
+        onBlockRecieve(msg)
     }
 });
 port.onDisconnect.addListener(()=>{
