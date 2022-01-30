@@ -46,6 +46,9 @@ function silently(action) {
 
 // mutator takes data object {name, args, extrargs} and returns args list
 function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
+    return anyproxy(vm,action,name,extrargs,mutator,before,then,dontSend,dontDo)
+}
+function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontDo) {
     let proxiedFunction =function(...args) {
         if(args[0]=='linguini') {
 // if linguini, ...args are ['linguini', data, data.args]
@@ -62,7 +65,7 @@ function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
             console.log(...args)
             if(name=='blocks'){lastEvent = args[0]}
             if(dontDo?.(data)) {return}
-            let retval = action.bind(vm)(...args)
+            let retval = action.bind(bindTo)(...args)
             if(then) {
                 if(!!retval?.then) {
                     // if returns a promise
@@ -82,7 +85,7 @@ function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
             if(!!extrargs) {extrargsObj=extrargs(args)}
             if(__SENDBLOCKS && !dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
 
-            let retval = action.bind(vm)(...args)
+            let retval = action.bind(bindTo)(...args)
             return retval
         }
     }
@@ -196,7 +199,7 @@ function blockListener(e) {
         
         // send field locator info
         if(e.element == 'field') {
-            if(e.shadow) {
+            if(vm.editingTarget.blocks.getBlock(e.blockId).shadow) {
             let fieldInputId = e.blockId
             let fieldInput = vm.editingTarget.blocks.getBlock(fieldInputId)
             let parentId = fieldInput.parent
@@ -345,74 +348,14 @@ vm.emitWorkspaceUpdate = function() {
 // vm.editingTarget = a;
 // vm.emitTargetsUpdate(false /* Don't emit project change */);
 // vm.emitWorkspaceUpdate();
-// vm.blockListener = 
-stProxy(vm.blockListener,"blocks",
-    (args)=>{
-        let retVal = {}
-        if(args[0].xml) {
-            let xml = args[0].xml
-            console.log(xml.outerHTML)
-            retVal = ({type:args[0].type,xml:{outerHTML:args[0].xml?.outerHTML}})
-        } else {
-            retVal = ({type:args[0].type})
-        }
-        if(args[0].element == 'field') {
-            let fieldInputId = args[0].blockId
-            let fieldInput = vm.editingTarget.blocks.getBlock(fieldInputId)
-            let parentId = fieldInput.parent
-            if(!!parentId) {
-                let parentBlock = vm.editingTarget.blocks.getBlock(parentId)
-                let inputTag = Object.values(parentBlock.inputs).find(input=>input.block==fieldInputId).name
-
-                retVal.parentId = parentId
-                retVal.fieldTag = inputTag
-            }
-        }
-        return retVal
-    },
-    (data)=>{
-        let retVal = []
-        /*tag*/if(data.extrargs.xml){retVal = [{...data.args[0],type:data.extrargs.type,xml:data.extrargs.xml}]}
-        else {retVal = [{...data.args[0],type:data.extrargs.type}]}
-        /*it*/if(data.extrargs.fieldTag) {retVal[0].blockId = vm.editingTarget.blocks.getBlock(data.extrargs.parentId).inputs[data.extrargs.fieldTag].block}
-        return retVal;
-    },
-    null,
-()=>{/*vm.refreshWorkspace()*/},
-
-    (e)=>(
-        // Dont send these events
-        ["endDrag",'ui','dragOutside'].indexOf(e.type) !== -1||
-        
-        // Test for dont send cases
-        (e.type=='create' && (
-            !!vm.runtime._editingTarget.blocks.getBlock(e.blockId)
-        )) ||
-        ((e.type=='change' || e.type=='move' || e.type=='delete') && (
-            // Dont send if block doesnt exist
-            !vm.runtime._editingTarget.blocks.getBlock(e.blockId)
-        )) ||
-        // TODO
-        (e.type=='var_create' && (
-            !!vm.runtime._editingTarget.lookupVariableById(e.varId)
-        )) ||
-        
-        // (!e.recordUndo) && (
-        // e.type == 'create'||
-        // e.type == 'change'||
-        // e.type == 'move'||
-        // e.type == 'delete'||
-        // e.type == 'var_create' ||
-        // e.type == 'var_delete')
-        false
-        )
-    // ()=>{vm.refreshWorkspace()}
-)
 // vm.blockListener = proxy(vm.blockListener,"blocks",
 //     (args)=>({type:args[0].type}),
 //     (data)=>[{...data.args[0],type:data.extrargs.type}]
 // )
 // vm.blockListener = stProxy(vm.blockListener,"blocklist",null,null,null,()=>{vm.emitWorkspaceUpdate()})
+
+vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
+vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
 
 vm.addCostume = proxy(vm.addCostume,"addcostume")
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
@@ -446,105 +389,37 @@ var port = chrome.runtime.connect(exId);
 var isConnected = true;
 // port.postMessage();
 
-function portListeners() {
-port.onMessage.addListener(function(msg) {
-    if(msg.meta=="blockly.event") {
-        runEventFromMessageData(msg.data)
-    } else if (msg.meta=="sprite.proxy") {
-        proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
-    } else if (msg.meta =="vm.blockListen") {
-        onBlockRecieve(msg)
-    }
-});
-port.onDisconnect.addListener(()=>{
-    isConnected = false;
-})
+function registerChromePortListeners() {
+    port.onMessage.addListener(function(msg) {
+        if(msg.meta=="blockly.event") {
+            runEventFromMessageData(msg.data)
+        } else if (msg.meta=="sprite.proxy") {
+            proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
+        } else if (msg.meta =="vm.blockListen") {
+            onBlockRecieve(msg)
+        }
+    });
+    port.onDisconnect.addListener(()=>{
+        isConnected = false;
+    })
 }
-portListeners()
+registerChromePortListeners()
+
+function recconectIfNeeded() {
+    if(!isConnected) {
+        port = chrome.runtime.connect(exId); 
+        isConnected = (!!port); 
+        registerChromePortListeners()
+    }
+
+}
 function liveMessage(...args) {
-    if(!isConnected) {port = chrome.runtime.connect(exId); isConnected = (!!port); portListeners()}
+    recconectIfNeeded()
     port.postMessage(...args)
 }
 
 
 
-function onChange(e) {
-    return;
-    console.log(e)
-    if(!e.recordUndo) {return}
-    lastevent = e
-
-    if(e.blockId in newMade) {
-        liveMessage({meta:"blockly.event",data:{
-            targetId:vm.editingTarget.id,
-            targetName:vm.editingTarget.sprite.name,
-            type:newMade[e.blockId].type,
-            json:newMade[e.blockId].toJson()
-        }})
-        delete newMade[e.blockId]
-    } else if(e.commentId in newMade) {
-        liveMessage({meta:"blockly.event",data:{
-            targetId:vm.editingTarget.id,
-            targetName:vm.editingTarget.sprite.name,
-            type:newMade[e.commentId].type,
-            json:newMade[e.commentId].toJson()}})
-        delete newMade[e.commentId]
-    }
-    if(!isRecievedEvent(e)) {
-        if(e.type == "create") {
-            newMade[e.blockId] = e
-        } else if(e.type=="comment_create") {
-            newMade[e.commentId] = e
-        } else {
-            liveMessage({meta:"blockly.event",data:{
-                targetId:vm.editingTarget.id,
-                targetName:vm.editingTarget.sprite.name,
-                type:e.type,
-                json:e.toJson()}}, 
-            function (response) {
-            console.log("response: " + response)
-            });
-        }
-    }
-}
-
-let playedEvents = []
-let newMade = {}
-
-function runEventFromMessageData(d) {
-    let event = ScratchBlocks.Events.fromJson(d.json,d.json.type)
-    // Todo: consider changing to a id system?
-    // Todo: catch stage not being sprite
-    if(d.targetName == vm.editingTarget.sprite.name) {
-        vm.editingTarget
-        event.workspaceId = ScratchBlocks.getMainWorkspace().id
-        // event.recordUndo = false;
-        playedEvents.push(event)
-        event.run(true)
-    } else {
-        let trueTarget = vm.runtime.getSpriteTargetByName(d.targetName)
-        playedEvents.push(event)
-        trueTarget.blocks.blocklyListen(event)
-    }
-}
-
-function isSameEvent(ran,caught) {
-    for (entry of Object.entries(caught)) {
-        if(entry[0] != "group" && entry[0] != "recordUndo" && entry[0] != "workspaceId" && entry[0] != "xml" && !entry[0].includes("old")) {
-            if(JSON.stringify(ran[entry[0]]) != JSON.stringify(entry[1])) {console.log(`${entry[0]}: ${entry[1]} vs ${ran[entry[0]]}`);return false;}
-        }
-    }
-    return true;
-}
-function isRecievedEvent(caught) {
-    for(let i=0;i<playedEvents.length;i++) {
-        if(isSameEvent(playedEvents[i],caught)) {
-            playedEvents.splice(i,1);
-            return true
-        }
-    }
-    return false
-}
 
 
 // Trap ScratchBlocks -- adapted from https://github.com/ScratchAddons/ScratchAddons/blob/4248dc327a9f3360c77b94a89e396903218a2fc2/addon-api/content-script/Trap.js
@@ -578,10 +453,6 @@ let childable = reactInst;
 while (((childable = childable.child), !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)) {}
 
 ScratchBlocks = childable.stateNode.ScratchBlocks;
-
-// Register Workspace Change Listerner
-ScratchBlocks.getMainWorkspace().addChangeListener(onChange)
-console.log("change listener registered")
 
 // Send Trapped Message
 liveMessage({meta:"sb.trapped"}, function (response) {
