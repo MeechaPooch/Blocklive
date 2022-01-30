@@ -173,6 +173,7 @@ function getStringEventRep(e) {
             rep += rep += Math.round(e.newCoordinate_?.x)
             + Math.round(e.newCoordinate_?.y)
     }
+    return rep
 }
 
 oldBlockListener = vm.blockListener
@@ -195,6 +196,7 @@ function blockListener(e) {
         
         // send field locator info
         if(e.element == 'field') {
+            if(e.shadow) {
             let fieldInputId = e.blockId
             let fieldInput = vm.editingTarget.blocks.getBlock(fieldInputId)
             let parentId = fieldInput.parent
@@ -205,6 +207,9 @@ function blockListener(e) {
                 extrargs.parentId = parentId
                 extrargs.fieldTag = inputTag
             }
+        } else {
+            // todo-- wait maybe this should be nothing!?
+        }
         }
 
         // send block create xml
@@ -312,6 +317,29 @@ function onBlockRecieve(d) {
     //reset editing target
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
+}
+
+let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
+vm.emitWorkspaceUpdate = function() {
+    // add creates and deletes for comments
+    Object.keys(vm.editingTarget.comments).forEach(commentId=>{
+        blockliveEvents[getStringEventRep({type:'comment_create',commentId})] = true
+        blockliveEvents[getStringEventRep({type:'comment_delete',commentId})] = true
+    })
+    // add deletes for top blocks
+    ScratchBlocks.getMainWorkspace().topBlocks_.forEach(block=>{
+        blockliveEvents[getStringEventRep({type:'delete',blockId:block.id})] = true
+    })
+    // add creates for all blocks
+    Object.keys(vm.editingTarget.blocks._blocks).forEach(blockId=>{
+        blockliveEvents[getStringEventRep({type:'create',blockId})] = true
+    })
+    // add var creates and deletes
+    Object.keys(vm.editingTarget.variables).forEach(varId=>{
+        blockliveEvents[getStringEventRep({type:'var_delete',varId})] = true
+        blockliveEvents[getStringEventRep({type:'var_create',varId})] = true
+    })
+    oldEWU()
 }
 
 // vm.editingTarget = a;
