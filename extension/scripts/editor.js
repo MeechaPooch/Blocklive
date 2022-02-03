@@ -166,17 +166,22 @@ function getStringEventRep(e) {
             break;
         case 'change':
             rep += e.name + e.newValue + e.element
+            break;
         case 'var_create':
             rep += e.varName + e.isCloud + e.isLocal
+            break;
         case 'var_rename':
             rep += e.newName
+            break;
         case 'comment_change':
-            rep += e.newContents_?.text
+            rep += JSON.stringify(e.newContents_,(k,v)=>(v?.toFixed ? Number(v.toFixed(0)) : v))
+            break;
         case 'comment_move':
-            rep += rep += Math.round(e.newCoordinate_?.x)
+            rep += Math.round(e.newCoordinate_?.x)
             + Math.round(e.newCoordinate_?.y)
+            break;
     }
-    return rep
+    return rep.replaceAll("undefined","null")
 }
 
 oldBlockListener = vm.blockListener
@@ -184,8 +189,10 @@ blockliveEvents = {}
 createEventMap = {}
 toBeMoved = {}
 function blockListener(e) {
+    console.log('just intrecepted',e)
     if(e.type == 'create'){createe = e}
     if(e.type == 'move'){movee = e}
+    if(e.type == 'comment_change'){comee = e}
     // filter ui events and blocklive
     let stringRep = getStringEventRep(e)
     if(stringRep in blockliveEvents) {delete blockliveEvents[stringRep]}
@@ -210,9 +217,7 @@ function blockListener(e) {
                 extrargs.parentId = parentId
                 extrargs.fieldTag = inputTag
             }
-        } else {
-            // todo-- wait maybe this should be nothing!?
-        }
+            }
         }
 
         // send block create xml
@@ -227,10 +232,10 @@ function blockListener(e) {
         // intercept and save create events to send later
         if(e.type == "create") {
             createEventMap[e.blockId] = message
-        } else if (e.type == 'comment_create') {
-            createEventMap[e.commentId] = message
+        // } else if (e.type == 'comment_create') { //TODO: maybe add back
+        //     createEventMap[e.commentId] = message
         // intercept auto generated move event
-        } else if (e.type == 'move' && e.blockId in toBeMoved){
+        } else if ((e.type == 'move') && e.blockId in toBeMoved){
             let moveEvents = toBeMoved[e.blockId]
             console.log("move events",moveEvents)
             delete toBeMoved[e.blockId]
@@ -269,6 +274,12 @@ vm.blockListener = blockListener
 
 function onBlockRecieve(d) {
     console.log("recieved", d)
+
+    // for comment parsing cause they did the toJson wrong apparently
+    if(d.type == 'comment_change') {
+        d.json.newValue = d.json.newContents
+    }
+
     let oldEditingTarget = vm.editingTarget
     // set editing target
     vm.editingTarget = vm.runtime.getSpriteTargetByName(d.target)
@@ -279,6 +290,8 @@ function onBlockRecieve(d) {
     bEvent.isBlocklive = true
 
     //........... Modify event ...........//
+// TODO: add comment create xy
+
 
     // set vm type
     vEvent.type = d.type
@@ -296,8 +309,8 @@ function onBlockRecieve(d) {
 
 
     if(oldEditingTarget.sprite.name == d.target) {
-        // save speedy move events for later
-        if(bEvent.type == 'move' && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
+        // save speedy move and delete events for later
+        if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
         //inject directly into blockly
         if(!isBadToRunBlockly(bEvent,ScratchBlocks.getMainWorkspace()) && !isBadToRun(bEvent,vm.editingTarget)) {
@@ -311,8 +324,6 @@ function onBlockRecieve(d) {
     }
     } else {
         if(!isBadToRun(vEvent,vm.editingTarget)) {
-            // record played blocklive event
-            blockliveEvents[getStringEventRep(vEvent)] = true
             vm.editingTarget.blocks.blocklyListen(vEvent)
         }
     }
@@ -324,23 +335,32 @@ function onBlockRecieve(d) {
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
-    // add creates and deletes for comments
+    console.log("WORKSPACE UPDATING")
+    // add deletes for comments
+    ScratchBlocks.getMainWorkspace().getTopComments().forEach(comment=>{
+        blockliveEvents[getStringEventRep({type:'comment_delete',commentId:comment.id})] = true
+    })
+    // add creates for comments in new workspace
     Object.keys(vm.editingTarget.comments).forEach(commentId=>{
         blockliveEvents[getStringEventRep({type:'comment_create',commentId})] = true
-        blockliveEvents[getStringEventRep({type:'comment_delete',commentId})] = true
     })
-    // add deletes for top blocks
+    // add deletes for top blocks in current workspace
     ScratchBlocks.getMainWorkspace().topBlocks_.forEach(block=>{
         blockliveEvents[getStringEventRep({type:'delete',blockId:block.id})] = true
     })
-    // add creates for all blocks
+    // add creates for all blocks in new workspace
     Object.keys(vm.editingTarget.blocks._blocks).forEach(blockId=>{
         blockliveEvents[getStringEventRep({type:'create',blockId})] = true
     })
     // add var creates and deletes
-    Object.keys(vm.editingTarget.variables).forEach(varId=>{
-        blockliveEvents[getStringEventRep({type:'var_delete',varId})] = true
-        blockliveEvents[getStringEventRep({type:'var_create',varId})] = true
+    Object.entries(vm.editingTarget.variables).forEach(varr=>{
+        blockliveEvents[getStringEventRep({type:'var_delete',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
+        blockliveEvents[getStringEventRep({type:'var_create',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:true})] = true
+    })
+    // add global (local:false) var creates
+    Object.entries(vm.runtime.getTargetForStage().variables).forEach(varr=>{
+        // blockliveEvents[getStringEventRep({type:'var_delete',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
+        blockliveEvents[getStringEventRep({type:'var_create',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
     })
     oldEWU()
 }
