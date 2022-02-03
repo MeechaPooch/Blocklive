@@ -290,8 +290,6 @@ function onBlockRecieve(d) {
     bEvent.isBlocklive = true
 
     //........... Modify event ...........//
-// TODO: add comment create xy
-
 
     // set vm type
     vEvent.type = d.type
@@ -307,6 +305,10 @@ function onBlockRecieve(d) {
         vEvent.xml = d.extrargs.xml
     }
 
+    // add comment create xy
+    if(d.type == "comment_create") {
+        bEvent.xy = d.event.xy
+    }
 
     if(oldEditingTarget.sprite.name == d.target) {
         // save speedy move and delete events for later
