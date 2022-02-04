@@ -1,48 +1,123 @@
-collabliveId = " "
+blockliveId = null
 console.log('CollabLive Editor Inject Running...')
+
+
+function sleep(millis) {
+    return new Promise(res => setTimeout(res, millis));
+}
+///.......... BG SCRIPT CONNECTION SETUP ..........//
+
+var exId = 'gldgilbeipcefapiopheheghmjbgjepb'
+
+// Connect To Background Script
+var port = chrome.runtime.connect(exId);
+var isConnected = true;
+
+function liveMessage(...args) {
+    reconnectIfNeeded()
+    port.postMessage(...args)
+}
+
+function blockliveListener(msg) {
+    if(msg.meta=="blockly.event") {
+        runEventFromMessageData(msg.data)
+    } else if (msg.meta=="sprite.proxy") {
+        proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
+    } else if (msg.meta =="vm.blockListen") {
+        onBlockRecieve(msg)
+    } else if (msg.meta =="hihungryimdad") {
+        blockliveId = msg.id
+    } else if (msg.meta == "messageList") {
+        msg.messages.forEach(message=>{blockliveListener(message)})
+    }
+}
+
+
+function registerChromePortListeners() {
+    port.onMessage.addListener(blockliveListener);
+    port.onDisconnect.addListener(()=>{
+        isConnected = false;
+    })
+}
+registerChromePortListeners()
+
+function reconnectIfNeeded() {
+    if(!isConnected) {
+        port = chrome.runtime.connect(exId); 
+        isConnected = (!!port); 
+        if(isConnected){
+            registerChromePortListeners();
+            liveMessage({meta:"whydidyounamemethisway",id:blockliveId})
+        }
+    }
+}
+
+
+
+///.......... TRAPS ..........//
+
+// Trap ScratchBlocks -- adapted from https://github.com/ScratchAddons/ScratchAddons/blob/4248dc327a9f3360c77b94a89e396903218a2fc2/addon-api/content-script/Trap.js
+function sleep(millis) {
+    return new Promise(res=>setTimeout(res,millis));
+}
+
+function getObj(lambda) {
+    return new Promise(async res=>{
+        let output;
+        while(!(output = lambda())) {
+            console.log('waiting for lambda resolve: ' + lambda)
+            await sleep(100)
+        }
+        res(output);
+    })
+}
+
+(async()=>{
+let reactElem = (await getObj(()=>document.querySelector('[class^="gui_blocks-wrapper"]')))
+let reactInst;
+for(let e of Object.entries(reactElem)) {
+    if(e[0].startsWith('__reactInternalInstance')) {
+        reactInst = e[1];
+        break;
+    }
+}
+
+let childable = reactInst;
+/* eslint-disable no-empty */
+while (((childable = childable.child), !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)) {}
+
+ScratchBlocks = childable.stateNode.ScratchBlocks;
+
+// Send Trapped Message
+liveMessage({meta:"sb.trapped"}, function (response) {
+    console.log("response: " + response)
+});
+})()
 
 // Thanks garbomuffin and scratchaddons
 let vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
 .child.child.child.stateNode.props.vm;
 
-let lastEvent
-let __SENDBLOCKS = true;
 
-// vm.runtime.getSpriteTargetByName("Sprite6").blocks.blocklyListen(ev) 
 
-// let prevadd = vm.addSprite
-// function newAdd(...info) {
-//     console.log(info[0])
-//     let retval = prevadd.bind(vm)(...info)
-//     console.log(retval)
-//     retval.then(()=>{console.log(vm.editingTarget)})
-//     return retval
-// }
-// vm.addSprite = newAdd
+///.......... ALL THE HACKY THINGS ..........//
 
-if(typeof vm == 'undefined') {
-    alert('Scratch LiveShare Inject VM Capture Failed! To use LiveShare, reload tab cache (ctrl + shift + r)')
+function getWorkspace() {
+    let retVal = null
+    Object.entries(ScratchBlocks.Workspace.WorkspaceDB_).forEach(wkv=>{
+        if(!wkv[1].isFlyout) {retVal = wkv[1]}
+    })
+    return retVal;
 }
+function getWorkspaceId() {
+    return getWorkspace()?.id
+}
+
 proxyActions = {}
 //action: vm action function
 //name: name to put in recort
 //mutator: args generator from recieved data object (has args field)
 //then: callback for those replaying action
-
-function silently(action) {
-    return (...args)=>{
-        __SENDBLOCKS = false;
-        let retval = action.bind(vm)(...args)
-        if(!!retval?.then) {
-           retval.then(()=>{__SENDBLOCKS = true}) 
-        } else {
-            __SENDBLOCKS = true;
-        }
-        return retval
-    }
-}
-// vm.setEditingTarget = silently(vm.setEditingTarget)
-// vm.refreshWorkspace = silently(vm.refreshWorkspace)
 
 // mutator takes data object {name, args, extrargs} and returns args list
 function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
@@ -63,7 +138,6 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             if(!!before) {before(data)}
             console.log('args:')
             console.log(...args)
-            if(name=='blocks'){lastEvent = args[0]}
             if(dontDo?.(data)) {return}
             let retval = action.bind(bindTo)(...args)
             if(then) {
@@ -78,12 +152,10 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             return retval
         } else {
             console.log('intrecepted:')
-            if(name=='blocks') {console.log('spritename: ' + vm.editingTarget.sprite.name)}
             console.log(...args)
-            if(name=='blocks'){lastEvent = args[0]}
             let extrargsObj = null;
             if(!!extrargs) {extrargsObj=extrargs(args)}
-            if(__SENDBLOCKS && !dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
+            if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
 
             let retval = action.bind(bindTo)(...args)
             return retval
@@ -190,7 +262,10 @@ createEventMap = {}
 toBeMoved = {}
 function blockListener(e) {
     console.log('just intrecepted',e)
+    if(e.type == 'ui'){uiii = e}
     if(e.type == 'create'){createe = e}
+    if(e.type == 'delete'){deletee = e}
+    if(e.type == 'change'){changee = e}
     if(e.type == 'move'){movee = e}
     if(e.type == 'comment_change'){comee = e}
     // filter ui events and blocklive
@@ -212,7 +287,7 @@ function blockListener(e) {
             let parentId = fieldInput.parent
             if(!!parentId) {
                 let parentBlock = vm.editingTarget.blocks.getBlock(parentId)
-                let inputTag = Object.values(parentBlock.inputs).find(input=>input.block==fieldInputId).name
+                let inputTag = Object.values(parentBlock.inputs).find(input=>input.shadow==fieldInputId).name
 
                 extrargs.parentId = parentId
                 extrargs.fieldTag = inputTag
@@ -220,9 +295,13 @@ function blockListener(e) {
             }
         }
 
-        // send block create xml
+        // send block xml-related things
         if(!!e.xml) {
             extrargs.xml = {outerHTML:e.xml.outerHTML}
+            extrargs.isCBCreateOrDelete = e.xml?.getAttribute('type') == 'procedures_definition'
+        }
+        if(!!e.oldXml) {
+            extrargs.isCBCreateOrDelete = extrargs.isCBCreateOrDelete || e.oldXml?.getAttribute('type') == 'procedures_definition'
         }
 
         console.log("sending",e,extrargs)
@@ -263,10 +342,11 @@ function blockListener(e) {
             if(!!message){liveMessage(message)}
         }
     }
-    // Forward (do) event
-    oldBlockListener(e)
+    // ___DONT___ Forward (do) event
+    // oldBlockListener(e)
 }
-vm.blockListener = blockListener
+// vm.blockListener = blockListener
+getObj(()=>(typeof ScratchBlocks != 'undefined')).then(()=>{getWorkspace().addChangeListener(blockListener)})
 
 /// Todo: testing on whether or not to actually execute actions
 // Todo: catch stage not being sprite
@@ -285,7 +365,7 @@ function onBlockRecieve(d) {
     vm.editingTarget = vm.runtime.getSpriteTargetByName(d.target)
     vm.runtime._editingTarget = vm.editingTarget
     let vEvent = d.event
-    let bEvent = ScratchBlocks.Events.fromJson(d.json,ScratchBlocks.getMainWorkspace())
+    let bEvent = ScratchBlocks.Events.fromJson(d.json,getWorkspace())
     //set blockly event tag
     bEvent.isBlocklive = true
 
@@ -296,7 +376,7 @@ function onBlockRecieve(d) {
 
     //find true field
     if(!!d.extrargs.fieldTag) {
-        let realId = vm.editingTarget.blocks.getBlock(d.extrargs.parentId).inputs[d.extrargs.fieldTag].block
+        let realId = vm.editingTarget.blocks.getBlock(d.extrargs.parentId).inputs[d.extrargs.fieldTag].shadow
         vEvent.blockId = realId;
         bEvent.blockId = realId;
     }
@@ -315,13 +395,19 @@ function onBlockRecieve(d) {
         if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
         //inject directly into blockly
-        if(!isBadToRunBlockly(bEvent,ScratchBlocks.getMainWorkspace()) && !isBadToRun(bEvent,vm.editingTarget)) {
+        if(!isBadToRunBlockly(bEvent,getWorkspace()) && !isBadToRun(bEvent,vm.editingTarget)) {
             // record newly made block so that we can intercept it's blockly auto-generated move event later
-            if(bEvent.type == 'create'){toBeMoved[bEvent.blockId] = []} 
+            // ...dont record it for newly created custom block definitions
+            if(bEvent.type == 'create' && !d.extrargs.isCBCreateOrDelete){toBeMoved[bEvent.blockId] = []} 
             // record played blocklive event
             blockliveEvents[getStringEventRep(bEvent)] = true
             // run event
             bEvent.run(true)
+
+            // for custom blocks, update toolbox
+            if(bEvent.element == "mutation" || d.extrargs.isCBCreateOrDelete) {
+                ScratchBlocks.getMainWorkspace().getToolbox().refreshSelection()
+            }
         }
     }
     } else {
@@ -339,7 +425,7 @@ let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
     console.log("WORKSPACE UPDATING")
     // add deletes for comments
-    ScratchBlocks.getMainWorkspace().getTopComments().forEach(comment=>{
+    getWorkspace().getTopComments().forEach(comment=>{
         blockliveEvents[getStringEventRep({type:'comment_delete',commentId:comment.id})] = true
     })
     // add creates for comments in new workspace
@@ -347,7 +433,7 @@ vm.emitWorkspaceUpdate = function() {
         blockliveEvents[getStringEventRep({type:'comment_create',commentId})] = true
     })
     // add deletes for top blocks in current workspace
-    ScratchBlocks.getMainWorkspace().topBlocks_.forEach(block=>{
+    getWorkspace().topBlocks_.forEach(block=>{
         blockliveEvents[getStringEventRep({type:'delete',blockId:block.id})] = true
     })
     // add creates for all blocks in new workspace
@@ -376,8 +462,10 @@ vm.emitWorkspaceUpdate = function() {
 // )
 // vm.blockListener = stProxy(vm.blockListener,"blocklist",null,null,null,()=>{vm.emitWorkspaceUpdate()})
 
-vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
-vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
+
+// TODO: eventually maybe sync this
+// vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
+// vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
 
 vm.addCostume = proxy(vm.addCostume,"addcostume")
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
@@ -390,99 +478,46 @@ vm.renameSprite = proxy(vm.renameSprite,"renamesprite",
     (args)=>({oldName:vm.runtime.getTargetById(args[0]).sprite.name}),
     (data)=>[vm.runtime.getSpriteTargetByName(data.extrargs.oldName).id,data.args[1]])
 vm.reorderTarget = proxy(vm.reorderTarget,"reordertarget")
-vm.shareBlocksToTarget = proxy(vm.shareBlocksToTarget,"shareblocks",
-(args)=>({toName:vm.runtime.getTargetById(args[1]).sprite.name}),
-(data)=>[data.args[0],vm.runtime.getSpriteTargetByName(data.extrargs.toName).id],null,()=>{vm.emitWorkspaceUpdate()})
+// vm.shareBlocksToTarget = proxy(vm.shareBlocksToTarget,"shareblocks",
+// (args)=>({toName:vm.runtime.getTargetById(args[1]).sprite.name}),
+// (data)=>[data.args[0],vm.runtime.getSpriteTargetByName(data.extrargs.toName).id],null,()=>{vm.emitWorkspaceUpdate()})
+
+let capturedBlockShareCreates = []
+getObj(()=>(vm.editingTarget)).then(()=>{
+    let oldCreateBlock = vm.editingTarget.blocks.__proto__.createBlock
+
+    vm.editingTarget.blocks.__proto__.createBlock = function(...args) {
+        if(isTargetSharing) {console.log('YOOOO!!!!🤯🤯🤯🤯🤯🤯 SHARED!!!!!',this,...args)}
+        return oldCreateBlock.call(this,...args)
+    }
+})
+
+
+let oldShareBlocksToTarget = vm.shareBlocksToTarget
+let isTargetSharing = false
+vm.shareBlocksToTarget = function(...args) {
+    console.log(args)
+    isTargetSharing = true
+    return oldShareBlocksToTarget.bind(vm)(...args).then(()=>{
+        isTargetSharing = false
+    })
+}
+
 
 // vm.shareCostumeToTarget
 
 // no sure what this does but it might be useful at some point this.editingTarget.fixUpVariableReferences();
 
-
-
-function sleep(millis) {
-    return new Promise(res => setTimeout(res, millis));
-}
-
-var exId = 'gldgilbeipcefapiopheheghmjbgjepb'
-
-// Connect To Background Script
-var port = chrome.runtime.connect(exId);
-var isConnected = true;
 // port.postMessage();
 
-function registerChromePortListeners() {
-    port.onMessage.addListener(function(msg) {
-        if(msg.meta=="blockly.event") {
-            runEventFromMessageData(msg.data)
-        } else if (msg.meta=="sprite.proxy") {
-            proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
-        } else if (msg.meta =="vm.blockListen") {
-            onBlockRecieve(msg)
-        }
-    });
-    port.onDisconnect.addListener(()=>{
-        isConnected = false;
-    })
+
+///.......... CHROME PORT LISTENER SETUP ..........//
+
+function connectFirstTime() {
+    reconnectIfNeeded()
+    // request for blockliveId
+    liveMessage({meta:"hiimhungry"})
 }
-registerChromePortListeners()
+connectFirstTime()
 
-function recconectIfNeeded() {
-    if(!isConnected) {
-        port = chrome.runtime.connect(exId); 
-        isConnected = (!!port); 
-        registerChromePortListeners()
-    }
-
-}
-function liveMessage(...args) {
-    recconectIfNeeded()
-    port.postMessage(...args)
-}
-
-
-
-
-
-// Trap ScratchBlocks -- adapted from https://github.com/ScratchAddons/ScratchAddons/blob/4248dc327a9f3360c77b94a89e396903218a2fc2/addon-api/content-script/Trap.js
-function sleep(millis) {
-    return new Promise(res=>setTimeout(res,millis));
-}
-
-function getObj(lambda) {
-    return new Promise(async res=>{
-        let output;
-        while(!(output = lambda())) {
-            console.log('waiting for lambda resolve: ' + lambda)
-            await sleep(100)
-        }
-        res(output);
-    })
-}
-
-(async()=>{
-let reactElem = (await getObj(()=>document.querySelector('[class^="gui_blocks-wrapper"]')))
-let reactInst;
-for(let e of Object.entries(reactElem)) {
-    if(e[0].startsWith('__reactInternalInstance')) {
-        reactInst = e[1];
-        break;
-    }
-}
-
-let childable = reactInst;
-/* eslint-disable no-empty */
-while (((childable = childable.child), !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)) {}
-
-ScratchBlocks = childable.stateNode.ScratchBlocks;
-
-// Send Trapped Message
-liveMessage({meta:"sb.trapped"}, function (response) {
-    console.log("response: " + response)
-});
-})()
-
-
-
-
-
+setInterval(reconnectIfNeeded,1000)

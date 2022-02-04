@@ -10,8 +10,6 @@ chrome.tabs.onUpdated.addListener(function
 }
 );
 
-
-
 let ports = []
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
