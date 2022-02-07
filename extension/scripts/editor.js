@@ -29,6 +29,8 @@ function blockliveListener(msg) {
         blockliveId = msg.id
     } else if (msg.meta == "messageList") {
         msg.messages.forEach(message=>{blockliveListener(message)})
+    } else if (msg.meta == "vm.shareBlocks") {
+        doShareBlocksMessage(msg)        
     }
 }
 
@@ -120,6 +122,22 @@ proxyActions = {}
 //then: callback for those replaying action
 
 // mutator takes data object {name, args, extrargs} and returns args list
+
+let prevTarg = null
+function editingProxy(action,name,extrargs,mutator) {
+    return proxy(action,name,
+        ()=>({target:vm.editingTarget.sprite.name}),null,
+        (data)=>{
+            prevTarg = vm.editingTarget
+            vm.editingTarget = vm.runtime.getSpriteTargetByName(data.extrargs.target)
+            vm.runtime._editingTarget = vm.editingTarget
+        },
+        (data)=>{
+            vm.editingTarget = prevTarg;
+            vm.runtime._editingTarget = prevTarg
+        },extrargs,mutator)
+}
+
 function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
     return anyproxy(vm,action,name,extrargs,mutator,before,then,dontSend,dontDo)
 }
@@ -139,6 +157,7 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             console.log('args:')
             console.log(...args)
             if(dontDo?.(data)) {return}
+            proxiedArgs = args
             let retval = action.bind(bindTo)(...args)
             if(then) {
                 if(!!retval?.then) {
@@ -155,9 +174,10 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             console.log(...args)
             let extrargsObj = null;
             if(!!extrargs) {extrargsObj=extrargs(args)}
-            if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
+            proxiedArgs = args
 
             let retval = action.bind(bindTo)(...args)
+            if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
             return retval
         }
     }
@@ -183,7 +203,19 @@ function isBadToSend(event, target) {
         // filter out shadow events that shouldnt be proxied
         case 'create': if(event.xml.nodeName == "SHADOW") {return true}
         case 'delete': if(event.oldXml?.nodeName == "SHADOW") {return true}
-        case 'move' : if(target.blocks.getBlock(event.blockId)?.shadow) {return true}
+        case 'move' : {
+            let block = target.blocks.getBlock(event.blockId)
+            if(block?.shadow) {return true}
+
+            // edge case: c1 move unlinked var block into parent block. c2 blocklive mistakenly moves a linked block into that place. c2 moves linked block out of the parent block and does not move out of c1
+            // dont send if moves a varible to same position
+            // if(!!block && (block.fields.VARIABLE || block.fields.LIST)) {
+            //     if(!!event.oldCoordinate && !!event.newCoordinate && (
+            //         Math.round(event.oldCoordinate.x) == Math.round(event.newCoordinate.x) &&
+            //         Math.round(event.oldCoordinate.y) == Math.round(event.newCoordinate.y)
+            //     )) {return true}
+            // }
+        }
     }
     return false
 }
@@ -279,6 +311,31 @@ function blockListener(e) {
     ) {
         let extrargs = {}
         
+        // send variable locator info
+        if(e.type == 'move') {
+            let block = vm.editingTarget.blocks.getBlock(e.blockId)
+            if(!!block && (block.fields.VARIABLE || block.fields.LIST)) {
+                extrargs.blockVarId = block.fields.VARIABLE ? block.fields.VARIABLE.id : block.fields.LIST.id
+            }
+        } else if(e.type == 'change' && (e.name == "VARIABLE" || e.name == "LIST")){
+            let block = vm.editingTarget.blocks.getBlock(e.blockId)
+            if(!!block) {
+                extrargs.blockVarId = e.oldValue
+                extrargs.blockVarParent = block.parent
+                extrargs.blockVarPos = {x:block.x,y:block.y}
+                extrargs.blockVarInput = vm.editingTarget.blocks.getBlock(block.parent)?.inputs.find(input=>(input.block==e.blockId))?.name
+            }
+        } else if(e.type == 'delete' && (
+            e.oldXml?.firstElementChild?.getAttribute('name') == 'VARIABLE' ||
+            e.oldXml?.firstElementChild?.getAttribute('name') == 'LIST'
+        )) {
+            let block = !!vm.editingTarget.blocks._blocks[e.blockId] ? vm.editingTarget.blocks._blocks[e.blockId] : lastDeletedBlock
+            extrargs.blockVarId = block.fields.VARIABLE ? block.fields.VARIABLE.id : block.fields.LIST.id
+            extrargs.blockVarParent = block.parent
+            extrargs.blockVarPos = {x:block.x,y:block.y}
+            extrargs.blockVarInput = vm.editingTarget.blocks.getBlock(block.parent)?.inputs.find(input=>(input.block==e.blockId))?.name
+        }
+
         // send field locator info
         if(e.element == 'field') {
             if(vm.editingTarget.blocks.getBlock(e.blockId).shadow) {
@@ -352,6 +409,10 @@ getObj(()=>(typeof ScratchBlocks != 'undefined')).then(()=>{getWorkspace().addCh
 // Todo: catch stage not being sprite
 // Remove thing from undo list
 
+function getDistance(p1,p2) {
+    return Math.sqrt(Math.pow(p2.x-p1.x,2) + Math.pow(p2.y-p1.y,2))
+}
+
 function onBlockRecieve(d) {
     console.log("recieved", d)
 
@@ -373,6 +434,50 @@ function onBlockRecieve(d) {
 
     // set vm type
     vEvent.type = d.type
+
+    // find true variable block if needed
+    if(d.extrargs.blockVarId && !(d.event.blockId in toBeMoved) && !vm.editingTarget.blocks.getBlock(d.event.blockId)) {
+        if(d.event.oldParentId || d.extrargs.blockVarParent) {
+            let oldParentId = d.extrargs.blockVarParent ? d.extrargs.blockVarParent : d.event.oldParentId
+            let realId = vm.editingTarget.blocks.getBlock(oldParentId).inputs[d.extrargs.blockVarInput ? d.extrargs.blockVarInput : d.event.oldInputName].block
+            vEvent.blockId = realId;
+            bEvent.blockId = realId;
+            if(d.type == 'delete') {
+                bEvent.ids = [realId];
+                vEvent.ids = [realId];
+            }
+        } else if(d.event.oldCoordinate || d.extrargs.blockVarPos) {
+            let oldCoordinate = d.extrargs.blockVarPos ? d.extrargs.blockVarPos : d.event.oldCoordinate
+            let varBlocks = vm.editingTarget.blocks._scripts.filter((blockId)=>{
+                let block = vm.editingTarget.blocks.getBlock(blockId)
+                return (
+                    block?.fields?.VARIABLE?.id == d.extrargs.blockVarId ||
+                    block?.fields?.LIST?.id == d.extrargs.blockVarId
+                )
+            })
+            let closestBlock
+            let closestDistance = -1
+            varBlocks.forEach(blockId=>{
+                let block = vm.editingTarget.blocks.getBlock(blockId)
+                if(!block.parent) {
+                    let distance = getDistance({x:block.x,y:block.y},oldCoordinate)
+                    if(!closestBlock || distance < closestDistance) {
+                        closestBlock = block
+                        closestDistance = distance
+                    }
+                }
+            })
+            if(!closestBlock) {console.log('bruh')}
+            else {
+                vEvent.blockId = closestBlock.id;
+                bEvent.blockId = closestBlock.id;
+                if(d.type == 'delete') {
+                    bEvent.ids = [closestBlock.id];
+                    vEvent.ids = [closestBlock.id];
+                }
+            }
+        }
+    }
 
     //find true field
     if(!!d.extrargs.fieldTag) {
@@ -403,10 +508,11 @@ function onBlockRecieve(d) {
             blockliveEvents[getStringEventRep(bEvent)] = true
             // run event
             bEvent.run(true)
+            lastEventRun = bEvent 
 
             // for custom blocks, update toolbox
             if(bEvent.element == "mutation" || d.extrargs.isCBCreateOrDelete) {
-                ScratchBlocks.getMainWorkspace().getToolbox().refreshSelection()
+                getWorkspace().getToolbox().refreshSelection()
             }
         }
     }
@@ -467,7 +573,53 @@ vm.emitWorkspaceUpdate = function() {
 // vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
 // vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
 
-vm.addCostume = proxy(vm.addCostume,"addcostume")
+function targetToName(target) {
+    return target.sprite.name
+}
+function nameToTarget(name) {
+    return vm.runtime.getSpriteTargetByName(name)
+}
+
+vm.renameCostume = editingProxy(vm.renameCostume,"renamecostume")
+vm.duplicateCostume = editingProxy(vm.duplicateCostume,"dupecostume")
+vm.deleteCostume = editingProxy(vm.deleteCostume,"deletecostume")
+vm.reorderCostume = proxy(vm.reorderCostume,"reordercostume",
+    (args)=>({target:targetToName(vm.runtime.getTargetById(args[0]))}),
+    (data)=>[nameToTarget(data.extrargs.target).id,data.args[1],data.args[2]],null,
+    ()=>{vm.emitTargetsUpdate()})
+vm.addCostume = proxy(vm.addCostume,"addcostume",
+    (args)=>{
+        let targetName
+        if(!!args[2]){targetName = vm.runtime.getTargetById(args[2]).sprite.name} else {targetName = vm.editingTarget.sprite.name}
+        return {target:targetName}
+    },
+    (data)=>{
+        let ret = [data.args[0],data.args[1],vm.runtime.getSpriteTargetByName(data.extrargs.target).id,data.args[3]]
+        if(ret[1]?.asset?.data) {
+            // adapted from scratch source 'file-uploader'
+            ret[1].asset = vm.runtime.storage.createAsset(
+                ret[1].asset.assetType, 
+                ret[1].asset.dataFormat,
+                Uint8Array.from(Object.values(ret[1].asset.data)),null,true);
+            ret[1] = {
+                name: null,
+                dataFormat: ret[1].asset.dataFormat,
+                asset: ret[1].asset,
+                md5: `${ret[1].asset.assetId}.${ret[1].asset.dataFormat}`,
+                assetId: ret[1].asset.assetId
+            };
+        }
+        return ret
+    }
+)
+// vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",
+//     (args)=>({h:args[1].height,w:args[1].width}),
+//     (data)=>{
+//         let args = data.args;
+//         args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
+//         return args
+//     })
+vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg")
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 // vm.updateSvg = proxy(vm.updateSvg,"updatesvg",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,((a,b)=>{vm.setEditingTarget(a.id)}))
@@ -482,25 +634,58 @@ vm.reorderTarget = proxy(vm.reorderTarget,"reordertarget")
 // (args)=>({toName:vm.runtime.getTargetById(args[1]).sprite.name}),
 // (data)=>[data.args[0],vm.runtime.getSpriteTargetByName(data.extrargs.toName).id],null,()=>{vm.emitWorkspaceUpdate()})
 
-let capturedBlockShareCreates = []
+let shareCreates = []
+let lastDeletedBlock
 getObj(()=>(vm.editingTarget)).then(()=>{
     let oldCreateBlock = vm.editingTarget.blocks.__proto__.createBlock
 
     vm.editingTarget.blocks.__proto__.createBlock = function(...args) {
-        if(isTargetSharing) {console.log('YOOOO!!!!🤯🤯🤯🤯🤯🤯 SHARED!!!!!',this,...args)}
+        if(isTargetSharing) {
+            shareCreates.push(args)
+        }
         return oldCreateBlock.call(this,...args)
     }
+
+    let oldDeleteBlock = vm.editingTarget.blocks.__proto__.deleteBlock
+    vm.editingTarget.blocks.__proto__.deleteBlock = function(...args) {
+        lastDeletedBlock = this._blocks[args[0]]
+        return oldDeleteBlock.call(this,...args)
+    }
+})
+
+getObj(()=>(vm.extensionManager)).then(()=>{
+    vm.extensionManager.loadExtensionURL = 
+    anyproxy(vm.extensionManager,vm.extensionManager.loadExtensionURL,"loadextensionurl")
 })
 
 
 let oldShareBlocksToTarget = vm.shareBlocksToTarget
 let isTargetSharing = false
-vm.shareBlocksToTarget = function(...args) {
-    console.log(args)
+vm.shareBlocksToTarget = function(blocks, targetId, optFromTargetId) {
+    shareCreates = []
     isTargetSharing = true
-    return oldShareBlocksToTarget.bind(vm)(...args).then(()=>{
+    return oldShareBlocksToTarget.bind(vm)(blocks, targetId, optFromTargetId).then(()=>{
         isTargetSharing = false
+        let targetName = vm.runtime.getTargetById(targetId).sprite.name
+        let fromTargetName = vm.runtime.getTargetById(optFromTargetId)?.sprite.name
+        liveMessage({meta:"vm.shareBlocks",target:targetName,from:fromTargetName,blocks:shareCreates})
     })
+}
+
+function doShareBlocksMessage(msg) {
+    let target = vm.runtime.getSpriteTargetByName(msg.target)
+    let targetId = target.id
+    let fromTargetId = vm.runtime.getSpriteTargetByName(msg.from)?.id
+    // resolve variable conflicts
+    // if(!!fromTargetId) {vm.runtime.getTargetById(fromTargetId).resolveVariableSharingConflictsWithTarget(msg.blocks, target);}
+
+    // create new blocks in target
+    msg.blocks.forEach(bargs=>{target.blocks.createBlock(...bargs)})
+    target.blocks.updateTargetSpecificBlocks(target.isStage);
+
+    if(targetId == vm.editingTarget.id) {vm.emitWorkspaceUpdate()}
+    // update flyout for new variables and blocks
+    getWorkspace().getToolbox().refreshSelection()
 }
 
 

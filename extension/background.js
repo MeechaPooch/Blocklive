@@ -17,7 +17,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
   // console.assert(port.name === "knockknock");
   port.onMessage.addListener(function(msg) {
     console.log(msg)
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen") {
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks") {
       ports.forEach(p=>{try{if(p!=port){p.postMessage(msg)}}catch(e){console.log(e)}})
     }
   });
