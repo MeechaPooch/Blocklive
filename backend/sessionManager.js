@@ -11,8 +11,8 @@ export default class SessionManager{
         scratchId
         scratchProjectVersion = 0
 
-        projectJSON
-        projectJSONVersion = 0
+        // projectJSON
+        // projectJSONVersion = 0
         version = -1
         changes = []
 
@@ -23,7 +23,7 @@ export default class SessionManager{
 
         recordChange(change) {
             this.changes.push(change)
-            this.version ++;
+            this.version++;
         }
 
         getChangesSinceVersion(lastVersion) {
@@ -34,6 +34,14 @@ export default class SessionManager{
     BlockliveClient = class BlockliveClient {
         isReady = false;
 
+        trySendMessage(msg) {
+
+        }
+
+    }
+
+    BlockliveSess = class BlockliveSess {
+        connectedClients = []
     }
 
     // map scratch project id's to blocklive id's

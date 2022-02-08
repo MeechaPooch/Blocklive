@@ -7,7 +7,7 @@ function sleep(millis) {
 }
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
-var exId = 'gldgilbeipcefapiopheheghmjbgjepb'
+var exId = 'mnhfglllnblhnalmpkbnljeghmkfmhgb'
 
 // Connect To Background Script
 var port = chrome.runtime.connect(exId);
@@ -31,6 +31,8 @@ function blockliveListener(msg) {
         msg.messages.forEach(message=>{blockliveListener(message)})
     } else if (msg.meta == "vm.shareBlocks") {
         doShareBlocksMessage(msg)        
+    } else if (msg.meta == 'vm.replaceBlocks') {
+        replaceBlockly(msg)
     }
 }
 
@@ -97,10 +99,24 @@ liveMessage({meta:"sb.trapped"}, function (response) {
 })()
 
 // Thanks garbomuffin and scratchaddons
+// Trap VM
 let vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
 .child.child.child.stateNode.props.vm;
 
 
+// Trap Paint
+function getPaper() {
+    let paperContainer = document.querySelector("[class^='paint-editor_canvas-container']")
+    if(!paperContainer) return null;
+    let reactInst;
+    for(let e of Object.entries(paperContainer)) {
+        if(e[0].startsWith('__reactInternalInstance')) {
+            reactInst = e[1];
+            break;
+        }
+    }
+    return reactInst?.child?.child?.child?.stateNode
+}
 
 ///.......... ALL THE HACKY THINGS ..........//
 
@@ -115,6 +131,36 @@ function getWorkspaceId() {
     return getWorkspace()?.id
 }
 
+// STAGE IDENTIFIER. DO NOT SET SPRITE NAME TO THIS UNLESS YOU WANT TO PURPOSEFULLY BREAK LINKAGE!!!!
+let stageName = 'jHHVSbKjDsRhSWhIlYtd...___+_0)0+-amongus'
+function targetToName(target) {
+    return target?.isStage ? stageName : target?.sprite.name
+}
+function nameToTarget(name) {
+    return name == stageName ? vm.runtime.getTargetForStage() : vm.runtime.getSpriteTargetByName(name)
+}
+
+// Credit to GarboMuffin and apple502j https://github.com/ScratchAddons/ScratchAddons/blob/399e2e51ca43e9299c8d07ff315b91966c7c1a5e/addons/onion-skinning/userscript.js#L428
+const getSelectedCostumeIndex = () => {
+    const item = document.querySelector("[class*='selector_list-item'][class*='sprite-selector-item_is-selected']");
+    if (!item) return -1;
+    const numberEl = item.querySelector("[class*='sprite-selector-item_number']");
+    if (!numberEl) return -1;
+    return +numberEl.textContent - 1;
+};
+
+
+function replaceBlockly(msg) {
+    // replace a target's block data (used for syncing id's on sprite duplicate)
+    let target = nameToTarget(msg.target);
+    let blocks = target.blocks
+    Object.keys(blocks._blocks).forEach(v=>{blocks.deleteBlock(v)})
+    console.log(msg.blocks)
+    Object.values(msg.blocks).forEach(block=>{blocks.createBlock(block)})
+    if(targetToName(vm.editingTarget) == targetToName(target)) {vm.emitWorkspaceUpdate()}
+}
+
+
 proxyActions = {}
 //action: vm action function
 //name: name to put in recort
@@ -124,24 +170,27 @@ proxyActions = {}
 // mutator takes data object {name, args, extrargs} and returns args list
 
 let prevTarg = null
-function editingProxy(action,name,extrargs,mutator) {
+function editingProxy(action,name,before,after) {
     return proxy(action,name,
-        ()=>({target:vm.editingTarget.sprite.name}),null,
+        ()=>({target:targetToName(vm.editingTarget)}),null,
         (data)=>{
+            if(!!before){before(data)}
             prevTarg = vm.editingTarget
-            vm.editingTarget = vm.runtime.getSpriteTargetByName(data.extrargs.target)
+            vm.editingTarget = nameToTarget(data.extrargs.target)
             vm.runtime._editingTarget = vm.editingTarget
         },
-        (data)=>{
+        (_a,_b,data)=>{
             vm.editingTarget = prevTarg;
             vm.runtime._editingTarget = prevTarg
-        },extrargs,mutator)
+            vm.emitTargetsUpdate()
+            if(!!after){after(_a,_b,data)}
+        })
 }
 
-function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
-    return anyproxy(vm,action,name,extrargs,mutator,before,then,dontSend,dontDo)
+function proxy(action,name,extrargs,mutator,before,then,dontSend,dontDo,senderThen) {
+    return anyproxy(vm,action,name,extrargs,mutator,before,then,dontSend,dontDo,senderThen)
 }
-function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontDo) {
+function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontDo,senderThen) {
     let proxiedFunction =function(...args) {
         if(args[0]=='linguini') {
 // if linguini, ...args are ['linguini', data, data.args]
@@ -158,14 +207,15 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             console.log(...args)
             if(dontDo?.(data)) {return}
             proxiedArgs = args
-            let retval = action.bind(bindTo)(...args)
+            let retval
+            try{retval = action.bind(bindTo)(...args)}catch(e){console.log('error on proxy run',e)}
             if(then) {
                 if(!!retval?.then) {
                     // if returns a promise
-                        retval.then(()=>{then(prevTarget,vm.editingTarget)})
+                        retval.then(()=>{then(prevTarget,vm.editingTarget,data)})
                     } else {
                     // if is normal resolved function
-                        then(prevTarget,vm.editingTarget)
+                        then(prevTarget,vm.editingTarget,data)
                     }
             }
             return retval
@@ -178,6 +228,15 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
 
             let retval = action.bind(bindTo)(...args)
             if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
+            if(senderThen) {
+                if(!!retval?.then) {
+                    // if returns a promise
+                        retval.then(senderThen)
+                    } else {
+                    // if is normal resolved function
+                    senderThen()
+                    }
+            }
             return retval
         }
     }
@@ -186,10 +245,10 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
 }
 function stProxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
     return proxy(action,name,
-        (args)=>({__et:vm.editingTarget.sprite.name,...extrargs?.(args)}),
+        (args)=>({__et:targetToName(vm.editingTarget),...extrargs?.(args)}),
         mutator,
         // before,
-        (data)=>{before?.(data);vm.runtime.setEditingTarget(vm.runtime.getSpriteTargetByName(data.extrargs.__et))},
+        (data)=>{before?.(data);vm.runtime.setEditingTarget(nameToTarget(data.extrargs.__et))},
         (a,b)=>{vm.runtime.setEditingTarget(a);then?.(a,b)},
         // then,
         dontSend);
@@ -363,7 +422,7 @@ function blockListener(e) {
 
         console.log("sending",e,extrargs)
 
-        let message = {meta:"vm.blockListen",type:e.type,extrargs,event:e,json:e.toJson(),target:vm.editingTarget.sprite.name,}
+        let message = {meta:"vm.blockListen",type:e.type,extrargs,event:e,json:e.toJson(),target:targetToName(vm.editingTarget),}
         
         // intercept and save create events to send later
         if(e.type == "create") {
@@ -423,8 +482,10 @@ function onBlockRecieve(d) {
 
     let oldEditingTarget = vm.editingTarget
     // set editing target
-    vm.editingTarget = vm.runtime.getSpriteTargetByName(d.target)
+    vm.editingTarget = nameToTarget(d.target)
     vm.runtime._editingTarget = vm.editingTarget
+
+    try{
     let vEvent = d.event
     let bEvent = ScratchBlocks.Events.fromJson(d.json,getWorkspace())
     //set blockly event tag
@@ -495,7 +556,7 @@ function onBlockRecieve(d) {
         bEvent.xy = d.event.xy
     }
 
-    if(oldEditingTarget.sprite.name == d.target) {
+    if(targetToName(oldEditingTarget) == d.target) {
         // save speedy move and delete events for later
         if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
@@ -521,7 +582,7 @@ function onBlockRecieve(d) {
             vm.editingTarget.blocks.blocklyListen(vEvent)
         }
     }
-
+    }catch(e) {console.log('error on block event execution',e)}
     //reset editing target
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
@@ -573,13 +634,6 @@ vm.emitWorkspaceUpdate = function() {
 // vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
 // vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
 
-function targetToName(target) {
-    return target.sprite.name
-}
-function nameToTarget(name) {
-    return vm.runtime.getSpriteTargetByName(name)
-}
-
 vm.renameCostume = editingProxy(vm.renameCostume,"renamecostume")
 vm.duplicateCostume = editingProxy(vm.duplicateCostume,"dupecostume")
 vm.deleteCostume = editingProxy(vm.deleteCostume,"deletecostume")
@@ -590,11 +644,11 @@ vm.reorderCostume = proxy(vm.reorderCostume,"reordercostume",
 vm.addCostume = proxy(vm.addCostume,"addcostume",
     (args)=>{
         let targetName
-        if(!!args[2]){targetName = vm.runtime.getTargetById(args[2]).sprite.name} else {targetName = vm.editingTarget.sprite.name}
+        if(!!args[2]){targetName = targetToName(vm.runtime.getTargetById(args[2]))} else {targetName = targetToName(vm.editingTarget)}
         return {target:targetName}
     },
     (data)=>{
-        let ret = [data.args[0],data.args[1],vm.runtime.getSpriteTargetByName(data.extrargs.target).id,data.args[3]]
+        let ret = [data.args[0],data.args[1],nameToTarget(data.extrargs.target).id,data.args[3]]
         if(ret[1]?.asset?.data) {
             // adapted from scratch source 'file-uploader'
             ret[1].asset = vm.runtime.storage.createAsset(
@@ -619,16 +673,42 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
 //         args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
 //         return args
 //     })
-vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg")
+vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
+    let costumeIndex = getSelectedCostumeIndex()
+    console.log(data)
+    // update paint editor if reciever is editing the costume
+    if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+        let costume = vm.editingTarget.getCostumes()[costumeIndex]
+        let paper = getPaper()
+        console.log('switching paper costume')
+        if(!paper) {return;}
+        paper.switchCostume(
+            costume.dataFormat,
+            costume.asset.decodeText(),
+            costume.rotationCenterX,
+            costume.rotationCenterY,
+            paper.props.zoomLevelId,
+            paper.props.zoomLevelId)
+    }
+})
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 // vm.updateSvg = proxy(vm.updateSvg,"updatesvg",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,((a,b)=>{vm.setEditingTarget(a.id)}))
+vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
+    // extrargs
+    (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
+    (data)=>[nameToTarget(data.extrargs.name).id],null,
+    ((a,b)=>{vm.setEditingTarget(a.id)}),null,null,()=>{
+        // send replace blocks message
+        liveMessage({meta:"vm.replaceBlocks",target:targetToName(vm.editingTarget),blocks:vm.editingTarget.blocks._blocks})
+    })
+    // Object.keys(vm.editingTarget.blocks._blocks).forEach(v=>{vm.editingTarget.blocks.deleteBlock(v)})
 vm.deleteSprite = proxy(vm.deleteSprite,"deletesprite",
-    (args)=>({name:vm.runtime.getTargetById(args[0]).sprite.name}),
-    (data)=>[vm.runtime.getSpriteTargetByName(data.extrargs.name).id])
+    (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
+    (data)=>[nameToTarget(data.extrargs.name).id])
 vm.renameSprite = proxy(vm.renameSprite,"renamesprite",
-    (args)=>({oldName:vm.runtime.getTargetById(args[0]).sprite.name}),
-    (data)=>[vm.runtime.getSpriteTargetByName(data.extrargs.oldName).id,data.args[1]])
+    (args)=>({oldName:targetToName(vm.runtime.getTargetById(args[0]))}),
+    (data)=>[nameToTarget(data.extrargs.oldName).id,data.args[1]])
 vm.reorderTarget = proxy(vm.reorderTarget,"reordertarget")
 // vm.shareBlocksToTarget = proxy(vm.shareBlocksToTarget,"shareblocks",
 // (args)=>({toName:vm.runtime.getTargetById(args[1]).sprite.name}),
@@ -666,16 +746,16 @@ vm.shareBlocksToTarget = function(blocks, targetId, optFromTargetId) {
     isTargetSharing = true
     return oldShareBlocksToTarget.bind(vm)(blocks, targetId, optFromTargetId).then(()=>{
         isTargetSharing = false
-        let targetName = vm.runtime.getTargetById(targetId).sprite.name
-        let fromTargetName = vm.runtime.getTargetById(optFromTargetId)?.sprite.name
+        let targetName = targetToName(vm.runtime.getTargetById(targetId))
+        let fromTargetName = targetToName(vm.runtime.getTargetById(optFromTargetId))
         liveMessage({meta:"vm.shareBlocks",target:targetName,from:fromTargetName,blocks:shareCreates})
     })
 }
 
 function doShareBlocksMessage(msg) {
-    let target = vm.runtime.getSpriteTargetByName(msg.target)
+    let target = nameToTarget(msg.target)
     let targetId = target.id
-    let fromTargetId = vm.runtime.getSpriteTargetByName(msg.from)?.id
+    let fromTargetId = nameToTarget(msg.from)?.id
     // resolve variable conflicts
     // if(!!fromTargetId) {vm.runtime.getTargetById(fromTargetId).resolveVariableSharingConflictsWithTarget(msg.blocks, target);}
 
