@@ -1,49 +1,32 @@
-blockliveId = null
 console.log('CollabLive Editor Inject Running...')
-
 
 function sleep(millis) {
     return new Promise(res => setTimeout(res, millis));
 }
+
+
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
 var exId = 'mnhfglllnblhnalmpkbnljeghmkfmhgb'
 
 // Connect To Background Script
-var port = chrome.runtime.connect(exId);
-var isConnected = true;
+// var port = chrome.runtime.connect(exId);
+var port
+var isConnected = false;
 
-function liveMessage(...args) {
+function liveMessage(message,res) {
     reconnectIfNeeded()
-    port.postMessage(...args)
-}
-
-function blockliveListener(msg) {
-    if(msg.meta=="blockly.event") {
-        runEventFromMessageData(msg.data)
-    } else if (msg.meta=="sprite.proxy") {
-        proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
-    } else if (msg.meta =="vm.blockListen") {
-        onBlockRecieve(msg)
-    } else if (msg.meta =="hihungryimdad") {
-        blockliveId = msg.id
-    } else if (msg.meta == "messageList") {
-        msg.messages.forEach(message=>{blockliveListener(message)})
-    } else if (msg.meta == "vm.shareBlocks") {
-        doShareBlocksMessage(msg)        
-    } else if (msg.meta == 'vm.replaceBlocks') {
-        replaceBlockly(msg)
+    let msg = message
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
+        blVersion++
     }
+    port.postMessage(message,res)
 }
 
 
-function registerChromePortListeners() {
-    port.onMessage.addListener(blockliveListener);
-    port.onDisconnect.addListener(()=>{
-        isConnected = false;
-    })
-}
-registerChromePortListeners()
+
+let registerChromePortListeners
+// registerChromePortListeners()
 
 function reconnectIfNeeded() {
     if(!isConnected) {
@@ -51,11 +34,120 @@ function reconnectIfNeeded() {
         isConnected = (!!port); 
         if(isConnected){
             registerChromePortListeners();
-            liveMessage({meta:"whydidyounamemethisway",id:blockliveId})
+            liveMessage({meta:"myId",id:blId})
+            getAndPlayNewChanges()
         }
     }
 }
 
+///.......... BLOCKLIVE CHECKING ........... //
+
+var blockliveServer
+
+blId = ''
+blVersion = 0
+scratchId = location.pathname.split('/')[2] //TODO: use better method?
+let isInit = true
+let unHyjacked = true
+let onceVmTrapped = []
+let onceProjectLoaded = []
+
+chrome.runtime.sendMessage(exId,{meta:'getBlId',scratchId},(res)=>{
+    console.log('blocklive id set: ' + res)
+    blId = res
+    if(!!blId) {
+        onceProjectLoaded.push((vm)=>{
+            if(unHyjacked){joinBlockliveSession(vm)}
+        })
+        activateBlocklive()
+    }
+})
+
+function joinBlockliveSession(vm) {
+    unHyjacked = false;
+    chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId},(res)=>{
+        // TODO: catch error
+        if(res.err){return}
+
+        // set project blocklive version
+        blVersion = res.scratchVersion
+
+        async function dProjectId (id) {
+            const storage = this.runtime.storage;
+            if (!storage) {
+                log.error('No storage module present; cannot load project: ', id);
+                return;
+            }
+            const vm = this;
+            const promise = storage.load(storage.AssetType.Project, id);
+            projectAsset = await promise
+            return vm.loadProject(projectAsset.data);
+        }
+        vm.dProjectId = dProjectId.bind(vm)
+    
+
+
+        vm.dProjectId(res.scratchId).then(getAndPlayNewChanges)
+    }) 
+}
+
+let getAndPlayNewChanges
+
+
+function activateBlocklive() {
+    // set scope exposed functions
+
+    registerChromePortListeners =()=> {
+        port.onMessage.addListener(blockliveListener);
+        port.onDisconnect.addListener(()=>{
+            isConnected = false;
+        })
+    }
+    
+getAndPlayNewChanges = ()=>{
+    chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version:blVersion},async (res)=>{
+        isInit = true
+        for (let i = 0; i < res.length; i++) {
+            await blockliveListener(res[i])
+        }
+        blVersion = res.currentVersion
+        isInit = false
+        vm.emitWorkspaceUpdate()
+        vm.emitTargetsUpdate()
+    })
+}
+
+
+///.......... CONNECT TO CHROME PORT ..........//
+
+function connectFirstTime() {
+    reconnectIfNeeded()
+    // request for blockliveId
+    // liveMessage({meta:"hiimhungry"})
+}
+connectFirstTime()
+
+setInterval(reconnectIfNeeded,1000)
+
+/// other things
+
+    async function blockliveListener(msg) {
+        if (msg.meta=="sprite.proxy") {
+            await proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
+        } else if (msg.meta =="vm.blockListen") {
+            onBlockRecieve(msg)
+        } else if (msg.meta =="hihungryimdad") {
+            blId = msg.id
+        } else if (msg.meta == "messageList") {
+            for (let i = 0; i < msg.messages.length; i++) {
+                await blockliveListener(msg.messages[i])
+            }
+        } else if (msg.meta == "vm.shareBlocks") {
+            doShareBlocksMessage(msg)        
+        } else if (msg.meta == 'vm.replaceBlocks') {
+            replaceBlockly(msg)
+        }
+    }
 
 
 ///.......... TRAPS ..........//
@@ -100,9 +192,10 @@ liveMessage({meta:"sb.trapped"}, function (response) {
 
 // Thanks garbomuffin and scratchaddons
 // Trap VM
-let vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
+vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
 .child.child.child.stateNode.props.vm;
-
+onceVmTrapped.forEach((func)=>func(vm))
+vm.runtime.on("PROJECT_LOADED", () => {onceProjectLoaded.forEach(func=>{func(vm)})})
 
 // Trap Paint
 function getPaper() {
@@ -119,6 +212,10 @@ function getPaper() {
 }
 
 ///.......... ALL THE HACKY THINGS ..........//
+
+function isWorkspaceAccessable() {
+    return !!document.querySelector('.blocklyWorkspace')
+}
 
 function getWorkspace() {
     let retVal = null
@@ -220,6 +317,9 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             }
             return retval
         } else {
+            if(isInit) {
+                return action.bind(bindTo)(...args)
+            } else {
             console.log('intrecepted:')
             console.log(...args)
             let extrargsObj = null;
@@ -238,6 +338,7 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
                     }
             }
             return retval
+        }
         }
     }
     proxyActions[name] = proxiedFunction;
@@ -352,6 +453,7 @@ blockliveEvents = {}
 createEventMap = {}
 toBeMoved = {}
 function blockListener(e) {
+    if(isInit) {return}
     console.log('just intrecepted',e)
     if(e.type == 'ui'){uiii = e}
     if(e.type == 'create'){createe = e}
@@ -556,7 +658,7 @@ function onBlockRecieve(d) {
         bEvent.xy = d.event.xy
     }
 
-    if(targetToName(oldEditingTarget) == d.target) {
+    if(targetToName(oldEditingTarget) == d.target && !isInit && isWorkspaceAccessable()) {
         // save speedy move and delete events for later
         if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
@@ -590,6 +692,7 @@ function onBlockRecieve(d) {
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
+    if(isWorkspaceAccessable()) {
     console.log("WORKSPACE UPDATING")
     // add deletes for comments
     getWorkspace().getTopComments().forEach(comment=>{
@@ -617,6 +720,7 @@ vm.emitWorkspaceUpdate = function() {
         // blockliveEvents[getStringEventRep({type:'var_delete',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
         blockliveEvents[getStringEventRep({type:'var_create',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
     })
+}
     oldEWU()
 }
 
@@ -765,6 +869,7 @@ function doShareBlocksMessage(msg) {
 
     if(targetId == vm.editingTarget.id) {vm.emitWorkspaceUpdate()}
     // update flyout for new variables and blocks
+    if(!isWorkspaceAccessable()){return}
     getWorkspace().getToolbox().refreshSelection()
 }
 
@@ -775,14 +880,4 @@ function doShareBlocksMessage(msg) {
 
 // port.postMessage();
 
-
-///.......... CHROME PORT LISTENER SETUP ..........//
-
-function connectFirstTime() {
-    reconnectIfNeeded()
-    // request for blockliveId
-    liveMessage({meta:"hiimhungry"})
 }
-connectFirstTime()
-
-setInterval(reconnectIfNeeded,1000)

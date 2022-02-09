@@ -1,3 +1,52 @@
+importScripts('background/socket.io.js')
+importScripts('background/blockliveProject.js')
+
+let apiUrl = 'http://127.0.0.1:4000'
+
+////////// ACTIVE PROJECTS DATABASE //////////
+// blId -> [ports...]
+let blockliveTabs = {}
+// blId -> BlockliveProject
+let projects = {}
+// port -> blId
+let portIds = {}
+
+function playChange(blId,msg,optPort) {
+  // record change
+  projects[blId]?.recordChange(msg)
+
+  // send to local clients
+  if(!!optPort) {
+    blockliveTabs[blId]?.forEach((p=>{try{if(p!=optPort){p.postMessage(msg)}}catch(e){console.log(e)}}))
+  } else {
+    blockliveTabs[data.blId]?.forEach(p=>{try{p.postMessage(data.msg)}catch(e){console.log(e)}})
+  }
+}
+
+//////// INIT SOCKET CONNECTION ///////
+const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket']})
+// socket.on("connect_error", () => { socket.io.opts.transports = ["websocket"];});
+console.log('connecting')
+socket.on('connect',()=>{
+  console.log('connected with id: ',socket.id)
+})
+socket.on('disconnect',()=>{
+
+})
+socket.on('message',(data)=>{
+  if(data.type=='projectChange') {
+    projects[data.blId]?.setVersion(data.version -1)
+    playChange(data.blId,data.msg)
+ } else if(data.type=='yourVersion') {
+    projects[data.blId]?.setVersion(data.version)
+ }
+})
+
+
+
+
+
+
 // Listen for See Inside
 chrome.tabs.onUpdated.addListener(function
   (tabId, changeInfo, tab) {
@@ -18,15 +67,47 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
   port.onMessage.addListener(function(msg) {
     console.log(msg)
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
-      ports.forEach(p=>{try{if(p!=port){p.postMessage(msg)}}catch(e){console.log(e)}})
+      let blIdd = portIds[port]
+      
+      playChange(blIdd,msg,port)
+
+      // send to websocket
+      socket.send({type:'projectChange',msg,blId:blIdd})
+    } else if (msg.meta=='myId') {
+      // record websocket id
+      if(!(msg.id in blockliveTabs)) {
+        blockliveTabs[msg.id] = [] 
+      }
+      blockliveTabs[msg.id].push(port)
+      portIds[port] = msg.id
+        
+      // create project object
+      if(!(msg.id in projects)) {
+        projects[msg.id] = new BlockliveProject()
+      }
     }
+
   });
-  port.onDisconnect.addListener((p)=>ports.splice(ports.indexOf(port),1))
+  port.onDisconnect.addListener((p)=>{
+    ports.splice(ports.indexOf(port),1);
+    let list = blockliveTabs[portIds[port]]
+    list?.splice(list.indexOf(port),1);
+  })
 });
 
 
 // Proxy project update messages
 chrome.runtime.onMessageExternal.addListener(
-  function (request, sender, sendResponse) {
-    console.log("external message:" + request);
+  async function (request, sender, sendResponse) {
+    console.log("external message:", request);
+    if(request.meta == 'getBlId') {
+      if(!request.scratchId || request.scratchId == '.') {return ''}
+      sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}`)).text()).replaceAll('"',''))
+    } else if(request.meta =='getInpoint') {
+      sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
+    } else if(request.meta =='getChanges') {
+      sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
+    }
   });
+
+  
