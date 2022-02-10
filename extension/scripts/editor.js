@@ -7,7 +7,7 @@ function sleep(millis) {
 
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
-var exId = 'mnhfglllnblhnalmpkbnljeghmkfmhgb'
+var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
 
 // Connect To Background Script
 // var port = chrome.runtime.connect(exId);
@@ -16,10 +16,6 @@ var isConnected = false;
 
 function liveMessage(message,res) {
     reconnectIfNeeded()
-    let msg = message
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
-        blVersion++
-    }
     port.postMessage(message,res)
 }
 
@@ -35,7 +31,7 @@ function reconnectIfNeeded() {
         if(isConnected){
             registerChromePortListeners();
             liveMessage({meta:"myId",id:blId})
-            getAndPlayNewChanges()
+            if(readyToRecieveChanges){getAndPlayNewChanges()}
         }
     }
 }
@@ -44,79 +40,86 @@ function reconnectIfNeeded() {
 
 var blockliveServer
 
-blId = ''
+
+let blId = ''
 blVersion = 0
 scratchId = location.pathname.split('/')[2] //TODO: use better method?
-let isInit = true
-let unHyjacked = true
+let pauseEventHandling = false
+let projectReplaceInitiated = false
 let onceVmTrapped = []
 let onceProjectLoaded = []
+let vm
+let readyToRecieveChanges = false
 
-chrome.runtime.sendMessage(exId,{meta:'getBlId',scratchId},(res)=>{
-    console.log('blocklive id set: ' + res)
-    blId = res
+async function onTabLoad() {
+    blId = await getBlocklyId(scratchId);
     if(!!blId) {
-        onceProjectLoaded.push((vm)=>{
-            if(unHyjacked){joinBlockliveSession(vm)}
-        })
+        pauseEventHandling = true
         activateBlocklive()
+        vm.runtime.on("PROJECT_LOADED", async () => {
+            if(projectReplaceInitiated) { return }
+            await joinExistingBlocklive(blId)
+            pauseEventHandling = false
+        })
+    } else {
+
     }
-})
 
-function joinBlockliveSession(vm) {
-    unHyjacked = false;
-    chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId},(res)=>{
-        // TODO: catch error
-        if(res.err){return}
+}
+onTabLoad()
 
-        // set project blocklive version
-        blVersion = res.scratchVersion
+async function joinExistingBlocklive(id) {
+    projectReplaceInitiated = true
+    console.log('joining blocklive id',id,)
+    let inpoint = await getInpoint(id)
+    if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);return;}
+    blVersion = inpoint.scratchVersion
+    pauseEventHandling = true
+    await vm.downloadProjectIdPromise(inpoint.scratchId)
 
-        async function dProjectId (id) {
-            const storage = this.runtime.storage;
-            if (!storage) {
-                log.error('No storage module present; cannot load project: ', id);
-                return;
-            }
-            const vm = this;
-            const promise = storage.load(storage.AssetType.Project, id);
-            projectAsset = await promise
-            return vm.loadProject(projectAsset.data);
-        }
-        vm.dProjectId = dProjectId.bind(vm)
-    
+    console.log('syncing new changes, editingTarget: ',vm.editingTarget)
+    await getAndPlayNewChanges()
+    readyToRecieveChanges = true
+    pauseEventHandling = false;
+}
 
-
-        vm.dProjectId(res.scratchId).then(getAndPlayNewChanges)
-    }) 
+function getBlocklyId(scratchId) {
+    return new Promise((promRes)=>{
+    chrome.runtime.sendMessage(exId,{meta:'getBlId',scratchId},promRes)
+    })
+}
+function getInpoint(blockliveId) {
+    return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId:blockliveId},res)})     
+}
+function getChanges(blId,version) {
+    return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version},res)})
 }
 
 let getAndPlayNewChanges
 
 
 function activateBlocklive() {
-    // set scope exposed functions
 
-    registerChromePortListeners =()=> {
+    // set scope exposed functions    
+    getAndPlayNewChanges = async ()=>{
+        console.log('syncing since version: ' +  blVersion)
+        changes = await getChanges(blId,blVersion)
+        pauseEventHandling = true
+        for (let i = 0; i < changes.length; i++) {
+            await blockliveListener(changes[i])
+        }
+        if(changes.currentVersion){blVersion = changes.currentVersion}
+        pauseEventHandling = false
+        vm.emitWorkspaceUpdate()
+        vm.emitTargetsUpdate()
+    }
+
+    registerChromePortListeners = ()=> {
         port.onMessage.addListener(blockliveListener);
         port.onDisconnect.addListener(()=>{
             isConnected = false;
         })
     }
-    
-getAndPlayNewChanges = ()=>{
-    chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version:blVersion},async (res)=>{
-        isInit = true
-        for (let i = 0; i < res.length; i++) {
-            await blockliveListener(res[i])
-        }
-        blVersion = res.currentVersion
-        isInit = false
-        vm.emitWorkspaceUpdate()
-        vm.emitTargetsUpdate()
-    })
-}
-
 
 ///.......... CONNECT TO CHROME PORT ..........//
 
@@ -132,21 +135,25 @@ setInterval(reconnectIfNeeded,1000)
 /// other things
 
     async function blockliveListener(msg) {
+        console.log('recieved message',msg)
+        try{
         if (msg.meta=="sprite.proxy") {
             await proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
         } else if (msg.meta =="vm.blockListen") {
+            blVersion++
             onBlockRecieve(msg)
-        } else if (msg.meta =="hihungryimdad") {
-            blId = msg.id
         } else if (msg.meta == "messageList") {
             for (let i = 0; i < msg.messages.length; i++) {
                 await blockliveListener(msg.messages[i])
             }
         } else if (msg.meta == "vm.shareBlocks") {
+            blVersion++
             doShareBlocksMessage(msg)        
         } else if (msg.meta == 'vm.replaceBlocks') {
+            blVersion++
             replaceBlockly(msg)
         }
+        } catch (e) {console.error(e)}
     }
 
 
@@ -195,7 +202,21 @@ liveMessage({meta:"sb.trapped"}, function (response) {
 vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
 .child.child.child.stateNode.props.vm;
 onceVmTrapped.forEach((func)=>func(vm))
-vm.runtime.on("PROJECT_LOADED", () => {onceProjectLoaded.forEach(func=>{func(vm)})})
+
+// set helpful function to download projet and return the promise
+async function downloadProjectIdPromise (id) {
+    const storage = this.runtime.storage;
+    if (!storage) {
+        log.error('No storage module present; cannot load project: ', id);
+        return;
+    }
+    const vm = this;
+    const promise = storage.load(storage.AssetType.Project, id);
+    projectAsset = await promise
+    return vm.loadProject(projectAsset.data);
+}
+vm.downloadProjectIdPromise = downloadProjectIdPromise.bind(vm)
+
 
 // Trap Paint
 function getPaper() {
@@ -277,8 +298,11 @@ function editingProxy(action,name,before,after) {
             vm.runtime._editingTarget = vm.editingTarget
         },
         (_a,_b,data)=>{
+            if(!prevTarg) {'PREVTARG IS UNDEFINED'}
+            if(!!prevTarg && !!vm.runtime.getTargetById(prevTarg.id)) {
             vm.editingTarget = prevTarg;
             vm.runtime._editingTarget = prevTarg
+            }
             vm.emitTargetsUpdate()
             if(!!after){after(_a,_b,data)}
         })
@@ -300,12 +324,10 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
 
             let prevTarget = vm.editingTarget
             if(!!before) {before(data)}
-            console.log('args:')
-            console.log(...args)
             if(dontDo?.(data)) {return}
             proxiedArgs = args
             let retval
-            try{retval = action.bind(bindTo)(...args)}catch(e){console.log('error on proxy run',e)}
+            try{retval = action.bind(bindTo)(...args)}catch(e){console.error('error on proxy run',e)}
             if(then) {
                 if(!!retval?.then) {
                     // if returns a promise
@@ -317,7 +339,7 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             }
             return retval
         } else {
-            if(isInit) {
+            if(pauseEventHandling) {
                 return action.bind(bindTo)(...args)
             } else {
             console.log('intrecepted:')
@@ -453,7 +475,8 @@ blockliveEvents = {}
 createEventMap = {}
 toBeMoved = {}
 function blockListener(e) {
-    if(isInit) {return}
+    console.log('isReplaying: ' + pauseEventHandling)
+    if(pauseEventHandling) {return}
     console.log('just intrecepted',e)
     if(e.type == 'ui'){uiii = e}
     if(e.type == 'create'){createe = e}
@@ -522,7 +545,7 @@ function blockListener(e) {
             extrargs.isCBCreateOrDelete = extrargs.isCBCreateOrDelete || e.oldXml?.getAttribute('type') == 'procedures_definition'
         }
 
-        console.log("sending",e,extrargs)
+        console.log("sending",e,extrargs,'target',targetToName(vm.editingTarget))
 
         let message = {meta:"vm.blockListen",type:e.type,extrargs,event:e,json:e.toJson(),target:targetToName(vm.editingTarget),}
         
@@ -575,7 +598,6 @@ function getDistance(p1,p2) {
 }
 
 function onBlockRecieve(d) {
-    console.log("recieved", d)
 
     // for comment parsing cause they did the toJson wrong apparently
     if(d.type == 'comment_change') {
@@ -658,7 +680,7 @@ function onBlockRecieve(d) {
         bEvent.xy = d.event.xy
     }
 
-    if(targetToName(oldEditingTarget) == d.target && !isInit && isWorkspaceAccessable()) {
+    if(targetToName(oldEditingTarget) == d.target && !pauseEventHandling && isWorkspaceAccessable()) {
         // save speedy move and delete events for later
         if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
@@ -686,16 +708,19 @@ function onBlockRecieve(d) {
     }
     }catch(e) {console.log('error on block event execution',e)}
     //reset editing target
+    if(!oldEditingTarget) {console.log('old editing target is undefined!')}
+    if(!!oldEditingTarget && !!vm.runtime.getTargetById(oldEditingTarget.id)) {
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
+    }
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
-    if(isWorkspaceAccessable()) {
+
     console.log("WORKSPACE UPDATING")
     // add deletes for comments
-    getWorkspace().getTopComments().forEach(comment=>{
+    getWorkspace()?.getTopComments().forEach(comment=>{
         blockliveEvents[getStringEventRep({type:'comment_delete',commentId:comment.id})] = true
     })
     // add creates for comments in new workspace
@@ -703,7 +728,7 @@ vm.emitWorkspaceUpdate = function() {
         blockliveEvents[getStringEventRep({type:'comment_create',commentId})] = true
     })
     // add deletes for top blocks in current workspace
-    getWorkspace().topBlocks_.forEach(block=>{
+    getWorkspace()?.topBlocks_.forEach(block=>{
         blockliveEvents[getStringEventRep({type:'delete',blockId:block.id})] = true
     })
     // add creates for all blocks in new workspace
@@ -720,7 +745,7 @@ vm.emitWorkspaceUpdate = function() {
         // blockliveEvents[getStringEventRep({type:'var_delete',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
         blockliveEvents[getStringEventRep({type:'var_create',varId:varr[0],isCloud:varr[1].isCloud,varName:varr[1].name,isLocal:false})] = true
     })
-}
+
     oldEWU()
 }
 
