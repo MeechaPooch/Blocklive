@@ -43,7 +43,8 @@ var blockliveServer
 
 let blId = ''
 blVersion = 0
-scratchId = location.pathname.split('/')[2] //TODO: use better method?
+// scratchId = location.pathname.split('/')[2] //TODO: use better method?
+scratchId = '602888445'
 let pauseEventHandling = false
 let projectReplaceInitiated = false
 let onceVmTrapped = []
@@ -54,6 +55,7 @@ let readyToRecieveChanges = false
 async function onTabLoad() {
     blId = await getBlocklyId(scratchId);
     if(!!blId) {
+        liveMessage({meta:"myId",id:blId})
         pauseEventHandling = true
         activateBlocklive()
         vm.runtime.on("PROJECT_LOADED", async () => {
@@ -76,9 +78,11 @@ async function joinExistingBlocklive(id) {
     blVersion = inpoint.scratchVersion
     pauseEventHandling = true
     await vm.downloadProjectIdPromise(inpoint.scratchId)
+    //yo wussup poochdawg
 
     console.log('syncing new changes, editingTarget: ',vm.editingTarget)
-    await getAndPlayNewChanges()
+    await getAndPlayNewChanges() // sync changes since scratch version
+    liveMessage({meta:"joinSession"}) // join sessionManager session
     readyToRecieveChanges = true
     pauseEventHandling = false;
 }

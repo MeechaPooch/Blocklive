@@ -1,7 +1,8 @@
 importScripts('background/socket.io.js')
 importScripts('background/blockliveProject.js')
 
-let apiUrl = 'http://127.0.0.1:4000'
+// let apiUrl = 'http://127.0.0.1:4000'
+let apiUrl = 'http://152.67.248.129:4000'
 
 ////////// ACTIVE PROJECTS DATABASE //////////
 // blId -> [ports...]
@@ -34,6 +35,7 @@ socket.on('disconnect',()=>{
 
 })
 socket.on('message',(data)=>{
+  console.log('message',data)
   if(data.type=='projectChange') {
     projects[data.blId]?.setVersion(data.version -1)
     playChange(data.blId,data.msg)
@@ -85,13 +87,17 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       if(!(msg.id in projects)) {
         projects[msg.id] = new BlockliveProject()
       }
+    } else if (msg.meta == 'joinSession') {
+      socket.send({id:typeportIds[port],username:'ilhp10'}) // todo: replace username
     }
 
   });
   port.onDisconnect.addListener((p)=>{
     ports.splice(ports.indexOf(port),1);
-    let list = blockliveTabs[portIds[port]]
+    let blockliveId = portIds[port]
+    let list = blockliveTabs[blockliveId]
     list?.splice(list.indexOf(port),1);
+    if(list.length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
   })
 });
 
