@@ -38,6 +38,7 @@ socket.on('message',(data)=>{
   console.log('message',data)
   if(data.type=='projectChange') {
     projects[data.blId]?.setVersion(data.version -1)
+    data.msg.version = data.version
     playChange(data.blId,data.msg)
  } else if(data.type=='yourVersion') {
     projects[data.blId]?.setVersion(data.version)

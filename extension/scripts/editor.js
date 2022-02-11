@@ -140,6 +140,7 @@ setInterval(reconnectIfNeeded,1000)
 
     blockliveListener = async (msg) => {
         console.log('recieved message',msg)
+        if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
         try{
         if (msg.meta=="sprite.proxy") {
             await proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
