@@ -40,9 +40,11 @@ class BlockliveClient {
 class BlockliveSess {
     connectedClients = {}
     project
+    id
 
-    constructor(project) {
+    constructor(project,id) {
         this.project = project
+        this.id = id
     }
 
     addClient(client) {
@@ -61,6 +63,7 @@ class BlockliveSess {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ client.trySendMessage({
                 type:'projectChange',
+                blId:id,
                 version:this.project.version,
                 data:msg,
                 from:socket.id,
@@ -88,7 +91,7 @@ class ProjectWrapper {
         this.id = blId
         this.scratchId = scratchId
         this.project = new BlockliveProject()
-        this.session = new BlockliveSess(this.project)
+        this.session = new BlockliveSess(this.project,this.id)
         owner = owner
     }
 
