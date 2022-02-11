@@ -5,7 +5,7 @@ app.use(cors())
 import http from 'http'
 const server = http.createServer(app);
 import {Server} from 'socket.io'
-const io = new Server(server, {cors:"*"});
+const io = new Server(server, {cors:{origin:'*'}});
 
 import SessionManager from './sessionManager.js'
 let sessionManager = new SessionManager()
@@ -45,7 +45,7 @@ io.on('connection', (client) => {
      })
 
      client.on('disconnect',(reason)=>{
-          sessionManager
+          sessionManager.disconnectSocket(client)
      })
 });
 

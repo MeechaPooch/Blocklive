@@ -173,6 +173,7 @@ export default class SessionManager{
     }
 
     disconnectSocket(socket) {
+        console.log("disconnected socket: " + socket.id)
         if(!(socket.id in this.socketMap)){return}
         this.socketMap[socket.id].projects.forEach(projectId=>{this.leave(socket,projectId,true)})
         delete this.socketMap[socket.id]
