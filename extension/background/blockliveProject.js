@@ -22,8 +22,8 @@ class BlockliveProject {
 
     setVersion(toVersion) {
         if(toVersion > this.version) {
-            changes = []
+            this.changes = []
         }
-        version = toVersion
+        this.version = toVersion
     }
 }
