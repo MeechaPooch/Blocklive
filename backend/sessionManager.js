@@ -65,7 +65,7 @@ class BlockliveSess {
                 type:'projectChange',
                 blId:this.id,
                 version:this.project.version,
-                data:msg,
+                msg,
                 from:socket.id,
                 user:this.getClientFromSocket(socket)?.username
             })}
