@@ -105,7 +105,7 @@ class ProjectWrapper {
     }
 
     joinSession(socket,username) {
-        if(socket.id in this.session.connectedClients) {}
+        if(socket.id in this.session.connectedClients) {return}
         let client = new BlockliveClient(socket,username)
         this.session.addClient(client)
     }
@@ -153,7 +153,9 @@ export default class SessionManager{
         if(!(socket.id in this.socketMap)) {
             this.socketMap[socket.id] = {username:username,projects:[]}
         }
-        this.socketMap[socket.id].projects.push(project.id)
+        if(this.socketMap[socket.id].projects.indexOf(project.id) == -1){
+            this.socketMap[socket.id].projects.push(project.id)
+        }
     }
     leave(socket,id,voidMap) {
         let project = this.getProject(id)
@@ -176,7 +178,7 @@ export default class SessionManager{
     }
 
     projectChange(blId,data,socket) {
-        this.getProject(blId)?.session?.onProjectChange(socket,data.msg)
+        this.getProject(blId)?.session.onProjectChange(socket,data.msg)
     }
 
     getVersion(blId) {

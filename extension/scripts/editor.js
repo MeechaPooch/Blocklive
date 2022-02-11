@@ -38,6 +38,7 @@ function reconnectIfNeeded() {
         if(isConnected){
             registerChromePortListeners();
             liveMessage({meta:"myId",id:blId})
+            liveMessage({meta:"joinSession"})
             if(readyToRecieveChanges){getAndPlayNewChanges()}
         }
     }
