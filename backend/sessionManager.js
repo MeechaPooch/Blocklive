@@ -18,7 +18,7 @@ class BlockliveProject {
 }
 
 class BlockliveClient {
-    isReady = false;
+    isReady = true;
     username
     socket
 
