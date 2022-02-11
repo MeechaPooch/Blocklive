@@ -63,7 +63,7 @@ class BlockliveSess {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ client.trySendMessage({
                 type:'projectChange',
-                blId:id,
+                blId:this.id,
                 version:this.project.version,
                 data:msg,
                 from:socket.id,
