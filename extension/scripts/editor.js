@@ -19,9 +19,14 @@ function liveMessage(message,res) {
     port.postMessage(message,res)
 }
 
+let blockliveListener
 
-
-let registerChromePortListeners
+let registerChromePortListeners = ()=> {
+    port.onMessage.addListener((...args)=>{blockliveListener(...args)});
+    port.onDisconnect.addListener(()=>{
+        isConnected = false;
+    })
+}
 // registerChromePortListeners()
 
 function reconnectIfNeeded() {
@@ -55,8 +60,8 @@ let readyToRecieveChanges = false
 async function onTabLoad() {
     blId = await getBlocklyId(scratchId);
     if(!!blId) {
-        liveMessage({meta:"myId",id:blId})
         pauseEventHandling = true
+        liveMessage({meta:"myId",id:blId})
         activateBlocklive()
         vm.runtime.on("PROJECT_LOADED", async () => {
             if(projectReplaceInitiated) { return }
@@ -118,13 +123,6 @@ function activateBlocklive() {
         vm.emitTargetsUpdate()
     }
 
-    registerChromePortListeners = ()=> {
-        port.onMessage.addListener(blockliveListener);
-        port.onDisconnect.addListener(()=>{
-            isConnected = false;
-        })
-    }
-
 ///.......... CONNECT TO CHROME PORT ..........//
 
 function connectFirstTime() {
@@ -138,7 +136,7 @@ setInterval(reconnectIfNeeded,1000)
 
 /// other things
 
-    async function blockliveListener(msg) {
+    blockliveListener = async (msg) => {
         console.log('recieved message',msg)
         try{
         if (msg.meta=="sprite.proxy") {
