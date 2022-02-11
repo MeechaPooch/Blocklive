@@ -16,6 +16,7 @@ var isConnected = false;
 
 function liveMessage(message,res) {
     reconnectIfNeeded()
+    let msg = message
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {blVersion++}
     port.postMessage(message,res)
 }
