@@ -45,8 +45,8 @@ class BlockliveSess {
         this.project = project
     }
 
-    addClient(socket,client) {
-        this.connectedClients[socket.id] = client
+    addClient(client) {
+        this.connectedClients[client.id()] = client
     }
     removeClient(id) {
         delete this.connectedClients[id]
