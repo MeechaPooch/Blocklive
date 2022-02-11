@@ -20,7 +20,7 @@ function playChange(blId,msg,optPort) {
   if(!!optPort) {
     blockliveTabs[blId]?.forEach((p=>{try{if(p!=optPort){p.postMessage(msg)}}catch(e){console.error(e)}}))
   } else {
-    blockliveTabs[data.blId]?.forEach(p=>{try{p.postMessage(data.msg)}catch(e){console.log(e)}})
+    blockliveTabs[blId]?.forEach(p=>{try{p.postMessage(msg)}catch(e){console.log(e)}})
   }
 }
 
