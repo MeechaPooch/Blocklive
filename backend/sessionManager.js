@@ -146,7 +146,7 @@ export default class SessionManager{
     join(socket,id,username,) {
         let project = this.getProject(id)
         if(!project) {return}
-        project.joinSession(client,username)
+        project.joinSession(socket,username)
         if(!(socket.id in this.socketMap)) {
             this.socketMap[socket.id] = {username:username,projects:[]}
         }
