@@ -18,7 +18,7 @@ function playChange(blId,msg,optPort) {
 
   // send to local clients
   if(!!optPort) {
-    blockliveTabs[blId]?.forEach((p=>{try{if(p!=optPort){p.postMessage(msg)}}catch(e){console.log(e)}}))
+    blockliveTabs[blId]?.forEach((p=>{try{if(p!=optPort){p.postMessage(msg)}}catch(e){console.error(e)}}))
   } else {
     blockliveTabs[data.blId]?.forEach(p=>{try{p.postMessage(data.msg)}catch(e){console.log(e)}})
   }
@@ -74,7 +74,9 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       playChange(blIdd,msg,port)
 
       // send to websocket
-      socket.send({type:'projectChange',msg,blId:blIdd})
+      socket.send({type:'projectChange',msg,blId:blIdd},(res)=>{
+        port.postMessage({meta:'yourVersion',version:res})
+      })
     } else if (msg.meta=='myId') {
       // record websocket id
       if(!(msg.id in blockliveTabs)) {
@@ -88,15 +90,15 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
         projects[msg.id] = new BlockliveProject()
       }
     } else if (msg.meta == 'joinSession') {
-      socket.send({id:typeportIds[port],username:'ilhp10'}) // todo: replace username
+      socket.send({type:"joinSession",id:portIds[port],username:'ilhp10'}) // todo: replace username
     }
 
   });
   port.onDisconnect.addListener((p)=>{
-    ports.splice(ports.indexOf(port),1);
-    let blockliveId = portIds[port]
+    ports.splice(ports.indexOf(p),1);
+    let blockliveId = portIds[p]
     let list = blockliveTabs[blockliveId]
-    list?.splice(list.indexOf(port),1);
+    list?.splice(list.indexOf(p),1);
     if(list.length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
   })
 });

@@ -16,6 +16,7 @@ var isConnected = false;
 
 function liveMessage(message,res) {
     reconnectIfNeeded()
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {blVersion++}
     port.postMessage(message,res)
 }
 
@@ -154,6 +155,8 @@ setInterval(reconnectIfNeeded,1000)
         } else if (msg.meta == 'vm.replaceBlocks') {
             blVersion++
             replaceBlockly(msg)
+        } else if(msg.meta=='yourVersion') {
+            blVersion = msg.version
         }
         } catch (e) {console.error(e)}
     }

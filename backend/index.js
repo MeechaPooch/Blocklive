@@ -22,7 +22,10 @@ let messageHandlers = {
      'shareWith':(data,client)=>{
           sessionManager.shareProject(data.id,data.user)
      },
-     'projectChange':(data,client)=>{sessionManager.projectChange(data.blId,data,client)},
+     'projectChange':(data,client,callback)=>{
+          sessionManager.projectChange(data.blId,data,client)
+          callback(sessionManager.getVersion(data.blId))
+     },
      'getChanges':(data,client)=>{
           let project = sessionManager.getProject(data.id)
           if(!project) {return}
@@ -34,9 +37,9 @@ let messageHandlers = {
 let sendMessages = ['blProjectInfo','projectChange','loadFromId','projectChanges']
 
 io.on('connection', (client) => {
-     client.on("message",(data)=>{
+     client.on("message",(data,callback)=>{
           if(data.type in messageHandlers) {
-               messageHandlers[data.type](data,client)
+               messageHandlers[data.type](data,client,callback)
           } else {console.log('discarded unknown mesage type: ' + data.type)}
      })
 
@@ -44,9 +47,6 @@ io.on('connection', (client) => {
           sessionManager
      })
 });
-io.on('message',(client)=>{
-
-})
 
 app.get('/blId/:scratchId',(req,res)=>{
      res.send(sessionManager.scratchprojects[req.params.scratchId])

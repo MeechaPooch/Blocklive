@@ -144,7 +144,7 @@ export default class SessionManager{
     }
 
     join(socket,id,username,) {
-        let project = sessionManager.getProject(id)
+        let project = this.getProject(id)
         if(!project) {return}
         project.joinSession(client,username)
         if(!(socket.id in this.socketMap)) {
@@ -153,7 +153,7 @@ export default class SessionManager{
         this.socketMap[socket.id].projects.push(project.id)
     }
     leave(socket,id,voidMap) {
-        let project = sessionManager.getProject(id)
+        let project = this.getProject(id)
         if(!project) {return}
         project.session.removeClient(socket.id)
         if(socket.id in this.socketMap && !voidMap) {
@@ -174,6 +174,10 @@ export default class SessionManager{
 
     projectChange(blId,data,socket) {
         this.getProject(blId)?.session?.onProjectChange(socket,data.msg)
+    }
+
+    getVersion(blId) {
+        return this.getProject(blId)?.project.version
     }
 
     getNextId() {
