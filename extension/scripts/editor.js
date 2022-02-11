@@ -156,6 +156,7 @@ setInterval(reconnectIfNeeded,1000)
             blVersion++
             replaceBlockly(msg)
         } else if(msg.meta=='yourVersion') {
+            console.log('version ponged: ' + msg.version)
             blVersion = msg.version
         }
         } catch (e) {console.error(e)}
