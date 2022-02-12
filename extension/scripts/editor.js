@@ -7,7 +7,7 @@ function sleep(millis) {
 
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
-var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
+var exId = 'mnhfglllnblhnalmpkbnljeghmkfmhgb'
 
 // Connect To Background Script
 // var port = chrome.runtime.connect(exId);

@@ -103,6 +103,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     let blockliveId = portIds[p]
     let list = blockliveTabs[blockliveId]
     blockliveTabs[blockliveId].splice(list.indexOf(p),1);
+    delete portIds[p]
     if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
   })
 });
