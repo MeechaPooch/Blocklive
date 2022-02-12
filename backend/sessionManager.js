@@ -61,8 +61,9 @@ class BlockliveSess {
     onProjectChange(socket, msg) {
         this.project.recordChange(msg)
         Object.values(this.connectedClients).forEach(client=>{
-            console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
-            if(socket.id != client.id()){ client.trySendMessage({
+            if(socket.id != client.id()){ 
+                console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
+                client.trySendMessage({
                 type:'projectChange',
                 blId:this.id,
                 version:this.project.version,

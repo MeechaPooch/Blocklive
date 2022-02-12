@@ -484,7 +484,7 @@ blockliveEvents = {}
 createEventMap = {}
 toBeMoved = {}
 function blockListener(e) {
-    console.log('isReplaying: ' + pauseEventHandling)
+    console.log('is event handling & workspace updating paused?: ' + pauseEventHandling)
     if(pauseEventHandling) {return}
     console.log('just intrecepted',e)
     if(e.type == 'ui'){uiii = e}
@@ -726,6 +726,7 @@ function onBlockRecieve(d) {
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
+    if(pauseEventHandling) {console.log('workspace update voided'); return;}
 
     console.log("WORKSPACE UPDATING")
     // add deletes for comments

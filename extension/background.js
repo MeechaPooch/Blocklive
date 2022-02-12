@@ -14,7 +14,7 @@ let portIds = {}
 
 function playChange(blId,msg,optPort) {
   // record change
-  projects[blId]?.recordChange(msg)
+  //projects[blId]?.recordChange(msg)
 
   // send to local clients
   if(!!optPort) {
@@ -83,8 +83,11 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       if(!(msg.id in blockliveTabs)) {
         blockliveTabs[msg.id] = [] 
       }
-      blockliveTabs[msg.id].push(port)
-      portIds[port] = msg.id
+      if(port in portIds) {}
+      else {
+        blockliveTabs[msg.id].push(port)
+        portIds[port] = msg.id
+      }
         
       // create project object
       if(!(msg.id in projects)) {
@@ -99,8 +102,8 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     ports.splice(ports.indexOf(p),1);
     let blockliveId = portIds[p]
     let list = blockliveTabs[blockliveId]
-    list?.splice(list.indexOf(p),1);
-    if(list.length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
+    blockliveTabs[blockliveId].splice(list.indexOf(p),1);
+    if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
   })
 });
 
