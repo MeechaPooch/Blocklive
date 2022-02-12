@@ -7,7 +7,7 @@ function sleep(millis) {
 
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
-var exId = 'mnhfglllnblhnalmpkbnljeghmkfmhgb'
+var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
 
 // Connect To Background Script
 // var port = chrome.runtime.connect(exId);
@@ -722,6 +722,12 @@ function onBlockRecieve(d) {
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
     }
+}
+
+let oldTargUp = vm.emitTargetsUpdate.bind(vm)
+vm.emitTargetsUpdate = function(...args) {
+    if(pauseEventHandling) {return}
+    else {oldTargUp(...args)}
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
