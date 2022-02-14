@@ -8,7 +8,9 @@ import {Server} from 'socket.io'
 const io = new Server(server, {cors:{origin:'*'}});
 
 import SessionManager from './sessionManager.js'
+import UserManager from './userManager'
 let sessionManager = new SessionManager()
+let userManager = new UserManager()
 let id = sessionManager.newProject('ilhp10','602888445').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 
@@ -76,7 +78,32 @@ app.get('/projectInpoint',(req,res)=>{
 })
 
 app.get('/',(req,res)=>{
-     res.send('')
+     res.send('wow youre a hacker wow')
+})
+
+app.post('/friends/:user',(req,res)=>{
+     console.log(req.body)
+     userManager.befriend(req.params.user,req.body.friend)
+})
+app.delete('/friends/:user',(req,res)=>{
+     console.log(req.body)
+     userManager.unbefriend(req.params.user,req.body.friend)
+})
+app.get('/friends/:user',(req,res)=>{
+     res.send(userManager.getUser(req.params.user)?.friends)
+})
+
+app.get('/userProjects/:user',(req,res)=>{
+     res,send(userManager.getShared(req.params.user))
+})
+
+app.get('/share/:id',(req,res)=>{
+     let list = sessionManager.getProject(req.params.id)?.sharedWith
+     res.send(list ? list : {err:'could not find blocklive project: ' + req.params.id} )
+})
+app.put('/share/:id/:to',(req,res)=>{
+     sessionManager.shareProject(req.params.id, req.params.to)
+     userManager.share(req.params.to, req.params.id, req.body.from)
 })
 
 

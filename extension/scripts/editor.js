@@ -1,8 +1,48 @@
 console.log('CollabLive Editor Inject Running...')
 
+//////////// TRAP UTILS ///////////
+
 function sleep(millis) {
-    return new Promise(res => setTimeout(res, millis));
+    return new Promise(res=>setTimeout(res,millis));
 }
+
+let queryList = []
+function mutationCallback() {
+    queryList.forEach(query=>{
+        let elem = document.querySelector(query.query)
+        if(elem && !elem.blSeen) {
+            if(query.once){queryList.splice(queryList.indexOf(query,1))}
+            else {elem.blSeen = true}
+            query.callback(elem)
+        }
+    })
+}
+let observer = new MutationObserver(mutationCallback)
+observer.observe(document.documentElement,{ subtree: true, childList: true })
+function getObj(query) {
+    let obj = document.querySelector(query)
+    if(obj) {return new Promise(res=>{res(obj)})}
+    return new Promise(res=>{
+        queryList.push({query,callback:res,once:true})
+    })
+}
+function listenForObj(query,callback) {
+    let obj = document.querySelector(query)
+    if(obj) {obj.blSeen = true; callback(obj)}
+    queryList.push({query,callback,once:false})
+}
+
+function waitFor(lambda) {
+    return new Promise(async res=>{
+        let output;
+        while(!(output = lambda())) {
+            console.log('waiting for lambda resolve: ' + lambda)
+            await sleep(100)
+        }
+        res(output);
+    })
+}
+
 
 
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
@@ -55,12 +95,14 @@ blVersion = 0
 scratchId = '602888445'
 let pauseEventHandling = false
 let projectReplaceInitiated = false
-let onceVmTrapped = []
 let onceProjectLoaded = []
 let vm
 let readyToRecieveChanges = false
 
 async function onTabLoad() {
+    // trap vm
+    vm = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child).child.child.child.stateNode.props.vm;
+
     blId = await getBlocklyId(scratchId);
     if(!!blId) {
         pauseEventHandling = true
@@ -109,8 +151,7 @@ function getChanges(blId,version) {
 
 let getAndPlayNewChanges
 
-
-function activateBlocklive() {
+async function activateBlocklive() {
 
     // set scope exposed functions    
     getAndPlayNewChanges = async ()=>{
@@ -156,8 +197,15 @@ setInterval(reconnectIfNeeded,1000)
             blVersion++
             doShareBlocksMessage(msg)        
         } else if (msg.meta == 'vm.replaceBlocks') {
-            blVersion++
-            replaceBlockly(msg)
+            if(!nameToTarget(msg.target)?.blocks) {
+                console.log('saving for later')
+                addNewTargetEvent(msg.target,msg);
+            }
+            else {
+                console.log('doing')
+                blVersion++
+                replaceBlockly(msg)
+            }
         } else if(msg.meta=='yourVersion') {
             console.log('version ponged: ' + msg.version)
             blVersion = msg.version
@@ -167,50 +215,7 @@ setInterval(reconnectIfNeeded,1000)
 
 
 ///.......... TRAPS ..........//
-
-// Trap ScratchBlocks -- adapted from https://github.com/ScratchAddons/ScratchAddons/blob/4248dc327a9f3360c77b94a89e396903218a2fc2/addon-api/content-script/Trap.js
-function sleep(millis) {
-    return new Promise(res=>setTimeout(res,millis));
-}
-
-function getObj(lambda) {
-    return new Promise(async res=>{
-        let output;
-        while(!(output = lambda())) {
-            console.log('waiting for lambda resolve: ' + lambda)
-            await sleep(100)
-        }
-        res(output);
-    })
-}
-
-(async()=>{
-let reactElem = (await getObj(()=>document.querySelector('[class^="gui_blocks-wrapper"]')))
-let reactInst;
-for(let e of Object.entries(reactElem)) {
-    if(e[0].startsWith('__reactInternalInstance')) {
-        reactInst = e[1];
-        break;
-    }
-}
-
-let childable = reactInst;
-/* eslint-disable no-empty */
-while (((childable = childable.child), !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)) {}
-
-ScratchBlocks = childable.stateNode.ScratchBlocks;
-
-// Send Trapped Message
-liveMessage({meta:"sb.trapped"}, function (response) {
-    console.log("response: " + response)
-});
-})()
-
-// Thanks garbomuffin and scratchaddons
-// Trap VM
-vm = Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
-.child.child.child.stateNode.props.vm;
-onceVmTrapped.forEach((func)=>func(vm))
+// Thanks garbomuffin and scratchaddons for guidance
 
 // set helpful function to download projet and return the promise
 async function downloadProjectIdPromise (id) {
@@ -226,6 +231,29 @@ async function downloadProjectIdPromise (id) {
 }
 vm.downloadProjectIdPromise = downloadProjectIdPromise.bind(vm)
 
+// Trap ScratchBlocks -- adapted from https://github.com/ScratchAddons/ScratchAddons/blob/4248dc327a9f3360c77b94a89e396903218a2fc2/addon-api/content-script/Trap.js
+
+// let reactElem = (await getObj(()=>document.querySelector('[class^="gui_blocks-wrapper"]')))
+
+listenForObj('[class^="gui_blocks-wrapper"]',(reactElem)=>{
+
+// let reactElem = (await getObj('[class^="gui_blocks-wrapper"]'))
+let reactInst;
+for(let e of Object.entries(reactElem)) {
+    if(e[0].startsWith('__reactInternalInstance')) {
+        reactInst = e[1];
+        break;
+    }
+}
+
+let childable = reactInst;
+/* eslint-disable no-empty */
+while (((childable = childable.child), !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)) {}
+
+ScratchBlocks = childable.stateNode.ScratchBlocks;
+getWorkspace().removeChangeListener(blockListener)
+getWorkspace().addChangeListener(blockListener)
+})
 
 // Trap Paint
 function getPaper() {
@@ -249,6 +277,7 @@ function isWorkspaceAccessable() {
 
 function getWorkspace() {
     let retVal = null
+    if(typeof ScratchBlocks == 'undefined') {return retVal}
     Object.entries(ScratchBlocks.Workspace.WorkspaceDB_).forEach(wkv=>{
         if(!wkv[1].isFlyout) {retVal = wkv[1]}
     })
@@ -340,10 +369,10 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             if(then) {
                 if(!!retval?.then) {
                     // if returns a promise
-                        retval.then(()=>{then(prevTarget,vm.editingTarget,data)})
+                        retval.then((res)=>{then(prevTarget,vm.editingTarget,data,res)})
                     } else {
                     // if is normal resolved function
-                        then(prevTarget,vm.editingTarget,data)
+                        then(prevTarget,vm.editingTarget,data,retVal)
                     }
             }
             return retval
@@ -595,8 +624,6 @@ function blockListener(e) {
     // ___DONT___ Forward (do) event
     // oldBlockListener(e)
 }
-// vm.blockListener = blockListener
-getObj(()=>(typeof ScratchBlocks != 'undefined')).then(()=>{getWorkspace().addChangeListener(blockListener)})
 
 /// Todo: testing on whether or not to actually execute actions
 // Todo: catch stage not being sprite
@@ -620,7 +647,10 @@ function onBlockRecieve(d) {
 
     try{
     let vEvent = d.event
-    let bEvent = ScratchBlocks.Events.fromJson(d.json,getWorkspace())
+    let bEvent = {}
+    if(isWorkspaceAccessable()) {
+        bEvent = ScratchBlocks.Events.fromJson(d.json,getWorkspace())
+    }
     //set blockly event tag
     bEvent.isBlocklive = true
 
@@ -715,7 +745,7 @@ function onBlockRecieve(d) {
             vm.editingTarget.blocks.blocklyListen(vEvent)
         }
     }
-    }catch(e) {console.log('error on block event execution',e)}
+    }catch(e) {console.error('error on block event execution',e)}
     //reset editing target
     if(!oldEditingTarget) {console.log('old editing target is undefined!')}
     if(!!oldEditingTarget && !!vm.runtime.getTargetById(oldEditingTarget.id)) {
@@ -733,6 +763,7 @@ vm.emitTargetsUpdate = function(...args) {
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
 vm.emitWorkspaceUpdate = function() {
     if(pauseEventHandling) {console.log('workspace update voided'); return;}
+    if(!isWorkspaceAccessable()) {return;}
 
     console.log("WORKSPACE UPDATING")
     // add deletes for comments
@@ -838,12 +869,28 @@ vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
 })
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 // vm.updateSvg = proxy(vm.updateSvg,"updatesvg",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
-vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,((a,b)=>{vm.setEditingTarget(a.id)}))
+newTargetEvents = {} // targetName => [events...] //todo make let statement
+function addNewTargetEvent(targetName, event) {
+    if(!(targetName in newTargetEvents)) {
+        newTargetEvents[targetName] = []
+    }
+    newTargetEvents[targetName].push(event)
+}
+
+// ()=>{pauseEventHandling = true},(
+vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
-    (data)=>[nameToTarget(data.extrargs.name).id],null,
-    ((a,b)=>{vm.setEditingTarget(a.id)}),null,null,()=>{
+    (data)=>[nameToTarget(data.extrargs.name).id],
+    ()=>{pauseEventHandling = true},
+    ((a,b,n,result)=>{
+        vm.setEditingTarget(a.id)
+        pauseEventHandling = false;
+        console.log('🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔 stuff done! b, result',b,result); 
+        newTargetEvents[b.sprite.name]?.forEach(event=>blockliveListener(event))
+        
+    }),null,null,()=>{
         // send replace blocks message
         liveMessage({meta:"vm.replaceBlocks",target:targetToName(vm.editingTarget),blocks:vm.editingTarget.blocks._blocks})
     })
@@ -861,7 +908,7 @@ vm.reorderTarget = proxy(vm.reorderTarget,"reordertarget")
 
 let shareCreates = []
 let lastDeletedBlock
-getObj(()=>(vm.editingTarget)).then(()=>{
+waitFor(()=>(vm.editingTarget)).then(()=>{
     let oldCreateBlock = vm.editingTarget.blocks.__proto__.createBlock
 
     vm.editingTarget.blocks.__proto__.createBlock = function(...args) {
@@ -878,7 +925,7 @@ getObj(()=>(vm.editingTarget)).then(()=>{
     }
 })
 
-getObj(()=>(vm.extensionManager)).then(()=>{
+waitFor(()=>(vm.extensionManager)).then(()=>{
     vm.extensionManager.loadExtensionURL = 
     anyproxy(vm.extensionManager,vm.extensionManager.loadExtensionURL,"loadextensionurl")
 })
@@ -922,3 +969,243 @@ function doShareBlocksMessage(msg) {
 // port.postMessage();
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////........................ GUI INJECTS .........................//////
+
+let shareDropdown = `
+<container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; padding-left:20px; padding-right:20px;border-radius: 17px;">
+<font face="Helvetica Neue" style="color:white;font-weight:normal;">   
+<sharedWith style="display:flex;flex-direction: column;">
+        <text style="display:flex;align-self: left;padding-left:4px; padding-top:5px;padding-bottom:5px;font-size: large;">
+            Shared With
+        </text>
+        <sharedList  style="overflow: scroll; max-height: 350px; display:flex; min-height: 20px; border-radius:10px;gap:5px;flex-direction: column;  ">
+            <cell id="example" style="display:none; gap:10px;flex-direction: row; align-items: center;">
+                <pic  style='width:40px; height:40px; border-radius: 100%; display:flex;background-position: center;background-size:cover; background-image:url("https://i.pinimg.com/originals/12/ff/9c/12ff9cd0f45317c362f0c87e2e55bd6c.jpg");';>
+                </pic>
+                <name onclick='window.open("https:\/\/scratch.mit.edu/users/" + this.innerText)', class="sharedName" style="max-width:122px;overflow:hidden; display:flex;align-self: center; font-size: large;font-weight:bold;">
+                    WazzoTV
+                </name>
+                <x onclick="removeCollaborator(this.username)" style="display:flex; align:right;font-size:large; border-radius: 100%;padding: 0px;">
+                    ✕
+                </x>
+            </cell>
+        </sharedList>
+    </sharedWith>
+    <hr style="display: flex; width: 100%; height:1px;border:none;background-color:#16488f"></hr>
+    <search style="display:flex;flex-direction: column; ">
+        <text style="display:flex;align-self:  left;padding-top:5px;padding-bottom:5px;padding-left:4px; font-size: large;">
+            Add Collaborators
+        </text>
+        <input id='searchy' style="color:black; display: flex;  margin-bottom:10px; align-self: center;border-radius: 10px; border-style: none; width:190px; height:30px">
+
+
+    </input>
+        <results style="display: flex; height: 40px;">
+            <cell class="result" onclick="if(opening){opening=false;return;}addCollaborator(this.username);"  id="resultt" style="visibility: hidden; padding-right:20px; border-radius: 20px; display:flex; gap:10px;flex-direction: row; align-items: center;">
+                <!-- <highlight class="resultHighlight" style="z-index: 0;position:absolute; width:240px; height: 50px; left:8px">
+
+                </highlight> -->
+                <pic id="resultPic" style='pointer-events:none;z-index: 1;width:40px; height:40px; border-radius: 100%; display:flex;background-position: center;background-size:cover;';>
+                    <x id='plus' style="z-index: 1; color:rgb(9, 79, 136);margin-left:10px;display:flex; width:30px; border-radius: 100%;padding: 2px;font-weight: bold;font-size: x-large;">
+                        +
+                   </x>
+                </pic>
+                <name id="resultName" onclick='opening=true;window.open("https:\/\/scratch.mit.edu/users/" + this.innerText)' style="overflow:hidden;max-width:144px; z-index: 1;display:flex;align-self: center; font-size: large;font-weight:bold;">
+
+                </name>
+                
+            </cell>
+        </results>
+    </search>
+    </font>
+    </container>
+
+`
+let shareScript = `{
+let apiUrl = 'http://152.67.248.129:4000'
+
+opening = false
+let result = document.querySelector('#resultName')
+let resultt = document.querySelector('#resultt')
+let plus = document.querySelector('#plus')
+let resultPic = document.querySelector('#resultPic')
+let example = document.querySelector('#example')
+
+        earch =document.querySelector('#searchy')
+
+        let shareDivs = {}
+
+        cachedUser = null
+
+        addCollaborator = async (username) =>{
+            if(username.toLowerCase() in shareDivs) {return}
+            let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(\`https://scratch.mit.edu/site-api/users/all/\${username}\`)).json();
+            if(!res?.id) {return}
+            let img = res?.thumbnail_url
+
+            let newCollab = example.cloneNode(-1)
+            console.log(newCollab)
+            newCollab.style.display = 'flex'
+            Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = res?.user?.username;
+            Array.from(newCollab.children).find(elem=>elem.localName =='x').username = res?.user?.username;
+            Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = \`url('\${img}')\`  
+            shareDivs[username.toLowerCase()] = newCollab
+            example.parentNode.append(newCollab);
+
+            resultt.style.visibility = 'hidden'
+            earch.value = ''
+            earch.oninput();
+        }
+
+        removeCollaborator= async (username)=> {
+            if(!(username.toLowerCase() in shareDivs)) {return}
+            shareDivs[username.toLowerCase()].remove()
+            delete shareDivs[username.toLowerCase()]
+        }
+
+        earch.addEventListener("keyup", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    addCollaborator(earch.value)
+  }
+});
+
+        earch.oninput = async ()=>{
+            console.log('hi')
+            let res
+
+            // await (await fetch("ilhp10/")).json();
+             try{(res=await (await fetch('https://scratch.mit.edu/site-api/users/all/' + earch.value)).json())} catch(e) {
+                 res=null
+             }
+            //  try{(res=await (await fetch('https://api.scratch.mit.edu/users/' + earch.value)).json())} catch(e) {
+            //      res=null
+            //  }
+            if(earch.value?.toLowerCase() != res?.user?.username?.toLowerCase()) {return}
+             if(!!res?.user?.username) {
+            result.innerHTML = res?.user?.username
+            result.parentNode.username = res?.user?.username
+            let img = res?.thumbnail_url
+            // let img = res?.user?.images['60x60']
+            cachedUser = res
+            console.log(img)
+                 resultt.style.visibility = 'visible'
+            resultPic.style.backgroundImage = \`url('\${img}')\`  
+             } else {
+                 resultt.style.visibility = 'hidden'
+             }
+        }
+
+        function multiplyNode(node, count, deep) {
+    for (var i = 0, copy; i < count - 1; i++) {
+        copy = node.cloneNode(deep);
+        node.parentNode.insertBefore(copy, node);
+    }
+}
+
+multiplyNode(document.querySelector('cell'), 2, true);
+
+fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEach(addCollaborator))})
+}
+`
+let shareCSS = `.sharedName:hover {
+    text-decoration: underline;
+}
+#resultName:hover {
+    text-decoration: underline;
+}
+
+.result:hover {
+background: #6aa8ff;
+}
+.blockliveloader {
+    border: 3px solid rgba(255,0,113,1);
+    border-top: 3px solid white;
+    border-bottom: 3px solid white;
+    border-radius: 50%;
+    width: 13px;
+    height: 13px;
+    animation: spin 2s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`
+function makeBlockliveButton() {
+    let button = document.createElement('blocklive-init')
+    button.className = 'button_outlined-button_1bS__ menu-bar_menu-bar-button_3IDN0'
+    button.style.background = "#ff00e6"
+    button.style.marginRight = '20px'
+    button.style.gap = '7px'
+    // button.style.background = ' linear-gradient(90deg, rgba(51,0,54,1) 0%, rgba(255,0,113,1) 60%)'
+    button.style.background = 'rgba(255,0,113,1)'
+    button.style.display = 'flex'
+    button.style.flexDirection = 'row'
+
+    let text = document.createElement('text')
+    text.style.textAlign = 'center'
+    text.innerHTML = "Blocklive<br>Share"
+
+    let loader = document.createElement('loader')
+    loader.className = 'blockliveloader'
+    // loader.style.display = 'none'
+    button.appendChild(loader)
+    button.appendChild(text)
+    return button
+}
+
+
+function injectJSandCSS() {
+
+    let dropdownScriptElem = document.createElement('script')
+    dropdownScriptElem.innerHTML = shareScript
+    document.head.appendChild(dropdownScriptElem)
+
+    let styleInj = document.createElement('style')
+    styleInj.innerHTML = shareCSS
+    document.head.appendChild(styleInj)
+}
+
+listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
+    (bc)=>{
+        bc.children[1].children[0].innerHTML = "Become Blajingus"
+
+        let container = document.createElement('blockliveContainer')
+        container.style.display = 'flex'
+        container.style.flexDirection = 'column'
+
+        let button = makeBlockliveButton()
+        let dropdown = document.createElement('blockliveDropdown')
+        dropdown.innerHTML = shareDropdown
+        dropdown.style.position = 'absolute'
+        dropdown.style.top = '40px'
+        dropdown.style.borderRadius = '17px'
+        dropdown.style.boxShadow = '3px 7px 19px 3px rgba(0,0,0,0.48)'
+        dropdown.style.display = 'none'
+
+        button.onclick = ()=>{console.log('clicked'); dropdown.style.display = (dropdown.style.display == 'none' ? 'flex' : 'none') }
+        document.addEventListener('click', (e)=>{if(e.target.nodeName != 'X' &&!dropdown.contains(e.target) && !button.contains(e.target)){dropdown.style.display = 'none'}})
+
+        container.appendChild(button)
+        container.appendChild(dropdown)
+        bc.parentNode.parentNode.insertBefore(container,bc.parentNode)
+
+        injectJSandCSS()
+    }
+)

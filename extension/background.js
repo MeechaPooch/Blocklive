@@ -1,6 +1,9 @@
 importScripts('background/socket.io.js')
 importScripts('background/blockliveProject.js')
 
+// user info
+let username = 'ilhp10'
+
 // let apiUrl = 'http://127.0.0.1:4000'
 let apiUrl = 'http://152.67.248.129:4000'
 
@@ -9,7 +12,7 @@ let apiUrl = 'http://152.67.248.129:4000'
 let blockliveTabs = {}
 // blId -> BlockliveProject
 let projects = {}
-// port -> blId
+// portName -> blId
 let portIds = {}
 
 function playChange(blId,msg,optPort) {
@@ -62,15 +65,18 @@ chrome.tabs.onUpdated.addListener(function
 }
 );
 
+let lastPortId = 0
+
 let ports = []
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
+  port.name = ++lastPortId
   ports.push(port)
   // console.assert(port.name === "knockknock");
   port.onMessage.addListener(function(msg) {
     console.log(msg)
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
-      let blIdd = portIds[port]
+      let blIdd = portIds[port.name]
       
       playChange(blIdd,msg,port)
 
@@ -83,10 +89,10 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       if(!(msg.id in blockliveTabs)) {
         blockliveTabs[msg.id] = [] 
       }
-      if(port in portIds) {}
+      if(port.name in portIds) {}
       else {
         blockliveTabs[msg.id].push(port)
-        portIds[port] = msg.id
+        portIds[port.name] = msg.id
       }
         
       // create project object
@@ -94,16 +100,16 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
         projects[msg.id] = new BlockliveProject()
       }
     } else if (msg.meta == 'joinSession') {
-      socket.send({type:"joinSession",id:portIds[port],username:'ilhp10'}) // todo: replace username
+      socket.send({type:"joinSession",id:portIds[port.name],username:'ilhp10'}) // todo: replace username
     }
 
   });
   port.onDisconnect.addListener((p)=>{
     ports.splice(ports.indexOf(p),1);
-    let blockliveId = portIds[p]
+    let blockliveId = portIds[p.name]
     let list = blockliveTabs[blockliveId]
     blockliveTabs[blockliveId].splice(list.indexOf(p),1);
-    delete portIds[p]
+    delete portIds[p.name]
     if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
   })
 });
@@ -120,6 +126,8 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
+    } else if(request.meta == 'shareWith') {
+      fetch(`${apiUrl}/share/${request.id}/${request.user}`,{method:'PUT',body:{from:username}})
     }
   });
 

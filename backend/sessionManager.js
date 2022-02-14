@@ -202,6 +202,7 @@ export default class SessionManager{
     }
 
     shareProject(id,user) {
+        console.log(`sessMngr: sharing ${id} with ${user}`)
         let project = this.getProject(id)
         if(!project) {return}
         project.sharedWith.push(user)
