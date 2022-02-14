@@ -8,7 +8,7 @@ import {Server} from 'socket.io'
 const io = new Server(server, {cors:{origin:'*'}});
 
 import SessionManager from './sessionManager.js'
-import UserManager from './userManager'
+import UserManager from './userManager.js'
 let sessionManager = new SessionManager()
 let userManager = new UserManager()
 let id = sessionManager.newProject('ilhp10','602888445').id
