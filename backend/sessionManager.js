@@ -106,6 +106,10 @@ class ProjectWrapper {
         this.linkedWith.push({scratchId,owner,version})
     }
 
+    getOwnersProject(owner) {
+        return this.linkedWith.find(project=>project.owner?.toLowerCase()==owner?.toLowerCase())
+    }
+
     joinSession(socket,username) {
         if(socket.id in this.session.connectedClients) {return}
         let client = new BlockliveClient(socket,username)

@@ -66,14 +66,17 @@ uname = username
 return username
 }
 
+let newProjects = {}
 
 // Listen for See Inside
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
 chrome.tabs.onUpdated.addListener(async function
   (tabId, changeInfo, tab) {
-  if (changeInfo.url) {
+    return; // TODO: REMOVE
+    if(tab.id in newProjects) {} 
+  else if (changeInfo.url) {
     // if url is scratch page
-    console.log('page url changed to:', changeInfo)
+    console.log('page url changed to:', changeInfo.url)
     if(projectsPageTester.test(changeInfo.url)) {
       console.log('url is a scratch project')
 
@@ -83,14 +86,15 @@ chrome.tabs.onUpdated.addListener(async function
       console.log(scratchId)
       let projectInfo = (await (await fetch(`${apiUrl}/scratchIdInfo/${scratchId}`)).json())
       if(projectInfo.err) {return}
-      console.log('bloclive id:',blId)
+      console.log('blocklive id:',projectInfo.blId)
 
       // if user doesnt own project
       await refreshUsername()
       if(uname == projectInfo.owner) {return}
 
       // open new project page
-      chrome.tabs.update(tab,{url:'scratch.mit.edu/create'})
+      newProjects[tab.id] = projectInfo.blId
+      chrome.tabs.update(tab.id,{url:'https://scratch.mit.edu/create'})
     }
   }
 }
@@ -153,6 +157,8 @@ chrome.runtime.onMessageExternal.addListener(
     if(request.meta == 'getBlId') {
       if(!request.scratchId || request.scratchId == '.') {return ''}
       sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}`)).text()).replaceAll('"',''))
+    } else if(request.meta =='imnew'){
+      if(sender.tab.id in newProjects) {sendResponse(newProjects[sender.tab.id])}
     } else if(request.meta =='getInpoint') {
       sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getChanges') {

@@ -11,7 +11,7 @@ import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 let sessionManager = new SessionManager()
 let userManager = new UserManager()
-let id = sessionManager.newProject('ilhp10','602888445').id
+let id = sessionManager.newProject('ilhp10','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 
 let messageHandlers = {
@@ -57,6 +57,20 @@ app.get('/blId/:scratchId',(req,res)=>{
 app.get('/scratchIdInfo/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {
           res.send(sessionManager.scratchprojects[req.params.scratchId])
+     } else {
+          res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
+     }
+})
+app.get('/whereTo/:username/:scratchId',(req,res)=>{
+     if (req.params.scratchId in sessionManager.scratchprojects) {
+          let project = sessionManager.getScratchToBLProject(res.params.scratchId)
+          let possibleProject = project.getOwnersProject(req.params.username)
+          if(possibleProject) {
+               res.send({scratchId:possibleProject.scratchId, blId:project.id, owner:possibleProject.owner})
+          } else {
+               res.send(sessionManager.scratchprojects[req.params.scratchId])
+          }
+
      } else {
           res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
      }

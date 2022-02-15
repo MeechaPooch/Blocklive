@@ -93,7 +93,7 @@ var blockliveServer
 let blId = ''
 blVersion = 0
 // scratchId = location.pathname.split('/')[2] //TODO: use better method?
-scratchId = '602888445'
+scratchId = '644532638'
 let pauseEventHandling = false
 let projectReplaceInitiated = false
 let onceProjectLoaded = []
