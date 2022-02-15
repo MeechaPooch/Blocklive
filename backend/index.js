@@ -54,6 +54,13 @@ io.on('connection', (client) => {
 app.get('/blId/:scratchId',(req,res)=>{
      res.send(sessionManager.scratchprojects[req.params.scratchId])
 })
+app.get('/scratchIdInfo/:scratchId',(req,res)=>{
+     if (req.params.scratchId in sessionManager.scratchprojects) {
+          res.send(sessionManager.scratchprojects[req.params.scratchId])
+     } else {
+          res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
+     }
+})
 app.get('/changesSince/:id/:version',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      if(!project) {res.send([])}

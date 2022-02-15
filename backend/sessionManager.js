@@ -135,15 +135,15 @@ export default class SessionManager{
         let project = this.getProject(id)
         if(!project) {return}
         project.linkProject(scratchId,owner,version)
-        this.scratchprojects[scratchId] = id
+        this.scratchprojects[scratchId] = {owner,blId:id}
     }
 
     newProject(owner,scratchId) {
-        if(scratchId in this.scratchprojects) {return blocklive[this.scratchprojects[scratchId]]}
+        if(scratchId in this.scratchprojects) {return this.getProject(this.scratchprojects[scratchId].blId)}
         let id = new String(this.getNextId())
         let project = new ProjectWrapper(owner,scratchId,id)
         this.blocklive[id] = project
-        this.scratchprojects[scratchId] = id
+        this.scratchprojects[scratchId] = {owner,blid:id}
 
         return project
     }
@@ -194,7 +194,7 @@ export default class SessionManager{
 
     // todo checking
     attachScratchProject(scratchId, owner, blockliveId) {
-        this.scratchprojects[scratchId] = {user:owner,blocklive:blockliveId}
+        this.scratchprojects[scratchId] = {owner,blId:blockliveId}
     }
 
     getProject(blId) {
@@ -209,9 +209,9 @@ export default class SessionManager{
     }
 
     getScratchToBLProject(scratchId) {
-        let blId = this.scratchprojects[scratchId]
+        let blId = this.scratchprojects[scratchId]?.blId
         if(!blId) {return null}
-        return this.blocklive[blId.blocklive]
+        return this.blocklive[blId]
     }
 
 }
