@@ -52,7 +52,7 @@ io.on('connection', (client) => {
 });
 
 app.get('/blId/:scratchId',(req,res)=>{
-     res.send(sessionManager.scratchprojects[req.params.scratchId])
+     res.send(sessionManager.scratchprojects[req.params.scratchId]?.blId)
 })
 app.get('/scratchIdInfo/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {

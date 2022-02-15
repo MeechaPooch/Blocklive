@@ -5,17 +5,18 @@ console.log('CollabLive Editor Inject Running...')
 function sleep(millis) {
     return new Promise(res=>setTimeout(res,millis));
 }
-
 let queryList = []
 function mutationCallback() {
+    let toDelete = []
     queryList.forEach(query=>{
         let elem = document.querySelector(query.query)
         if(elem && !elem.blSeen) {
-            if(query.once){queryList.splice(queryList.indexOf(query,1))}
+            if(query.once){toDelete.push(query)}
             else {elem.blSeen = true}
             query.callback(elem)
         }
     })
+    toDelete.forEach(query=>{queryList.splice(queryList.indexOf(query),1)})
 }
 let observer = new MutationObserver(mutationCallback)
 observer.observe(document.documentElement,{ subtree: true, childList: true })
@@ -983,7 +984,7 @@ function doShareBlocksMessage(msg) {
 
 
 /////........................ GUI INJECTS .........................//////
-
+console.log('running gui inject...')
 let shareDropdown = `
 <container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; padding-left:20px; padding-right:20px;border-radius: 17px;">
 <font face="Helvetica Neue" style="color:white;font-weight:normal;">   
@@ -1164,7 +1165,7 @@ function makeBlockliveButton() {
 
     let loader = document.createElement('loader')
     loader.className = 'blockliveloader'
-    // loader.style.display = 'none'
+    loader.style.display = 'none'
     button.appendChild(loader)
     button.appendChild(text)
     return button
@@ -1181,7 +1182,7 @@ function injectJSandCSS() {
     styleInj.innerHTML = shareCSS
     document.head.appendChild(styleInj)
 }
-
+console.log('listening for share button')
 listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
     (bc)=>{
         bc.children[1].children[0].innerHTML = "Become Blajingus"

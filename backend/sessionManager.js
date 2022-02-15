@@ -143,7 +143,7 @@ export default class SessionManager{
         let id = new String(this.getNextId())
         let project = new ProjectWrapper(owner,scratchId,id)
         this.blocklive[id] = project
-        this.scratchprojects[scratchId] = {owner,blid:id}
+        this.scratchprojects[scratchId] = {owner,blId:id}
 
         return project
     }

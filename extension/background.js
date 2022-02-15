@@ -49,18 +49,49 @@ socket.on('message',(data)=>{
 })
 
 
+let uname = '*'
+// async function getUsername() {
+//   chrome.storage.local.get(['username'])
+// }
+async function refreshUsername() {
+  res = await fetch("https://scratch.mit.edu/session/?blreferer", {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+let username = (await res.json()).user.username
 
-
+// chrome.storage.local.set({username})
+uname = username
+return username
+}
 
 
 // Listen for See Inside
-chrome.tabs.onUpdated.addListener(function
+let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
+chrome.tabs.onUpdated.addListener(async function
   (tabId, changeInfo, tab) {
-  // console.log("HIII")
-  // read changeInfo data and do something with it (like read the url)
   if (changeInfo.url) {
-    // do something here
-    console.log(changeInfo.url)
+    // if url is scratch page
+    console.log('page url changed to:', changeInfo)
+    if(projectsPageTester.test(changeInfo.url)) {
+      console.log('url is a scratch project')
+
+      // if scratch project is also registered in blocklive
+      let url = new URL(changeInfo.url)
+      let scratchId = url.pathname.split('/')[2]
+      console.log(scratchId)
+      let projectInfo = (await (await fetch(`${apiUrl}/scratchIdInfo/${scratchId}`)).json())
+      if(projectInfo.err) {return}
+      console.log('bloclive id:',blId)
+
+      // if user doesnt own project
+      await refreshUsername()
+      if(uname == projectInfo.owner) {return}
+
+      // open new project page
+      chrome.tabs.update(tab,{url:'scratch.mit.edu/create'})
+    }
   }
 }
 );
