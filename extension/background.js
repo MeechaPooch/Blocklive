@@ -209,7 +209,7 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta == 'getUsername') {
       sendResponse(uname)
     } else if(request.meta == 'callback') {
-      tabCallbacks[sender.id] = sendResponse
+      tabCallbacks[sender.tab.id] = sendResponse
     }
   });
 
