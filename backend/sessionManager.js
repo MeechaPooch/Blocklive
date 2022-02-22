@@ -102,7 +102,7 @@ class ProjectWrapper {
         if(version <= this.scratchVersion) {return}
         this.scratchId = id
         this.scratchVersion = version
-        this.linkedWith.find(proj=>proj.scratchId == id)?.version = version
+        this.linkedWith.find(proj=>proj.scratchId == id).version = version
     }
 
     linkProject(scratchId, owner, version) {
