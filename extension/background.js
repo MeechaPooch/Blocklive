@@ -2,7 +2,7 @@ importScripts('background/socket.io.js')
 importScripts('background/blockliveProject.js')
 
 // user info
-let username = 'ilhp10'
+// let username = 'ilhp10'
 
 // let apiUrl = 'http://127.0.0.1:4000'
 let apiUrl = 'http://152.67.248.129:4000'
@@ -180,7 +180,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
         projects[msg.id] = new BlockliveProject()
       }
     } else if (msg.meta == 'joinSession') {
-      socket.send({type:"joinSession",id:portIds[port.name],username:'ilhp10'}) // todo: replace username
+      socket.send({type:"joinSession",id:portIds[port.name],username:uname}) // todo: replace username
     }
 
   });
@@ -207,7 +207,7 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
     } else if(request.meta == 'shareWith') {
-      fetch(`${apiUrl}/share/${request.id}/${request.user}/${username}`,{
+      fetch(`${apiUrl}/share/${request.id}/${request.user}/${uname}`,{
         method:'PUT'
       })
     } else if(request.meta == 'getUsername') {

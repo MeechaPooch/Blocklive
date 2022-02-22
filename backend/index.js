@@ -102,7 +102,7 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {res.send({goto:'none'})}
      else {
-          let ownedProject = project.getOwnersProject(req.username)
+          let ownedProject = project.getOwnersProject(req.params.username)
           if(!!ownedProject) {
                res.send({goto:ownedProject.scratchId})
           } else {
