@@ -83,6 +83,8 @@ app.get('/changesSince/:id/:version',(req,res)=>{
      }
 })
 app.put('/linkScratch/:scratchId/:blId',(req,res)=>{
+     console.log(req)
+     console.log('body',req.body)
      sessionManager.linkProject(req.params.blId,req.params.scratchId,req.body.username,0)
 })
 app.get('/projectInpoint/:blId',(req,res)=>{
