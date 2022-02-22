@@ -95,7 +95,7 @@ app.get('/projectInpoint/:blId',(req,res)=>{
      let project = sessionManager.getProject(req.params.blId)
      if(!project) {
           // res.status(404)
-          res.send({err:'project with id' +req.params.blId+'does not exist'})
+          res.send({err:'project with id: ' +req.params.blId+' does not exist'})
      }
      else {
           let scratchId = project.scratchId
