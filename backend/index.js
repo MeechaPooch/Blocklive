@@ -2,7 +2,6 @@ import express from 'express'
 const app = express();
 import cors from 'cors'
 app.use(cors())
-app.use(express.json())
 import http from 'http'
 const server = http.createServer(app);
 import {Server} from 'socket.io'
@@ -83,9 +82,8 @@ app.get('/changesSince/:id/:version',(req,res)=>{
           res.send(project.project.getChangesSinceVersion(req.params.version))
      }
 })
-app.put('/linkScratch/:scratchId/:blId',(req,res)=>{
-     console.log('body',req.body)
-     sessionManager.linkProject(req.params.blId,req.params.scratchId,req.body.username,0)
+app.put('/linkScratch/:scratchId/:blId/:owner',(req,res)=>{
+     sessionManager.linkProject(req.params.blId,req.params.scratchId,req.params.owner,0)
 })
 app.get('/projectInpoint/:blId',(req,res)=>{
      let project = sessionManager.getProject(req.params.blId)
@@ -119,13 +117,12 @@ app.get('/',(req,res)=>{
      res.send('wow youre a hacker wow')
 })
 
-app.post('/friends/:user',(req,res)=>{
-     console.log(req.body)
-     userManager.befriend(req.params.user,req.body.friend)
+app.post('/friends/:user/:friend',(req,res)=>{
+
+     userManager.befriend(req.params.user,req.params.friend)
 })
-app.delete('/friends/:user',(req,res)=>{
-     console.log(req.body)
-     userManager.unbefriend(req.params.user,req.body.friend)
+app.delete('/friends/:user/:friend',(req,res)=>{
+     userManager.unbefriend(req.params.user,req.params.friend)
 })
 app.get('/friends/:user',(req,res)=>{
      res.send(userManager.getUser(req.params.user)?.friends)
@@ -139,9 +136,9 @@ app.get('/share/:id',(req,res)=>{
      let list = sessionManager.getProject(req.params.id)?.sharedWith
      res.send(list ? list : {err:'could not find blocklive project: ' + req.params.id} )
 })
-app.put('/share/:id/:to',(req,res)=>{
+app.put('/share/:id/:to/:from',(req,res)=>{
      sessionManager.shareProject(req.params.id, req.params.to)
-     userManager.share(req.params.to, req.params.id, req.body.from)
+     userManager.share(req.params.to, req.params.id, req.params.from)
 })
 
 
