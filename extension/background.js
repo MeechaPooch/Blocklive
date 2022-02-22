@@ -49,7 +49,7 @@ async function prepRedirect(tab) {
 
   // dont redirect if is not /projects/id/...
   if(!id) { return false }
-  let info = await fetch(apiUrl + `/userRedirect/${id}/${uname}`)
+  let info = await (await fetch(apiUrl + `/userRedirect/${id}/${uname}`)).json()
   // dont redirect if scratch id is not associated with bl project
   if(info.goto == 'none') {return false}
   // dont redirect if already on project

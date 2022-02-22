@@ -11,7 +11,7 @@ import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 let sessionManager = new SessionManager()
 let userManager = new UserManager()
-let id = sessionManager.newProject('ilhp10','644532638').id
+let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 
 let messageHandlers = {
