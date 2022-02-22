@@ -45,28 +45,26 @@ async function handleNewProject(tab) {
 const newProjectPage = 'https://scratch.mit.edu/create'
 async function prepRedirect(tab) {
   let id = getProjectId(tab.url)
-  if(!id) {
-    // dont redirect if is not /projects/id/...
-    if(isNaN(parseFloat(id))) {return false}
-    let info = await fetch(apiUrl + `/userRedirect/${id}/${uname}`)
-    // dont redirect if scratch id is not associated with bl project
-    if(info.goto == 'none') {return false}
-    // dont redirect if already on project
-    if(info.goto == id) { return false }
 
-    if(info.goto == 'new') {
-      //register callbacks and redirect
-      newProjects[tab.id] = info.blId //TODO: send this with api
-      return newProjectPage
-    } else {
-      if(tab.url.endsWith('editor') || tab.url.endsWith('editor/')) {
-        return `https://scratch.mit.edu/projects/${info.goto}/editor`;
-      } else {
-        return `https://scratch.mit.edu/projects/${info.goto}`;
-      }
-    }
+
+  // dont redirect if is not /projects/id/...
+  if(!id) { return false }
+  let info = await fetch(apiUrl + `/userRedirect/${id}/${uname}`)
+  // dont redirect if scratch id is not associated with bl project
+  if(info.goto == 'none') {return false}
+  // dont redirect if already on project
+  if(info.goto == id) { return false }
+
+  if(info.goto == 'new') {
+    //register callbacks and redirect
+    newProjects[tab.id] = info.blId //TODO: send this with api
+    return newProjectPage
   } else {
-    return false
+    if(tab.url.endsWith('editor') || tab.url.endsWith('editor/')) {
+      return `https://scratch.mit.edu/projects/${info.goto}/editor`;
+    } else {
+      return `https://scratch.mit.edu/projects/${info.goto}`;
+    }
   }
 }
 
@@ -117,7 +115,9 @@ async function refreshUsername() {
         "X-Requested-With": "XMLHttpRequest",
       },
     });
-uname = (await res.json()).user.username
+let json = await res.json()
+if(!json.user) {uname = '*'; return uname;}
+uname = json.user.username
 
 // chrome.storage.local.set({uname})
 

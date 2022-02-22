@@ -102,7 +102,7 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
      if(!project) {res.send({goto:'none'})}
      else {
           let ownedProject = project.getOwnersProject(req.username)
-          if(!ownedProject) {
+          if(!!ownedProject) {
                res.send({goto:ownedProject.scratchId})
           } else {
                res.send({goto:'new', blId:project.id})
