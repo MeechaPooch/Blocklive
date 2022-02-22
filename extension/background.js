@@ -37,7 +37,13 @@ async function handleNewProject(tab) {
   if(!!id && tab.id in newProjects) {
     let blId = newProjects[tab.id]
     delete newProjects[tab.id]
-    fetch(`${apiUrl}/linkScratch/${id}/${blId}`,{method:"PUT",body:{username:uname}}) // link scratch project with api
+    fetch(`${apiUrl}/linkScratch/${id}/${blId}`,{
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method:"PUT",
+      body:{username:uname}
+    }) // link scratch project with api
     tabCallbacks[tab.id]({meta:'initBlocklive',blId}); // init blocklive in project tab
   }
 }
@@ -205,7 +211,13 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
     } else if(request.meta == 'shareWith') {
-      fetch(`${apiUrl}/share/${request.id}/${request.user}`,{method:'PUT',body:{from:username}})
+      fetch(`${apiUrl}/share/${request.id}/${request.user}`,{
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        method:'PUT',
+        body:{from:username}
+      })
     } else if(request.meta == 'getUsername') {
       sendResponse(uname)
     } else if(request.meta == 'callback') {

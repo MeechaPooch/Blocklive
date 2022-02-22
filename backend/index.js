@@ -2,6 +2,8 @@ import express from 'express'
 const app = express();
 import cors from 'cors'
 app.use(cors())
+import bodyParser from 'body-parser'
+app.use(bodyParser.json())
 import http from 'http'
 const server = http.createServer(app);
 import {Server} from 'socket.io'
@@ -83,7 +85,6 @@ app.get('/changesSince/:id/:version',(req,res)=>{
      }
 })
 app.put('/linkScratch/:scratchId/:blId',(req,res)=>{
-     console.log(req)
      console.log('body',req.body)
      sessionManager.linkProject(req.params.blId,req.params.scratchId,req.body.username,0)
 })
