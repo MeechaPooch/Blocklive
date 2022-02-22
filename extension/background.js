@@ -15,7 +15,8 @@ let projects = {}
 // portName -> blId
 let portIds = {}
 
-let newProjectCallbacks = {} // tabId (or 'newtab') -> blId
+let newProjects = {} // tabId (or 'newtab') -> blId
+let tabCallbacks = {} // tabId -> callback function
 
 function getProjectId(url) {
   if(projectsPageTester.test(url)) {
@@ -33,11 +34,11 @@ function getProjectId(url) {
 
 async function handleNewProject(tab) {
   let id = getProjectId(tab.url)
-  if(!!id && tab.id in newProjectCallbacks) {
-    let blId = newProjectCallbacks[tab.id]
-    delete newProjectCallbacks[tab.id]
+  if(!!id && tab.id in newProjects) {
+    let blId = newProjects[tab.id]
+    delete newProjects[tab.id]
     fetch(`${apiUrl}/linkScratch/${id}/${blId}`,{method:"PUT",body:{username:uname}}) // link scratch project with api
-    chrome.tabs.sendMessage(tab.id, {meta:'initBlocklive',blId}); // init blocklive in project tab
+    tabCallbacks[tab.id]({meta:'initBlocklive',blId}); // init blocklive in project tab
   }
 }
 
@@ -55,7 +56,7 @@ async function prepRedirect(tab) {
 
     if(info.goto == 'new') {
       //register callbacks and redirect
-      newProjectCallbacks[tab.id] = info.blId //TODO: send this with api
+      newProjects[tab.id] = info.blId //TODO: send this with api
       return newProjectPage
     } else {
       if(tab.url.endsWith('editor') || tab.url.endsWith('editor/')) {
@@ -207,6 +208,8 @@ chrome.runtime.onMessageExternal.addListener(
       fetch(`${apiUrl}/share/${request.id}/${request.user}`,{method:'PUT',body:{from:username}})
     } else if(request.meta == 'getUsername') {
       sendResponse(uname)
+    } else if(request.meta == 'callback') {
+      tabCallbacks[sender.id] = sendResponse
     }
   });
 

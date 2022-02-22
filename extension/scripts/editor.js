@@ -116,7 +116,7 @@ async function onTabLoad() {
 
     blId = await getBlocklyId(scratchId);
     if(!blId) {
-        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => { if(request.meta == 'initBlocklive') { 
+        chrome.runtime.sendMessage(exId,{meta:'callback'},(request) => { if(request.meta == 'initBlocklive') { 
             blId = request.blId; 
             startBlocklive();}});
     }
