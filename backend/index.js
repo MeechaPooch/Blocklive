@@ -2,8 +2,7 @@ import express from 'express'
 const app = express();
 import cors from 'cors'
 app.use(cors())
-import bodyParser from 'body-parser'
-app.use(bodyParser.json())
+app.use(express.json())
 import http from 'http'
 const server = http.createServer(app);
 import {Server} from 'socket.io'
