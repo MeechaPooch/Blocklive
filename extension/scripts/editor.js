@@ -1,4 +1,5 @@
 console.log('CollabLive Editor Inject Running...')
+var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
 
 //////////// TRAP UTILS ///////////
 
@@ -48,8 +49,6 @@ function waitFor(lambda) {
 
 ///.......... BG SCRIPT CONNECTION SETUP ..........//
 
-var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
-
 // Connect To Background Script
 // var port = chrome.runtime.connect(exId);
 var port
@@ -92,30 +91,38 @@ var blockliveServer
 
 let blId = ''
 blVersion = 0
-// scratchId = location.pathname.split('/')[2] //TODO: use better method?
-scratchId = '644532638'
+scratchId = location.pathname.split('/')[2] //TODO: use better method?
+// scratchId = '644532638'
 let pauseEventHandling = false
 let projectReplaceInitiated = false
 let onceProjectLoaded = []
 let vm
 let readyToRecieveChanges = false
 
+async function startBlocklive() {
+    pauseEventHandling = true
+    liveMessage({meta:"myId",id:blId})
+    activateBlocklive()
+    vm.runtime.on("PROJECT_LOADED", async () => {
+        if(projectReplaceInitiated) { return }
+        await joinExistingBlocklive(blId)
+        pauseEventHandling = false
+    })
+}
+
 async function onTabLoad() {
     // trap vm
     vm = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child).child.child.child.stateNode.props.vm;
 
     blId = await getBlocklyId(scratchId);
+    if(!blId) {
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => { if(request.meta == 'initBlocklive') { 
+            blId = request.blId; 
+            startBlocklive();}});
+    }
     if(!!blId) {
-        pauseEventHandling = true
-        liveMessage({meta:"myId",id:blId})
-        activateBlocklive()
-        vm.runtime.on("PROJECT_LOADED", async () => {
-            if(projectReplaceInitiated) { return }
-            await joinExistingBlocklive(blId)
-            pauseEventHandling = false
-        })
+        startBlocklive()
     } else {
-
     }
 
 }
@@ -126,9 +133,13 @@ async function joinExistingBlocklive(id) {
     console.log('joining blocklive id',id,)
     let inpoint = await getInpoint(id)
     if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);return;}
-    blVersion = inpoint.scratchVersion
     pauseEventHandling = true
-    await vm.downloadProjectIdPromise(inpoint.scratchId)
+    try {
+        await vm.downloadProjectIdPromise(inpoint.scratchId)
+        blVersion = inpoint.scratchVersion
+    } catch (e) {
+        prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
+    }
     //yo wussup poochdawg
 
     console.log('syncing new changes, editingTarget: ',vm.editingTarget)
@@ -365,18 +376,18 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             if(!!before) {before(data)}
             if(dontDo?.(data)) {return}
             proxiedArgs = args
-            let retval
-            try{retval = action.bind(bindTo)(...args)}catch(e){console.error('error on proxy run',e)}
+            let retVal
+            try{retVal = action.bind(bindTo)(...args)}catch(e){console.error('error on proxy run',e)}
             if(then) {
-                if(!!retval?.then) {
+                if(!!retVal?.then) {
                     // if returns a promise
-                        retval.then((res)=>{then(prevTarget,vm.editingTarget,data,res)})
+                        retVal.then((res)=>{then(prevTarget,vm.editingTarget,data,res)})
                     } else {
                     // if is normal resolved function
                         then(prevTarget,vm.editingTarget,data,retVal)
                     }
             }
-            return retval
+            return retVal
         } else {
             if(pauseEventHandling) {
                 return action.bind(bindTo)(...args)
@@ -387,18 +398,18 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             if(!!extrargs) {extrargsObj=extrargs(args)}
             proxiedArgs = args
 
-            let retval = action.bind(bindTo)(...args)
+            let retVal = action.bind(bindTo)(...args)
             if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
             if(senderThen) {
-                if(!!retval?.then) {
+                if(!!retVal?.then) {
                     // if returns a promise
-                        retval.then(senderThen)
+                        retVal.then(senderThen)
                     } else {
                     // if is normal resolved function
                     senderThen()
                     }
             }
-            return retval
+            return retVal
         }
         }
     }

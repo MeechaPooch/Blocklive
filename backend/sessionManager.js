@@ -123,7 +123,7 @@ export default class SessionManager{
     static inst;
 
     
-    // map scratch project id's to blocklive id's
+    // map scratch project id's to info objects {owner, blId}
     scratchprojects = {}
     // id -> ProjectWrapper
     blocklive = {}
@@ -215,7 +215,7 @@ export default class SessionManager{
     getScratchToBLProject(scratchId) {
         let blId = this.scratchprojects[scratchId]?.blId
         if(!blId) {return null}
-        return this.blocklive[blId]
+        return this.getProject(blId)
     }
 
 }

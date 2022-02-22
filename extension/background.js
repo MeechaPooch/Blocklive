@@ -15,6 +15,60 @@ let projects = {}
 // portName -> blId
 let portIds = {}
 
+let newProjectCallbacks = {} // tabId (or 'newtab') -> blId
+
+function getProjectId(url) {
+  if(projectsPageTester.test(url)) {
+    let id = new URL(url).pathname.split('/')[2]
+    // dont redirect if is not /projects/id/...
+    if(isNaN(parseFloat(id))) {
+      return null
+    } else {
+      return id
+    }
+  } else {
+    return null
+  }
+}
+
+async function handleNewProject(tab) {
+  let id = getProjectId(tab.url)
+  if(!!id && tab.id in newProjectCallbacks) {
+    let blId = newProjectCallbacks[tab.id]
+    delete newProjectCallbacks[tab.id]
+    fetch(`${apiUrl}/linkScratch/${id}/${blId}`,{method:"PUT",body:{username:uname}}) // link scratch project with api
+    chrome.tabs.sendMessage(tab.id, {meta:'initBlocklive',blId}); // init blocklive in project tab
+  }
+}
+
+const newProjectPage = 'https://scratch.mit.edu/create'
+async function prepRedirect(tab) {
+  let id = getProjectId(tab.url)
+  if(!id) {
+    // dont redirect if is not /projects/id/...
+    if(isNaN(parseFloat(id))) {return false}
+    let info = await fetch(apiUrl + `/userRedirect/${id}/${uname}`)
+    // dont redirect if scratch id is not associated with bl project
+    if(info.goto == 'none') {return false}
+    // dont redirect if already on project
+    if(info.goto == id) { return false }
+
+    if(info.goto == 'new') {
+      //register callbacks and redirect
+      newProjectCallbacks[tab.id] = info.blId //TODO: send this with api
+      return newProjectPage
+    } else {
+      if(tab.url.endsWith('editor') || tab.url.endsWith('editor/')) {
+        return `https://scratch.mit.edu/projects/${info.goto}/editor`;
+      } else {
+        return `https://scratch.mit.edu/projects/${info.goto}`;
+      }
+    }
+  } else {
+    return false
+  }
+}
+
 function playChange(blId,msg,optPort) {
   // record change
   //projects[blId]?.recordChange(msg)
@@ -53,48 +107,36 @@ let uname = '*'
 // async function getUsername() {
 //   chrome.storage.local.get(['username'])
 // }
+let lastUnameRefresh = null
 async function refreshUsername() {
+  if(Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
+  lastUnameRefresh = Date.now()
   res = await fetch("https://scratch.mit.edu/session/?blreferer", {
       headers: {
         "X-Requested-With": "XMLHttpRequest",
       },
     });
-let username = (await res.json()).user.username
+uname = (await res.json()).user.username
 
-// chrome.storage.local.set({username})
-uname = username
-return username
+// chrome.storage.local.set({uname})
+
+return uname
 }
 
-let newProjects = {}
-
-// Listen for See Inside
+// Listen for Project load
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
-chrome.tabs.onUpdated.addListener(async function
-  (tabId, changeInfo, tab) {
-    return; // TODO: REMOVE
-    if(tab.id in newProjects) {} 
-  else if (changeInfo.url) {
-    // if url is scratch page
-    console.log('page url changed to:', changeInfo.url)
-    if(projectsPageTester.test(changeInfo.url)) {
-      console.log('url is a scratch project')
+chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
+  if(changeInfo.url) {
+    refreshUsername()
+    
+    console.log('tab location updated',changeInfo)
 
-      // if scratch project is also registered in blocklive
-      let url = new URL(changeInfo.url)
-      let scratchId = url.pathname.split('/')[2]
-      console.log(scratchId)
-      let projectInfo = (await (await fetch(`${apiUrl}/scratchIdInfo/${scratchId}`)).json())
-      if(projectInfo.err) {return}
-      console.log('blocklive id:',projectInfo.blId)
-
-      // if user doesnt own project
-      await refreshUsername()
-      if(uname == projectInfo.owner) {return}
-
-      // open new project page
-      newProjects[tab.id] = projectInfo.blId
-      chrome.tabs.update(tab.id,{url:'https://scratch.mit.edu/create'})
+    let newUrl = await prepRedirect(tab)
+    if(newUrl) {
+      console.log('redirecting tab to: ' + newUrl, tab)
+      chrome.tabs.update(tab.id,{url:newUrl})
+    } else {
+      handleNewProject(tab)
     }
   }
 }
@@ -157,14 +199,14 @@ chrome.runtime.onMessageExternal.addListener(
     if(request.meta == 'getBlId') {
       if(!request.scratchId || request.scratchId == '.') {return ''}
       sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}`)).text()).replaceAll('"',''))
-    } else if(request.meta =='imnew'){
-      if(sender.tab.id in newProjects) {sendResponse(newProjects[sender.tab.id])}
     } else if(request.meta =='getInpoint') {
       sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
     } else if(request.meta == 'shareWith') {
       fetch(`${apiUrl}/share/${request.id}/${request.user}`,{method:'PUT',body:{from:username}})
+    } else if(request.meta == 'getUsername') {
+      sendResponse(uname)
     }
   });
 

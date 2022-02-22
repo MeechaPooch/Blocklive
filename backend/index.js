@@ -82,6 +82,9 @@ app.get('/changesSince/:id/:version',(req,res)=>{
           res.send(project.project.getChangesSinceVersion(req.params.version))
      }
 })
+app.put('/linkScratch/:scratchId/:blId',(req,res)=>{
+     sessionManager.linkProject(req.params.blId,req.params.scratchId,req.body.username,0)
+})
 app.get('/projectInpoint/:blId',(req,res)=>{
      let project = sessionManager.getProject(req.params.blId)
      if(!project) {
@@ -92,6 +95,18 @@ app.get('/projectInpoint/:blId',(req,res)=>{
           let scratchId = project.scratchId
           // let changes = project.project.getChangesSinceVersion(project.scratchVersion)
           res.send({scratchId,scratchVersion:project.scratchVersion})
+     }
+})
+app.get('/userRedirect/:scratchId/:username',(req,res)=>{
+     let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+     if(!project) {res.send({goto:'none'})}
+     else {
+          let ownedProject = project.getOwnersProject(req.username)
+          if(!ownedProject) {
+               res.send({goto:ownedProject.scratchId})
+          } else {
+               res.send({goto:'new', blId:project.id})
+          }
      }
 })
 app.get('/projectInpoint',(req,res)=>{
