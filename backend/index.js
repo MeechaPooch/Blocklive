@@ -61,6 +61,11 @@ app.get('/scratchIdInfo/:scratchId',(req,res)=>{
           res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
      }
 })
+app.post('/projectSaved/:scratchId/:version',(req,res)=>{
+     let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+     if(!project) {return}
+     project.scratchSaved(req.params.scratchId,req.params.version)
+})
 app.get('/whereTo/:username/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {
           let project = sessionManager.getScratchToBLProject(res.params.scratchId)

@@ -118,7 +118,7 @@ async function refreshUsername() {
       },
     });
 let json = await res.json()
-if(!json.user) {uname = '*'; return uname;}
+if(!json.user) {return uname;}
 uname = json.user.username
 
 // chrome.storage.local.set({uname})
@@ -132,7 +132,7 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
   if(changeInfo.url) {
     refreshUsername()
     
-    console.log('tab location updated',changeInfo)
+    console.log('tab location updated',changeInfo, tab)
 
     let newUrl = await prepRedirect(tab)
     if(newUrl) {
@@ -214,6 +214,9 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(uname)
     } else if(request.meta == 'callback') {
       tabCallbacks[sender.tab.id] = sendResponse
+    } else if(request.meta == 'projectSaved') {
+      // {meta:'projectSaved',blId,scratchId,version:blVersion}
+      fetch(`${apiUrl}/projectSaved/${request.scratchId}/${request.version}`,{method:'POST'})
     }
   });
 

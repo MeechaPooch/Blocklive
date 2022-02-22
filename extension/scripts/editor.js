@@ -8,6 +8,7 @@ function sleep(millis) {
 }
 let queryList = []
 function mutationCallback() {
+    console.log('IM MUTANT!!!!')
     let toDelete = []
     queryList.forEach(query=>{
         let elem = document.querySelector(query.query)
@@ -111,9 +112,10 @@ async function startBlocklive() {
 }
 
 async function onTabLoad() {
-    // trap vm
-    vm = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child).child.child.child.stateNode.props.vm;
-
+    // trap vm and store
+    let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
+    vm = reactInst.child.child.child.stateNode.props.vm;
+    store = reactInst.child.child.child.stateNode.context.store
     blId = await getBlocklyId(scratchId);
     if(!blId) {
         chrome.runtime.sendMessage(exId,{meta:'callback'},(request) => { if(request.meta == 'initBlocklive') { 
@@ -197,6 +199,7 @@ setInterval(reconnectIfNeeded,1000)
         if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
         try{
         if (msg.meta=="sprite.proxy") {
+            blVersion++
             await proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
         } else if (msg.meta =="vm.blockListen") {
             blVersion++
@@ -316,6 +319,20 @@ const getSelectedCostumeIndex = () => {
     if (!numberEl) return -1;
     return +numberEl.textContent - 1;
 };
+
+// send to api when project saved
+let lastProjectState = store.getState().scratchGui.projectState.loadingState
+store.subscribe(function() {
+    let state = store.getState().scratchGui.projectState.loadingState
+    if(lastProjectState == state) {return; }
+    lastProjectState = store.getState().scratchGui.projectState.loadingState
+
+    if(state.endsWith('UPDATING')) {
+        console.log('🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢')
+        chrome.runtime.sendMessage(exId,{meta:'projectSaved',blId,scratchId,version:blVersion})
+    }
+})
+
 
 
 function replaceBlockly(msg) {
