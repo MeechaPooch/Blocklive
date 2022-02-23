@@ -361,9 +361,9 @@ proxyActions = {}
 // mutator takes data object {name, args, extrargs} and returns args list
 
 let prevTarg = null
-function editingProxy(action,name,before,after) {
+function editingProxy(action,name,before,after,extrargs,mutator) {
     return proxy(action,name,
-        ()=>({target:targetToName(vm.editingTarget)}),null,
+        (a)=>({target:targetToName(vm.editingTarget),...(extrargs ? extrargs(a) : null)}),mutator,
         (data)=>{
             if(!!before){before(data)}
             prevTarg = vm.editingTarget
@@ -439,18 +439,83 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
     proxyActions[name] = proxiedFunction;
     return proxiedFunction;
 }
-function stProxy(action,name,extrargs,mutator,before,then,dontSend,dontDo) {
-    return proxy(action,name,
-        (args)=>({__et:targetToName(vm.editingTarget),...extrargs?.(args)}),
-        mutator,
-        // before,
-        (data)=>{before?.(data);vm.runtime.setEditingTarget(nameToTarget(data.extrargs.__et))},
-        (a,b)=>{vm.runtime.setEditingTarget(a);then?.(a,b)},
-        // then,
-        dontSend);
-        // (data)=>{before?.(data);vm.runtime.setEditingTarget(vm.runtime.getSpriteTargetByName(data.extrargs.__et))},
-        // (a,b)=>{vm.runtime.setEditingTarget(a);then?.(a,b)},quit);
+
+function asyncEditingProxy(action,name,before,after,extrargs,mutator) {
+    return asyncAnyproxy(vm,action,name,
+        (a)=>({target:targetToName(vm.editingTarget),...(extrargs ? extrargs(a) : null)}),mutator,
+        (data)=>{
+            if(!!before){before(data)}
+            prevTarg = vm.editingTarget
+            vm.editingTarget = nameToTarget(data.extrargs.target)
+            vm.runtime._editingTarget = vm.editingTarget
+        },
+        (_a,_b,data)=>{
+            if(!prevTarg) {'PREVTARG IS UNDEFINED'}
+            if(!!prevTarg && !!vm.runtime.getTargetById(prevTarg.id)) {
+            vm.editingTarget = prevTarg;
+            vm.runtime._editingTarget = prevTarg
+            }
+            vm.emitTargetsUpdate()
+            if(!!after){after(_a,_b,data)}
+        })
 }
+
+function asyncAnyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontDo,senderThen) {
+    let proxiedFunction =async function(...args) {
+        if(args[0]=='linguini') {
+// if linguini, ...args are ['linguini', data, data.args]
+            args.splice(0,1)
+            let data = args.splice(0,1)[0]
+            // console.log('data:')
+            // console.log(data)
+            if(mutator){args = await mutator(data)}
+            // else {args = data.args}
+
+            let prevTarget = vm.editingTarget
+            if(!!before) {before(data)}
+            if(dontDo?.(data)) {return}
+            proxiedArgs = args
+            let retVal
+            try{retVal = action.bind(bindTo)(...args)}catch(e){console.error('error on proxy run',e)}
+            if(then) {
+                if(!!retVal?.then) {
+                    // if returns a promise
+                        retVal.then((res)=>{then(prevTarget,vm.editingTarget,data,res)})
+                    } else {
+                    // if is normal resolved function
+                        then(prevTarget,vm.editingTarget,data,retVal)
+                    }
+            }
+            return retVal
+        } else {
+            if(pauseEventHandling) {
+                return action.bind(bindTo)(...args)
+            } else {
+            console.log('intrecepted:')
+            console.log(...args)
+            let extrargsObj = null;
+            if(!!extrargs) {extrargsObj=extrargs(args)}
+            proxiedArgs = args
+
+            let retVal = action.bind(bindTo)(...args)
+            if(!dontSend?.(...args)) { liveMessage({meta:"sprite.proxy",data:{name,args,extrargs:extrargsObj}}) }
+            if(senderThen) {
+                if(!!retVal?.then) {
+                    // if returns a promise
+                        retVal.then(senderThen)
+                    } else {
+                    // if is normal resolved function
+                    senderThen()
+                    }
+            }
+            return retVal
+        }
+        }
+    }
+    proxyActions[name] = proxiedFunction;
+    return proxiedFunction;
+}
+
 
 // todo catch shadow create
 function isBadToSend(event, target) {
@@ -845,6 +910,63 @@ vm.emitWorkspaceUpdate = function() {
 // vm.runtime.requestShowMonitor = anyproxy(vm.runtime,vm.runtime.requestShowMonitor,"showmonitor")
 // vm.runtime.requestHideMonitor = anyproxy(vm.runtime,vm.runtime.requestHideMonitor,"showmonitor")
 
+
+//sounds
+
+
+vm.updateSoundBuffer = asyncEditingProxy(vm.updateSoundBuffer,'updatesound',null,null,(args)=>{
+    let extrargs = {}
+    return extrargs
+},async (data)=>{
+    let retArgs = data.args
+    retArgs[2] = Uint8Array.from(Object.values(retArgs[2]))
+    // WOW im proud of this one! Create an AudioBuffer from Uint8Array
+    retArgs[1] = await (new AudioContext({sampleRate:retArgs[1].sampleRate})).decodeAudioData(retArgs[2].buffer.slice(0))
+    // Wait no that requires async programming which i dont have here ugggggg
+    // LOL JK GET DESTROYED NERRRDDDDDDDD i have the power of anime and copying code on mY SIDE!    
+    return retArgs
+})
+
+
+vm.addSound = proxy(vm.addSound,"addsound",
+    (args)=>{
+        let targetName
+        if(!!args[1]){targetName = targetToName(vm.runtime.getTargetById(args[2]))} else {targetName = targetToName(vm.editingTarget)}
+        return {target:targetName}
+    },
+    (data)=>{
+        let ret = [data.args[0],nameToTarget(data.extrargs.target).id]
+        if(ret[0]?.asset?.data) {
+            // adapted from scratch source 'file-uploader'
+            ret[0].asset = vm.runtime.storage.createAsset(
+                ret[0].asset.assetType, 
+                ret[0].asset.dataFormat,
+                Uint8Array.from(Object.values(ret[0].asset.data)),null,true);
+            ret[0] = {
+                name: ret[0].name,
+                dataFormat: ret[0].asset.dataFormat,
+                asset: ret[0].asset,
+                md5: `${ret[0].asset.assetId}.${ret[0].asset.dataFormat}`,
+                assetId: ret[0].asset.assetId
+            };
+        }
+        return ret
+    }
+)
+
+
+
+
+
+vm.duplicateSound = editingProxy(vm.duplicateSound,"duplicatesound")
+vm.deleteSound = editingProxy(vm.deleteSound,"deletesound")
+vm.renameSound = editingProxy(vm.renameSound,"renamesound")
+vm.shareSoundToTarget = editingProxy(vm.shareSoundToTarget,"sharesound")
+vm.reorderSound = proxy(vm.reorderSound,"reordersound",
+    (args)=>({target:targetToName(vm.runtime.getTargetById(args[0]))}),
+    (data)=>[nameToTarget(data.extrargs.target).id,data.args[1],data.args[2]],null)
+
+// costumes    
 vm.renameCostume = editingProxy(vm.renameCostume,"renamecostume")
 vm.duplicateCostume = editingProxy(vm.duplicateCostume,"dupecostume")
 vm.deleteCostume = editingProxy(vm.deleteCostume,"deletecostume")
@@ -859,7 +981,7 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
         return {target:targetName}
     },
     (data)=>{
-        let ret = [data.args[0],data.args[1],nameToTarget(data.extrargs.target).id,data.args[3]]
+        let ret = [data.args[0],data.args[1],nameToTarget(data.extrargs.target)?.id,data.args[3]]
         if(ret[1]?.asset?.data) {
             // adapted from scratch source 'file-uploader'
             ret[1].asset = vm.runtime.storage.createAsset(
