@@ -8,7 +8,6 @@ function sleep(millis) {
 }
 let queryList = []
 function mutationCallback() {
-    console.log('IM MUTANT!!!!')
     let toDelete = []
     queryList.forEach(query=>{
         let elem = document.querySelector(query.query)
@@ -104,11 +103,18 @@ async function startBlocklive() {
     pauseEventHandling = true
     liveMessage({meta:"myId",id:blId})
     activateBlocklive()
-    vm.runtime.on("PROJECT_LOADED", async () => {
+    if(store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
+        console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
         await joinExistingBlocklive(blId)
         pauseEventHandling = false
-    })
+    } else {
+        vm.runtime.on("PROJECT_LOADED", async () => { // todo catch this running after project loads
+            if(projectReplaceInitiated) { return }
+            await joinExistingBlocklive(blId)
+            pauseEventHandling = false
+        })
+    }
 }
 
 async function onTabLoad() {

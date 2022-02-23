@@ -94,6 +94,7 @@ class ProjectWrapper {
         this.scratchId = scratchId
         this.project = new BlockliveProject()
         this.session = new BlockliveSess(this.project,this.id)
+        this.linkedWith.push({scratchId,owner})
         owner = owner
     }
 
