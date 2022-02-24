@@ -111,7 +111,7 @@ let uname = '*'
 // }
 let lastUnameRefresh = null
 async function refreshUsername() {
-  if(Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
+  if(uname!='*' && Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
   lastUnameRefresh = Date.now()
   res = await fetch("https://scratch.mit.edu/session/?blreferer", {
       headers: {
@@ -126,13 +126,20 @@ uname = json.user.username
 
 return uname
 }
+async function makeSureUsernameExists() {
+  if(uname == '*') {
+    return refreshUsername()
+  } else {
+    return uname
+  }
+}
 refreshUsername()
 
 // Listen for Project load
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
   if(changeInfo.url) {
-    refreshUsername()
+    await makeSureUsernameExists()
     
     console.log('tab location updated',changeInfo, tab)
 

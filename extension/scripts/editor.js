@@ -118,6 +118,12 @@ async function startBlocklive() {
 }
 
 async function onTabLoad() {
+    // Get usable scratch id
+    // await waitFor(()=>{!isNaN(parseFloat(location.pathname.split('/')[2]))})
+    // scratchId = location.pathname.split('/')[2]
+    await waitFor(()=>(location.pathname.split('/')[2]!='editor'))
+    scratchId = location.pathname.split('/')[2]
+
     // trap vm and store
     let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
     vm = reactInst.child.child.child.stateNode.props.vm;

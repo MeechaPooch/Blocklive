@@ -3,7 +3,7 @@ class BlockliveProject {
     // projectJSONVersion = 0
     version = -1
     changes = []
-    lastTime = 0;
+    lastTime = Date.now();
     lastUser = "";
     title;
 
@@ -64,7 +64,7 @@ class BlockliveSess {
 
     onProjectChange(socket, msg) {
         this.project.recordChange(msg)
-        this.project.lastUser = this.getClientFromSocket(socket).username
+        this.project.lastUser = this.getClientFromSocket(socket) ? this.getClientFromSocket(socket).username : this.project.lastUser
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
                 console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
