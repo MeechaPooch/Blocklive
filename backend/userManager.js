@@ -15,7 +15,7 @@ export default class UserManager {
     }
 
     getUser(username) {
-        if(username.toLowerCase() in this.users) {
+        if(!(username.toLowerCase() in this.users)) {
             this.addUser(username)
         }
         return this.users[username.toLowerCase()]
