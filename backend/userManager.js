@@ -56,6 +56,6 @@ export default class UserManager {
     };
     
     token() {
-        return rand() + rand(); // to make it longer
+        return this.rand() + this.rand(); // to make it longer
     };
 }
