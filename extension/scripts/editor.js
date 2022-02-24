@@ -1334,10 +1334,11 @@ function removeCollaborator(user) {
 
 async function refreshShareModal() {
     removeAllCollaboratorsGUI()
-    chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
+    return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
         addCollaboratorGUI(res.shift(),true)
         res.forEach(addCollaboratorGUI)
-    })
+        promRes()
+    })})
 }
 
 function makeBlockliveButton() {
@@ -1386,7 +1387,7 @@ let blActivateClick = ()=>{
     // save project in scratch
     store.dispatch({type: "scratch-gui/project-state/START_MANUAL_UPDATING"})
 
-    chrome.runtime.sendMessage(exId,{meta:'create',scratchId},(response)=>{
+    chrome.runtime.sendMessage(exId,{meta:'create',scratchId},async (response)=>{
         blId = response.id 
 
         // ACTIVATE BLOKLIVE!!!
@@ -1397,7 +1398,7 @@ let blActivateClick = ()=>{
         // JOIN BLOCKLIVE SESSION!!!!
         liveMessage({meta:"joinSession"})
         readyToRecieveChanges = true
-        refreshShareModal()
+        await refreshShareModal()
         // stop spinny
         document.querySelector('loader.blockliveloader').style.display = 'none'
 
