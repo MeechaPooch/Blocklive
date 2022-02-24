@@ -1,3 +1,6 @@
+// be mindful of:
+// numbers being passed as strings
+
 import express from 'express'
 const app = express();
 import cors from 'cors'
@@ -74,7 +77,7 @@ app.post('/projectSaved/:scratchId/:version',(req,res)=>{
      console.log('saving project, scratchId: ',req.params.scratchId, ' version: ',req.params.version)
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {console.log('could not find project!!!');return}
-     project.scratchSaved(req.params.scratchId,req.params.version)
+     project.scratchSaved(req.params.scratchId,parseFloat(req.params.version))
 })
 app.get('/whereTo/:username/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {
@@ -94,7 +97,7 @@ app.get('/changesSince/:id/:version',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      if(!project) {res.send([])}
      else {
-          res.send(project.project.getChangesSinceVersion(req.params.version))
+          res.send(project.project.getChangesSinceVersion(parseFloat(req.params.version)))
      }
 })
 app.put('/linkScratch/:scratchId/:blId/:owner',(req,res)=>{
