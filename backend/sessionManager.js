@@ -88,6 +88,7 @@ class ProjectWrapper {
     id
     // most up to date scratch project id
     scratchId
+    // index of next change i think
     scratchVersion = 0
     linkedWith = [] // {scratchId, owner}
 
@@ -108,6 +109,7 @@ class ProjectWrapper {
         if(version <= this.scratchVersion) {console.log('version too low. not recording.');return}
         this.scratchId = id
         this.scratchVersion = version
+        console.log('linkedWith length', this.linkedWith.length)
         this.linkedWith.find(proj=>proj.scratchId == id).version = version
     }
 
@@ -220,6 +222,13 @@ export default class SessionManager{
         let project = this.getProject(id)
         if(!project) {return}
         project.sharedWith.push(user)
+    }
+    unshareProject(id,user) {
+        console.log(`sessMngr: unsharing ${id} with ${user}`)
+        let project = this.getProject(id)
+        if(!project) {return}
+        project.sharedWith.splice(project.sharedWith.indexOf(user))
+        // TODO: Handle what-if their project is the inpoint?
     }
 
     getScratchToBLProject(scratchId) {

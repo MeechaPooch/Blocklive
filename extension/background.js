@@ -206,10 +206,6 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
-    } else if(request.meta == 'shareWith') {
-      fetch(`${apiUrl}/share/${request.id}/${request.user}/${uname}`,{
-        method:'PUT'
-      })
     } else if(request.meta == 'getUsername') {
       sendResponse(uname)
     } else if(request.meta == 'callback') {
@@ -221,6 +217,16 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(await(await fetch(`${apiUrl}/userProjectsScratch/${await refreshUsername()}`)).json())
     } else if(request.meta == 'create') {
       sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}`)).json())
+    } else if(request.meta == 'shareWith') {
+      fetch(`${apiUrl}/share/${request.id}/${request.user}/${uname}`,{
+        method:'PUT'
+      })
+    } else if(request.meta == 'unshareWith') {
+      fetch(`${apiUrl}/unshare/${request.id}/${request.user}`,{
+        method:'PUT'
+      })
+    } else if(request.meta == 'getShared') {
+      sendResponse(await(await fetch(`${apiUrl}/share/${request.id}`)).json())
     }
   });
 

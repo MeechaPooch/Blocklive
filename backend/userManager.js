@@ -31,8 +31,15 @@ export default class UserManager {
     share(username,blId,from) {
         console.log(`usrMngr: sharing ${blId} with ${username} from ${from}`)
         let map = this.getUser(username)?.sharedTo
+        if(!map) {return}
         if(blId in map) {return}
         map[blId] = {from,id:blId}
+    }
+    unShare(username,blId) {
+        console.log(`usrMngr: unsharing ${blId} with ${username}`)
+        let map = this.getUser(username)?.sharedTo
+        if(!map) {return}
+        delete map[blId]
     }
     getSharedObjects(username) {
         return Object.values(this.getUser(username)?.sharedTo)

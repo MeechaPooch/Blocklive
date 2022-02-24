@@ -76,8 +76,12 @@ app.get('/scratchIdInfo/:scratchId',(req,res)=>{
 app.post('/projectSaved/:scratchId/:version',(req,res)=>{
      console.log('saving project, scratchId: ',req.params.scratchId, ' version: ',req.params.version)
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
-     if(!project) {console.log('could not find project!!!');return}
+     if(!project) {console.log('could not find project!!!');
+     res.send('not as awesome awesome :)')
+     return;
+}
      project.scratchSaved(req.params.scratchId,parseFloat(req.params.version))
+     res.send('awesome :)')
 })
 app.get('/whereTo/:username/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {
@@ -103,6 +107,7 @@ app.get('/changesSince/:id/:version',(req,res)=>{
 app.put('/linkScratch/:scratchId/:blId/:owner',(req,res)=>{
      console.log('linking:',req.params)
      sessionManager.linkProject(req.params.blId,req.params.scratchId,req.params.owner,0)
+     res.send('cool :)')
 })
 app.get('/projectInpoint/:blId',(req,res)=>{
      let project = sessionManager.getProject(req.params.blId)
@@ -139,9 +144,12 @@ app.get('/',(req,res)=>{
 app.post('/friends/:user/:friend',(req,res)=>{
 
      userManager.befriend(req.params.user,req.params.friend)
+     res.send('awwww :)')
 })
 app.delete('/friends/:user/:friend',(req,res)=>{
      userManager.unbefriend(req.params.user,req.params.friend)
+     res.send('sadge moment :<(')
+
 })
 app.get('/friends/:user',(req,res)=>{
      res.send(userManager.getUser(req.params.user)?.friends)
@@ -154,7 +162,7 @@ app.get('/userProjects/:user',(req,res)=>{
 // get list of scratch project info shared with user for displaying in mystuff
 app.get('/userProjectsScratch/:user',(req,res)=>{
      let blockliveIds = userManager.getShared(req.params.user)
-     blockliveIds.map(id=>{
+     let projectsList = blockliveIds.map(id=>{
           let projectObj = {}
           let project = sessionManager.getProject(id)
           if(!project) {return null}
@@ -166,7 +174,7 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
 
           return projectObj
      })
-     res.send()
+     res.send(projectsList)
 })
 
 app.get('/share/:id',(req,res)=>{
@@ -176,6 +184,12 @@ app.get('/share/:id',(req,res)=>{
 app.put('/share/:id/:to/:from',(req,res)=>{
      sessionManager.shareProject(req.params.id, req.params.to)
      userManager.share(req.params.to, req.params.id, req.params.from)
+     res.send('cool beans ()()()')
+})
+app.put('/unshare/:id/:to/',(req,res)=>{
+     sessionManager.unshareProject(req.params.id, req.params.to)
+     userManager.unShare(req.params.to, req.params.id)
+     res.send('uncool beans!!!! /|/|/|')
 })
 
 

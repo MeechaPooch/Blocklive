@@ -1284,7 +1284,9 @@ background: #6aa8ff;
 
 
 
-addCollaborator = async (username) =>{
+
+
+async function addCollaboratorGUI (username){
     if(username.toLowerCase() in shareDivs) {return}
     let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(`https://scratch.mit.edu/site-api/users/all/${username}`)).json();
     if(!res?.id) {return}
@@ -1304,10 +1306,32 @@ addCollaborator = async (username) =>{
     earch.oninput();
 }
 
-removeCollaborator= async (username)=> {
+async function removeCollaboratorGUI (username) {
     if(!(username.toLowerCase() in shareDivs)) {return}
     shareDivs[username.toLowerCase()].remove()
     delete shareDivs[username.toLowerCase()]
+}
+
+function removeAllCollaboratorsGUI() {
+    Object.values(shareDivs).forEach(div=>div.remove())
+    shareDivs = {}
+}
+
+function addCollaborator(user) {
+    addCollaboratorGUI(user)
+    chrome.runtime.sendMessage(exId,{meta:"shareWith",user,id:blId})
+}
+
+function removeCollaborator(user) {
+    removeCollaboratorGUI(user)
+    chrome.runtime.sendMessage(exId,{meta:"unshareWith",user,id:blId})
+}
+
+async function refreshShareModal() {
+    removeAllCollaboratorsGUI()
+    chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
+        res.forEach(addCollaboratorGUI)
+    })
 }
 
 function makeBlockliveButton() {
@@ -1416,5 +1440,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         bc.parentNode.parentNode.insertBefore(container,bc.parentNode)
 
         injectJSandCSS()
+
+        refreshShareModal()
     }
 )
