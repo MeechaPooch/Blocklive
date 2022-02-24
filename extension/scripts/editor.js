@@ -1150,7 +1150,7 @@ let shareDropdown = `
             Shared With
         </text>
         <sharedList  style="overflow: scroll; max-height: 350px; display:flex; min-height: 20px; border-radius:10px;gap:5px;flex-direction: column;  ">
-            <cell id="example" style="display:none; gap:10px;flex-direction: row; align-items: center;">
+            <cell id="blModalExample" style="display:none; gap:10px;flex-direction: row; align-items: center;">
                 <pic  style='width:40px; height:40px; border-radius: 100%; display:flex;background-position: center;background-size:cover; background-image:url("https://i.pinimg.com/originals/12/ff/9c/12ff9cd0f45317c362f0c87e2e55bd6c.jpg");';>
                 </pic>
                 <name onclick='window.open("https:\/\/scratch.mit.edu/users/" + this.innerText)', class="sharedName" style="max-width:122px;overflow:hidden; display:flex;align-self: center; font-size: large;font-weight:bold;">
@@ -1197,43 +1197,18 @@ let apiUrl = 'http://152.67.248.129:4000'
 
 opening = false
 let result = document.querySelector('#resultName')
-let resultt = document.querySelector('#resultt')
+resultt = document.querySelector('#resultt')
 let plus = document.querySelector('#plus')
 let resultPic = document.querySelector('#resultPic')
-let example = document.querySelector('#example')
+blModalExample = document.querySelector('#blModalExample')
 
         earch =document.querySelector('#searchy')
 
-        let shareDivs = {}
+        shareDivs = {}
 
         cachedUser = null
 
-        addCollaborator = async (username) =>{
-            if(username.toLowerCase() in shareDivs) {return}
-            let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(\`https://scratch.mit.edu/site-api/users/all/\${username}\`)).json();
-            if(!res?.id) {return}
-            let img = res?.thumbnail_url
-
-            let newCollab = example.cloneNode(-1)
-            console.log(newCollab)
-            newCollab.style.display = 'flex'
-            Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = res?.user?.username;
-            Array.from(newCollab.children).find(elem=>elem.localName =='x').username = res?.user?.username;
-            Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = \`url('\${img}')\`  
-            shareDivs[username.toLowerCase()] = newCollab
-            example.parentNode.append(newCollab);
-
-            resultt.style.visibility = 'hidden'
-            earch.value = ''
-            earch.oninput();
-        }
-
-        removeCollaborator= async (username)=> {
-            if(!(username.toLowerCase() in shareDivs)) {return}
-            shareDivs[username.toLowerCase()].remove()
-            delete shareDivs[username.toLowerCase()]
-        }
-
+        
         earch.addEventListener("keyup", function(event) {
   // Number 13 is the "Enter" key on the keyboard
   if (event.keyCode === 13) {
@@ -1305,6 +1280,36 @@ background: #6aa8ff;
     100% { transform: rotate(360deg); }
   }
 `
+
+
+
+
+addCollaborator = async (username) =>{
+    if(username.toLowerCase() in shareDivs) {return}
+    let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(`https://scratch.mit.edu/site-api/users/all/${username}`)).json();
+    if(!res?.id) {return}
+    let img = res?.thumbnail_url
+
+    let newCollab = blModalExample.cloneNode(-1)
+    console.log(newCollab)
+    newCollab.style.display = 'flex'
+    Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = res?.user?.username;
+    Array.from(newCollab.children).find(elem=>elem.localName =='x').username = res?.user?.username;
+    Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = `url('${img}')`  
+    shareDivs[username.toLowerCase()] = newCollab
+    blModalExample.parentNode.append(newCollab);
+
+    resultt.style.visibility = 'hidden'
+    earch.value = ''
+    earch.oninput();
+}
+
+removeCollaborator= async (username)=> {
+    if(!(username.toLowerCase() in shareDivs)) {return}
+    shareDivs[username.toLowerCase()].remove()
+    delete shareDivs[username.toLowerCase()]
+}
+
 function makeBlockliveButton() {
     let button = document.createElement('blocklive-init')
     button.className = 'button_outlined-button_1bS__ menu-bar_menu-bar-button_3IDN0'
@@ -1327,6 +1332,8 @@ function makeBlockliveButton() {
     button.appendChild(text)
     return button
 }
+
+let yeet = '⚠️'
 
 
 function injectJSandCSS() {
