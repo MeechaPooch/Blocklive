@@ -22,10 +22,16 @@ export default class UserManager {
     }
 
     addUser(username) {
-        if(!(username in this.users)) {
-            this.users[username.toLowerCase()] = {friends:[],token:this.token(),sharedTo:{}}
+        if(!(username?.toLowerCase() in this.users)) {
+            this.users[username.toLowerCase()] = {friends:[],token:this.token(),sharedTo:{},myProjects:[]}
         }
         return this.getUser(username)
+    }
+
+    newProject(owner,blId) {
+        console.log(`usrMngr: adding new project ${blId} owned by ${username}`)
+        if(this.getUser(owner).myProjects.indexOf(blId) != -1){return}
+        this.getUser(owner).myProjects.push(blId)
     }
 
     share(username,blId,from) {
@@ -49,6 +55,9 @@ export default class UserManager {
         let objs = this.getSharedObjects(username)
         if(!objs) {return []}
         return objs.filter((proj)=>(user.friends.indexOf(proj.from)!=-1)).map((proj)=>(proj.id))
+    }
+    getAllProjects(username) {
+        return this.getUser().myProjects.concat(this.getShared(username))
     }
 
     rand() {

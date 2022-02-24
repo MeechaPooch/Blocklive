@@ -14,7 +14,7 @@ import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 let sessionManager = new SessionManager()
 let userManager = new UserManager()
-let id = sessionManager.newProject('tester124','644532638').id
+// let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 
 let messageHandlers = {
@@ -59,6 +59,7 @@ app.get('/newProject/:scratchId/:owner',(req,res)=>{
      if(!project) {
           console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner)
           project = sessionManager.newProject(req.params.owner,req.params.scratchId)
+          userManager.newProject(req.params.owner,project.id)
      }
      res.send({id:project.id})
 })
@@ -161,7 +162,7 @@ app.get('/userProjects/:user',(req,res)=>{
 })
 // get list of scratch project info shared with user for displaying in mystuff
 app.get('/userProjectsScratch/:user',(req,res)=>{
-     let blockliveIds = userManager.getShared(req.params.user)
+     let blockliveIds = userManager.getAllProjects(req.params.user)
      let projectsList = blockliveIds.map(id=>{
           let projectObj = {}
           let project = sessionManager.getProject(id)
