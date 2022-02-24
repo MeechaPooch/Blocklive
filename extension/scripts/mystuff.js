@@ -1,3 +1,5 @@
+console.log('mystuff inject started')
+
 var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
 
 ////////// INJECT UTILS //////////

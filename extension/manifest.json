@@ -21,7 +21,7 @@
         "tabs"
     ],
     "web_accessible_resources" : [{
-        "resources":["/scripts/editor.js","/scripts/vm.js"],
+        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js"],
         "matches":["<all_urls>"]
     }],
     "externally_connectable": {
