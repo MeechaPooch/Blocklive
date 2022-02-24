@@ -71,8 +71,9 @@ app.get('/scratchIdInfo/:scratchId',(req,res)=>{
      }
 })
 app.post('/projectSaved/:scratchId/:version',(req,res)=>{
+     console.log('saving project, scratchId: ',req.params.scratchId, ' version: ',req.params.version)
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
-     if(!project) {return}
+     if(!project) {console.log('could not find project!!!');return}
      project.scratchSaved(req.params.scratchId,req.params.version)
 })
 app.get('/whereTo/:username/:scratchId',(req,res)=>{
