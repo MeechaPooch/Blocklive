@@ -29,7 +29,7 @@ export default class UserManager {
     }
 
     newProject(owner,blId) {
-        console.log(`usrMngr: adding new project ${blId} owned by ${username}`)
+        console.log(`usrMngr: adding new project ${blId} owned by ${owner}`)
         if(this.getUser(owner).myProjects.indexOf(blId) != -1){return}
         this.getUser(owner).myProjects.push(blId)
     }
