@@ -8,6 +8,10 @@
             "matches":["https://scratch.mit.edu/projects*"],
             "css":[],
             "js":["injectors/editor.js"]
+        },{
+            "matches":["https://scratch.mit.edu/mystuff*"],
+            "css":[],
+            "js":["injectors/mystuff.js"]
         }
     ],
     "background": {

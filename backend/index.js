@@ -51,6 +51,15 @@ io.on('connection', (client) => {
      })
 });
 
+app.get('/newProject/:scratchId/:owner',(req,res)=>{
+     let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+     if(!project) {
+          console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner)
+          project = sessionManager.newProject(req.params.owner,req.params.scratchId)
+     }
+     res.send({id:project.id})
+})
+
 app.get('/blId/:scratchId',(req,res)=>{
      res.send(sessionManager.scratchprojects[req.params.scratchId]?.blId)
 })
@@ -134,8 +143,26 @@ app.get('/friends/:user',(req,res)=>{
      res.send(userManager.getUser(req.params.user)?.friends)
 })
 
+// get list of blocklive id's shared with user
 app.get('/userProjects/:user',(req,res)=>{
      res,send(userManager.getShared(req.params.user))
+})
+// get list of scratch project info shared with user for displaying in mystuff
+app.get('/userProjectsScratch/:user',(req,res)=>{
+     let blockliveIds = userManager.getShared(req.params.user)
+     blockliveIds.map(id=>{
+          let projectObj = {}
+          let project = sessionManager.getProject(id)
+          if(!project) {return null}
+          projectObj.scratchId = project.getOwnersProject(req.params.user)?.scratchId
+          if(!projectObj.scratchId) {projectObj.scratchId = project.scratchId}
+          projectObj.title = project.project.title
+          projectObj.lastTime = project.project.lastTime
+          projectObj.lastUser = project.project.lastUser
+
+          return projectObj
+     })
+     res.send()
 })
 
 app.get('/share/:id',(req,res)=>{

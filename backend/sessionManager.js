@@ -3,6 +3,9 @@ class BlockliveProject {
     // projectJSONVersion = 0
     version = -1
     changes = []
+    lastTime = 0;
+    lastUser = "";
+    title;
 
     constructor() {
     }
@@ -10,6 +13,7 @@ class BlockliveProject {
     recordChange(change) {
         this.changes.push(change)
         this.version++;
+        this.lastTime = Date.now()
     }
 
     getChangesSinceVersion(lastVersion) {
@@ -60,6 +64,7 @@ class BlockliveSess {
 
     onProjectChange(socket, msg) {
         this.project.recordChange(msg)
+        this.project.lastUser = this.getClientFromSocket(socket).username
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
                 console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
@@ -76,7 +81,7 @@ class BlockliveSess {
 }
 
 class ProjectWrapper {
-    session 
+    session
     project
 
     // blocklive id
@@ -110,6 +115,7 @@ class ProjectWrapper {
         this.linkedWith.push({scratchId,owner,version})
     }
 
+    // returns {scratchId, owner}
     getOwnersProject(owner) {
         return this.linkedWith.find(project=>project.owner?.toLowerCase()==owner?.toLowerCase())
     }

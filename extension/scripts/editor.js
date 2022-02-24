@@ -1338,7 +1338,41 @@ function injectJSandCSS() {
     styleInj.innerHTML = shareCSS
     document.head.appendChild(styleInj)
 }
+
+let blActivateClick = ()=>{
+    // change onclick
+    blockliveButton.onclick = undefined
+    // set spinny icon
+    document.querySelector('loader.blockliveloader').style.display = 'flex'
+
+    // save project in scratch
+    store.dispatch({type: "scratch-gui/project-state/START_MANUAL_UPDATING"})
+
+    chrome.runtime.sendMessage(exId,{meta:'create',scratchId},(response)=>{
+        blId = response.id 
+
+        // ACTIVATE BLOKLIVE!!!
+        projectReplaceInitiated = true;
+        pauseEventHandling = false
+        liveMessage({meta:"myId",id:blId})
+        activateBlocklive()
+        // JOIN BLOCKLIVE SESSION!!!!
+        liveMessage({meta:"joinSession"})
+        readyToRecieveChanges = true
+
+        // stop spinny
+        document.querySelector('loader.blockliveloader').style.display = 'none'
+
+        // Set button onclick
+        blockliveButton.onclick = blShareClick
+        document.addEventListener('click', (e)=>{if(e.target.nodeName != 'X' &&!dropdown.contains(e.target) && !button.contains(e.target)){dropdown.style.display = 'none'}})
+        blShareClick()
+    })
+}
+let blShareClick = ()=>{console.log('clicked'); dropdown.style.display = (dropdown.style.display == 'none' ? 'flex' : 'none') }
+
 console.log('listening for share button')
+blockliveButton = null
 listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
     (bc)=>{
         bc.children[1].children[0].innerHTML = "Become Blajingus"
@@ -1348,6 +1382,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         container.style.flexDirection = 'column'
 
         let button = makeBlockliveButton()
+        blockliveButton = button
         let dropdown = document.createElement('blockliveDropdown')
         dropdown.innerHTML = shareDropdown
         dropdown.style.position = 'absolute'
@@ -1356,8 +1391,15 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         dropdown.style.boxShadow = '3px 7px 19px 3px rgba(0,0,0,0.48)'
         dropdown.style.display = 'none'
 
-        button.onclick = ()=>{console.log('clicked'); dropdown.style.display = (dropdown.style.display == 'none' ? 'flex' : 'none') }
-        document.addEventListener('click', (e)=>{if(e.target.nodeName != 'X' &&!dropdown.contains(e.target) && !button.contains(e.target)){dropdown.style.display = 'none'}})
+        button.onclick = ()=>{
+            if(blId) {
+                // if already is shared
+                return blShareClick()
+            } else {
+                // if is regular scratch project
+                return blActivateClick()
+            }
+        }
 
         container.appendChild(button)
         container.appendChild(dropdown)

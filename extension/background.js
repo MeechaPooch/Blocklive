@@ -217,6 +217,10 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta == 'projectSaved') {
       // {meta:'projectSaved',blId,scratchId,version:blVersion}
       fetch(`${apiUrl}/projectSaved/${request.scratchId}/${request.version}`,{method:'POST'})
+    } else if(request.meta == 'myStuff') {
+      sendResponse(await(await fetch(`${apiUrl}/userProjectsScratch/${await refreshUsername()}`)).json())
+    } else if(request.meta == 'create') {
+      sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}`)).json())
     }
   });
 
