@@ -97,6 +97,7 @@ class ProjectWrapper {
 
     constructor(owner,scratchId,blId) {
         this.id = blId
+        this.owner = owner
         this.scratchId = scratchId
         this.project = new BlockliveProject()
         this.session = new BlockliveSess(this.project,this.id)
