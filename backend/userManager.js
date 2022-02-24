@@ -15,7 +15,7 @@ export default class UserManager {
     }
 
     getUser(username) {
-        if(!(username.toLowerCase() in this.users)) {
+        if(!(username?.toLowerCase() in this.users)) {
             this.addUser(username)
         }
         return this.users[username.toLowerCase()]
@@ -57,7 +57,7 @@ export default class UserManager {
         return objs.filter((proj)=>(user.friends.indexOf(proj.from)!=-1)).map((proj)=>(proj.id))
     }
     getAllProjects(username) {
-        return this.getUser().myProjects.concat(this.getShared(username))
+        return this.getUser(username).myProjects.concat(this.getShared(username))
     }
 
     rand() {
