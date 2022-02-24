@@ -46,6 +46,7 @@ async function handleNewProject(tab) {
 
 const newProjectPage = 'https://scratch.mit.edu/create'
 async function prepRedirect(tab) {
+  if(uname == '*') {return false}
   let id = getProjectId(tab.url)
 
 
@@ -125,6 +126,7 @@ uname = json.user.username
 
 return uname
 }
+refreshUsername()
 
 // Listen for Project load
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')

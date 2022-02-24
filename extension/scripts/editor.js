@@ -1323,6 +1323,7 @@ function removeAllCollaboratorsGUI() {
 }
 
 function addCollaborator(user) {
+    if(user.toLowerCase() in shareDivs) {return}
     addCollaboratorGUI(user)
     chrome.runtime.sendMessage(exId,{meta:"shareWith",user,id:blId})
 }
