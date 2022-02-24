@@ -180,8 +180,7 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
 app.get('/share/:id',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      let list = project?.sharedWith
-     list?.unshift(project.owner)
-     res.send(list ? list : {err:'could not find blocklive project: ' + req.params.id} )
+     res.send(list ? [project.owner].concat(list) : {err:'could not find blocklive project: ' + req.params.id} )
 })
 app.put('/share/:id/:to/:from',(req,res)=>{
      if(sessionManager.getProject(req.params.id)?.owner == req.params.to) {

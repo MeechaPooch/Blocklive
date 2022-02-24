@@ -1286,7 +1286,7 @@ background: #6aa8ff;
 
 
 
-async function addCollaboratorGUI (username){
+async function addCollaboratorGUI (username,omitX){
     if(username.toLowerCase() in shareDivs) {return}
     let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(`https://scratch.mit.edu/site-api/users/all/${username}`)).json();
     if(!res?.id) {return}
@@ -1296,7 +1296,12 @@ async function addCollaboratorGUI (username){
     console.log(newCollab)
     newCollab.style.display = 'flex'
     Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = res?.user?.username;
-    Array.from(newCollab.children).find(elem=>elem.localName =='x').username = res?.user?.username;
+    let x = Array.from(newCollab.children).find(elem=>elem.localName =='x')
+    if(omitX) {
+        x.remove()
+    } else {
+        x.username = res?.user?.username;
+    }
     Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = `url('${img}')`  
     shareDivs[username.toLowerCase()] = newCollab
     blModalExample.parentNode.append(newCollab);
@@ -1330,6 +1335,7 @@ function removeCollaborator(user) {
 async function refreshShareModal() {
     removeAllCollaboratorsGUI()
     chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
+        addCollaboratorGUI(res.shift(),true)
         res.forEach(addCollaboratorGUI)
     })
 }
@@ -1391,7 +1397,7 @@ let blActivateClick = ()=>{
         // JOIN BLOCKLIVE SESSION!!!!
         liveMessage({meta:"joinSession"})
         readyToRecieveChanges = true
-
+        refreshShareModal()
         // stop spinny
         document.querySelector('loader.blockliveloader').style.display = 'none'
 
