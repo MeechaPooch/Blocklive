@@ -143,7 +143,8 @@ async function joinExistingBlocklive(id) {
     if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);return;}
     pauseEventHandling = true
     try {
-        await vm.downloadProjectIdPromise(inpoint.scratchId)
+    console.log('downloading scratch id',inpoint.scratchId)
+    await vm.downloadProjectIdPromise(inpoint.scratchId)
         blVersion = inpoint.scratchVersion
     } catch (e) {
         prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
@@ -1365,17 +1366,17 @@ let blActivateClick = ()=>{
 
         // Set button onclick
         blockliveButton.onclick = blShareClick
-        document.addEventListener('click', (e)=>{if(e.target.nodeName != 'X' &&!dropdown.contains(e.target) && !button.contains(e.target)){dropdown.style.display = 'none'}})
         blShareClick()
     })
 }
-let blShareClick = ()=>{console.log('clicked'); dropdown.style.display = (dropdown.style.display == 'none' ? 'flex' : 'none') }
+let blShareClick = ()=>{console.log('clicked'); blDropdown.style.display = (blDropdown.style.display == 'none' ? 'flex' : 'none') }
 
 console.log('listening for share button')
 blockliveButton = null
+blDropdown = null
 listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
     (bc)=>{
-        bc.children[1].children[0].innerHTML = "Become Blajingus"
+        // bc.children[1].children[0].innerHTML = "Become Blajingus"
 
         let container = document.createElement('blockliveContainer')
         container.style.display = 'flex'
@@ -1390,6 +1391,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         dropdown.style.borderRadius = '17px'
         dropdown.style.boxShadow = '3px 7px 19px 3px rgba(0,0,0,0.48)'
         dropdown.style.display = 'none'
+        blDropdown = dropdown
 
         button.onclick = ()=>{
             if(blId) {
@@ -1400,6 +1402,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
                 return blActivateClick()
             }
         }
+        document.addEventListener('click', (e)=>{if(e.target.nodeName != 'X' &&!dropdown.contains(e.target) && !button.contains(e.target)){dropdown.style.display = 'none'}})
 
         container.appendChild(button)
         container.appendChild(dropdown)
