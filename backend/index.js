@@ -65,11 +65,11 @@ io.on('connection', (client) => {
      })
 });
 
-app.get('/newProject/:scratchId/:owner',(req,res)=>{
+app.get('/newProject/:scratchId/:owner/?title',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {
-          console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner)
-          project = sessionManager.newProject(req.params.owner,req.params.scratchId)
+          console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner + ' titled: ' + req.query.title)
+          project = sessionManager.newProject(req.params.owner,req.params.scratchId,req.query.title)
           userManager.newProject(req.params.owner,project.id)
      }
      res.send({id:project.id})
@@ -83,6 +83,15 @@ app.get('/scratchIdInfo/:scratchId',(req,res)=>{
           res.send(sessionManager.scratchprojects[req.params.scratchId])
      } else {
           res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
+     }
+})
+// todo: sync info and credits with this endpoint as well?
+app.get('/projectTitle/:id',(req,res)=>{
+     let project = sessionManager.getProject(req.params.id)
+     if(!project) {
+          res.send({err:'could not find project with blocklive id: ' + req.params.id})
+     } else {
+          res.send({title:project.project.title})
      }
 })
 app.post('/projectSaved/:scratchId/:version',(req,res)=>{

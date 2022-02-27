@@ -174,6 +174,9 @@ function getInpoint(blockliveId) {
 function getChanges(blId,version) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version},res)})
 }
+function fetchTitle(blId) {
+    return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getTitle',blId},res)})
+}
 
 let getAndPlayNewChanges
 
@@ -182,6 +185,9 @@ async function activateBlocklive() {
     // set scope exposed functions    
     getAndPlayNewChanges = async ()=>{
         console.log('syncing since version: ' +  blVersion)
+        fetchTitle(blId).then(title=>setTitle(title)) // set title
+
+        // sync all other project changes
         changes = await getChanges(blId,blVersion)
         pauseEventHandling = true
         for (let i = 0; i < changes.length; i++) {
@@ -1455,7 +1461,7 @@ let blActivateClick = async ()=>{
     await waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2]))))
     scratchId = location.pathname.split('/')[2]
 
-    chrome.runtime.sendMessage(exId,{meta:'create',scratchId},async (response)=>{
+    chrome.runtime.sendMessage(exId,{meta:'create',scratchId,title:store.getState().preview.projectInfo.title},async (response)=>{
         blId = response.id 
 
         // ACTIVATE BLOKLIVE!!!

@@ -7,7 +7,8 @@ class BlockliveProject {
     lastUser = "";
     title;
 
-    constructor() {
+    constructor(title) {
+        this.title = title
     }
 
     recordChange(change) {
@@ -99,11 +100,11 @@ class ProjectWrapper {
     owner
     sharedWith = []
 
-    constructor(owner,scratchId,blId) {
+    constructor(owner,scratchId,blId,title) {
         this.id = blId
         this.owner = owner
         this.scratchId = scratchId
-        this.project = new BlockliveProject()
+        this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
         owner = owner
@@ -159,10 +160,10 @@ export default class SessionManager{
         this.scratchprojects[scratchId] = {owner,blId:id}
     }
 
-    newProject(owner,scratchId) {
+    newProject(owner,scratchId,title) {
         if(scratchId in this.scratchprojects) {return this.getProject(this.scratchprojects[scratchId].blId)}
         let id = new String(this.getNextId())
-        let project = new ProjectWrapper(owner,scratchId,id)
+        let project = new ProjectWrapper(owner,scratchId,id,title)
         this.blocklive[id] = project
         this.scratchprojects[scratchId] = {owner,blId:id}
 

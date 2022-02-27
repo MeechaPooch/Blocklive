@@ -234,7 +234,7 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta == 'myStuff') {
       sendResponse(await(await fetch(`${apiUrl}/userProjectsScratch/${await refreshUsername()}`)).json())
     } else if(request.meta == 'create') {
-      sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}`)).json())
+      sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}?title=${encodeURIComponent(request.title)}`)).json())
     } else if(request.meta == 'shareWith') {
       fetch(`${apiUrl}/share/${request.id}/${request.user}/${uname}`,{
         method:'PUT'
@@ -245,6 +245,8 @@ chrome.runtime.onMessageExternal.addListener(
       })
     } else if(request.meta == 'getShared') {
       sendResponse(await(await fetch(`${apiUrl}/share/${request.id}`)).json())
+    } else if (request.meta == 'getTitle') {
+      sendResponse((await(await fetch(`${apiUrl}/projectTitle/${request.blId}`)).json()).title)
     }
   });
 
