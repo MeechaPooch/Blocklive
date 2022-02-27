@@ -72,6 +72,7 @@ https://stackoverflow.com/questions/3177836/how-to-format-time-since-xxx-e-g-4-m
 function timeSince(date) {
 
     var seconds = Math.floor((new Date() - date) / 1000);
+    if(seconds < 0) {return 'zero seconds'}
   
     var interval = seconds / 31536000;
   
