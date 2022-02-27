@@ -53,6 +53,7 @@ function getbox(title,scratchId,lastModified,lastModBy) {
       <div class="media-info">
         <span class="media-info-item title"><a style="color:#ff4ad5" href="/projects/${scratchId}/">${title}</a></span>
       	<span class="media-info-item date shortDateFormat">
+        
           Last modified: 
           
             ${timeSince(new Date(lastModified))} ago by ${lastModBy}

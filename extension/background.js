@@ -253,3 +253,8 @@ chrome.runtime.onMessageExternal.addListener(
   });
 
   
+  chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+    if(request.meta == 'getUsername') {
+      sendResponse(uname)
+    }
+  })

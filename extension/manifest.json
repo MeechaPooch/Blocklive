@@ -26,5 +26,8 @@
     }],
     "externally_connectable": {
         "matches": ["https://scratch.mit.edu/*"]
+    },
+    "action": {
+        "default_popup": "popups/popup.html"
     }
 }
