@@ -10,7 +10,7 @@ export default class UserManager {
         this.getUser(base)?.friends.push(to)
     }
     unbefriend(base,take) {
-        console.log(base + ' unfriending ' + to)
+        console.log(base + ' unfriending ' + take)
         this.getUser(base)?.friends.splice(this.getUser(base)?.friends.indexOf(take),1)
     }
 
