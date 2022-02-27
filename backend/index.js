@@ -19,6 +19,8 @@ let sessionManager = new SessionManager()
 let userManager = new UserManager()
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
+// userManager.befriend('ilhp10','tester124')
+// userManager.befriend('tester124','ilhp10')
 
 let messageHandlers = {
      'joinSession':(data,client)=>{

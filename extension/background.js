@@ -138,6 +138,7 @@ refreshUsername()
 // Listen for Project load
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
+  if(changeInfo.url?.startsWith('https://scratch.mit.edu/')) {refreshUsername()}
   if(changeInfo.url) {
     await makeSureUsernameExists()
     
@@ -164,7 +165,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
 
   let blId = ''
   // console.assert(port.name === "knockknock");
-  port.onMessage.addListener(function(msg) {
+  port.onMessage.addListener(async function(msg) {
     console.log(msg)
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
       let blIdd = portIds[port.name]
@@ -192,6 +193,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
         projects[msg.id] = new BlockliveProject()
       }
     } else if (msg.meta == 'joinSession') {
+      await makeSureUsernameExists()
       socket.send({type:"joinSession",id:portIds[port.name],username:uname}) // todo: replace username
     } else if (msg.meta == 'setTitle') {
       playChange(blId,msg,port)

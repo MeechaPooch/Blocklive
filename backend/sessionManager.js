@@ -111,7 +111,7 @@ class ProjectWrapper {
 
     scratchSaved(id,version) {
         // dont replace scratch id if current version is already ahead
-        if(version <= this.scratchVersion) {console.log('version too low. not recording. version & id:',this.scratchVersion, this.scratchId);return}
+        if(version <= this.scratchVersion) {console.log('version too low. not recording. most recent version & id:',this.scratchVersion, this.scratchId);return}
         this.scratchId = id
         this.scratchVersion = version
         console.log('linkedWith length', this.linkedWith.length)
