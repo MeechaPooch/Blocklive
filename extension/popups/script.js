@@ -25,6 +25,7 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
     }
 
     function removeFriend(name) {
+        delete alreadyAdded[name.toLowerCase()]
         for(let child of document.querySelector('#friends').children) {
             if(child.username == name) {child.remove(); break;}
         }
