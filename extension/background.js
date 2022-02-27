@@ -174,7 +174,9 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
 
       // send to websocket
       socket.send({type:'projectChange',msg,blId:blIdd},(res)=>{
-        port.postMessage({meta:'yourVersion',version:res})
+        if(!!res) {
+          port.postMessage({meta:'yourVersion',version:res})
+        }
       })
     } else if (msg.meta=='myId') {
       blId = msg.id
