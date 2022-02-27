@@ -713,6 +713,12 @@ function blockListener(e) {
             }
         }
 
+        // send broadcast name (in case of auto broadcast delete on recieving client)
+        if(e.type == 'change' && e.name == "BROADCAST_OPTION") {
+            extrargs.broadcastName = vm.runtime.getTargetForStage().variables[e.newValue]?.name
+            extrargs.broadcastId = vm.runtime.getTargetForStage().variables[e.newValue]?.id
+        }
+
         // send block xml-related things
         if(!!e.xml) {
             extrargs.xml = {outerHTML:e.xml.outerHTML}
@@ -848,6 +854,20 @@ function onBlockRecieve(d) {
         vEvent.blockId = realId;
         bEvent.blockId = realId;
     }
+
+    // create broadcast if needed
+    if(!!d.extrargs.broadcastName && !vm.runtime.getTargetForStage().variables[d.json.newValue]) {
+        let createVmEvent = {isCloud: false, isLocal: false, type: "var_create", varId: d.extrargs.broadcastId, varName: d.extrargs.broadcastName, varType: "broadcast_msg"}
+        console.log('remaking broadcast',createVmEvent)
+        vm.blockListener(createVmEvent)
+
+        if(isWorkspaceAccessable()) {
+            let createBlEvent = ScratchBlocks.Events.fromJson(createVmEvent,getWorkspace())
+            blockliveEvents[getStringEventRep(createBlEvent)] = true
+            createBlEvent.run(true)
+        }
+    }
+
     //xml
     if(!!d.extrargs.xml) {
         vEvent.xml = d.extrargs.xml
