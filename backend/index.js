@@ -65,7 +65,7 @@ io.on('connection', (client) => {
      })
 });
 
-app.get('/newProject/:scratchId/:owner/?title',(req,res)=>{
+app.get('/newProject/:scratchId/:owner',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {
           console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner + ' titled: ' + req.query.title)
