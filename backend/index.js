@@ -36,6 +36,12 @@ let messageHandlers = {
           if(!project) {return}
           let changes = project?.project.getChangesSinceVersion(data.version)
           client.send({type:'projectChanges',changes,projectId:data.id,currentVersion:project.project.version})
+     },
+     'setTitle':(data,client)=>{
+          let project = sessionManager.getProject(data.blId)
+          if(!project) {return}
+          project.project.title = data.msg.title
+          project.session.sendChangeFrom(client,data.msg,true)
      }
 }
 

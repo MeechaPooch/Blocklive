@@ -99,11 +99,11 @@ let onceProjectLoaded = []
 let vm
 let readyToRecieveChanges = false
 
-async function startBlocklive() {
+async function startBlocklive(creatingNew) {
     pauseEventHandling = true
     liveMessage({meta:"myId",id:blId})
     activateBlocklive()
-    if(store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
+    if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
         await joinExistingBlocklive(blId)
@@ -121,18 +121,17 @@ async function onTabLoad() {
     // Get usable scratch id
     // await waitFor(()=>{!isNaN(parseFloat(location.pathname.split('/')[2]))})
     // scratchId = location.pathname.split('/')[2]
-    await waitFor(()=>(location.pathname.split('/')[2]!='editor'))
-    scratchId = location.pathname.split('/')[2]
+    waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2])))).then(()=>{scratchId = location.pathname.split('/')[2]})
 
     // trap vm and store
     let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
     vm = reactInst.child.child.child.stateNode.props.vm;
     store = reactInst.child.child.child.stateNode.context.store
-    blId = await getBlocklyId(scratchId);
+    blId = isNaN(parseFloat(location.pathname.split('/')[2])) ? '' : await getBlocklyId(scratchId);
     if(!blId) {
         chrome.runtime.sendMessage(exId,{meta:'callback'},(request) => { if(request.meta == 'initBlocklive') { 
             blId = request.blId; 
-            startBlocklive();}});
+            startBlocklive(true);}});
     }
     if(!!blId) {
         startBlocklive()
@@ -237,6 +236,8 @@ setInterval(reconnectIfNeeded,1000)
         } else if(msg.meta=='yourVersion') {
             console.log('version ponged: ' + msg.version)
             blVersion = msg.version
+        } else if(msg.meta == 'setTitle') {
+            setTitle(msg.title)
         }
         } catch (e) {console.error(e)}
     }
@@ -333,18 +334,46 @@ const getSelectedCostumeIndex = () => {
     return +numberEl.textContent - 1;
 };
 
-// send to api when project saved
+// send to api when project saved and name change
 let lastProjectState = store.getState().scratchGui.projectState.loadingState
+let lastTitle = store.getState().preview.projectInfo.title
+let settingTitle = null
 store.subscribe(function() {
+    // HANDLE PROJECT SAVE
     let state = store.getState().scratchGui.projectState.loadingState
-    if(lastProjectState == state) {return; }
-    lastProjectState = store.getState().scratchGui.projectState.loadingState
+    if(lastProjectState != state) { // If state changed
+        lastProjectState = store.getState().scratchGui.projectState.loadingState
 
-    if(state.endsWith('UPDATING')) {
-        console.log('🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢')
-        chrome.runtime.sendMessage(exId,{meta:'projectSaved',blId,scratchId,version:blVersion})
+        if(state.endsWith('UPDATING')) {
+            console.log('🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢')
+            chrome.runtime.sendMessage(exId,{meta:'projectSaved',blId,scratchId,version:blVersion})
+        }
+    }
+
+    // HANDLE TITLE CHANGE
+    let title = store.getState().preview.projectInfo.title
+    if(title != lastTitle) {
+        lastTitle = title
+        if(title != settingTitle) {
+            console.log('title changed to',title)
+            liveMessage({meta:'setTitle',blId,title})
+        }
     }
 })
+
+
+function setTitle(title) {
+    settingTitle = title
+    let elem = document.querySelector("#frc-title-1088") //Todo: query id
+    if(elem) {
+        Object.entries(elem).find(en=>en[0].startsWith('__reactEventHandlers$'))[1].onBlur({currentTarget:{value:title}})
+    } else {
+        store.dispatch({
+            type: 'projectTitle/SET_PROJECT_TITLE',
+            title
+        });
+    }
+}
 
 
 
@@ -1385,7 +1414,7 @@ function injectJSandCSS() {
     document.head.appendChild(styleInj)
 }
 
-let blActivateClick = ()=>{
+let blActivateClick = async ()=>{
     // change onclick
     blockliveButton.onclick = undefined
     // set spinny icon
@@ -1393,6 +1422,9 @@ let blActivateClick = ()=>{
 
     // save project in scratch
     store.dispatch({type: "scratch-gui/project-state/START_MANUAL_UPDATING"})
+
+    await waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2]))))
+    scratchId = location.pathname.split('/')[2]
 
     chrome.runtime.sendMessage(exId,{meta:'create',scratchId},async (response)=>{
         blId = response.id 

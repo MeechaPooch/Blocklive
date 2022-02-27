@@ -62,21 +62,25 @@ class BlockliveSess {
         return this.connectedClients[socket?.id]
     }
 
-    onProjectChange(socket, msg) {
-        this.project.recordChange(msg)
-        this.project.lastUser = this.getClientFromSocket(socket) ? this.getClientFromSocket(socket).username : this.project.lastUser
+    sendChangeFrom(socket,msg,excludeVersion) {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
                 console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
                 client.trySendMessage({
                 type:'projectChange',
                 blId:this.id,
-                version:this.project.version,
+                version: excludeVersion ? null : this.project.version,
                 msg,
                 from:socket.id,
                 user:this.getClientFromSocket(socket)?.username
             })}
         })
+    }
+
+    onProjectChange(socket, msg) {
+        this.project.recordChange(msg)
+        this.project.lastUser = this.getClientFromSocket(socket) ? this.getClientFromSocket(socket).username : this.project.lastUser
+        this.sendChangeFrom(socket,msg)
     }
 }
 

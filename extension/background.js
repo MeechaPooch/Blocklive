@@ -96,7 +96,7 @@ socket.on('disconnect',()=>{
 socket.on('message',(data)=>{
   console.log('message',data)
   if(data.type=='projectChange') {
-    projects[data.blId]?.setVersion(data.version -1)
+    if(data.version){projects[data.blId]?.setVersion(data.version -1)}
     data.msg.version = data.version
     playChange(data.blId,data.msg)
  } else if(data.type=='yourVersion') {
@@ -161,6 +161,8 @@ let ports = []
 chrome.runtime.onConnectExternal.addListener(function(port) {
   port.name = ++lastPortId
   ports.push(port)
+
+  let blId = ''
   // console.assert(port.name === "knockknock");
   port.onMessage.addListener(function(msg) {
     console.log(msg)
@@ -174,6 +176,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
         port.postMessage({meta:'yourVersion',version:res})
       })
     } else if (msg.meta=='myId') {
+      blId = msg.id
       // record websocket id
       if(!(msg.id in blockliveTabs)) {
         blockliveTabs[msg.id] = [] 
@@ -190,6 +193,10 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       }
     } else if (msg.meta == 'joinSession') {
       socket.send({type:"joinSession",id:portIds[port.name],username:uname}) // todo: replace username
+    } else if (msg.meta == 'setTitle') {
+      playChange(blId,msg,port)
+      // send to websocket
+      socket.send({type:'setTitle',blId,msg})
     }
 
   });
