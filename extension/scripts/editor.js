@@ -630,6 +630,9 @@ function getStringEventRep(e) {
         case 'var_create':
             rep += e.varName + e.isCloud + e.isLocal
             break;
+        case 'var_delete':
+            rep += e.varName + e.isCloud + e.isLocal
+            break;
         case 'var_rename':
             rep += e.newName
             break;
@@ -855,7 +858,13 @@ function onBlockRecieve(d) {
         bEvent.xy = d.event.xy
     }
 
-    if(targetToName(oldEditingTarget) == d.target && !pauseEventHandling && isWorkspaceAccessable()) {
+    if(
+        (
+            (targetToName(oldEditingTarget) == d.target && !pauseEventHandling) || // if in same editing target that event is for
+            (['var_create','var_delete'].indexOf(d.type) != -1 && !d.json.isLocal) // or if event is a global variable create or delete
+        )
+        && isWorkspaceAccessable() // and no matter what make sure that workspace is accessable
+    ){
         // save speedy move and delete events for later
         if((bEvent.type == 'move' || bEvent.type == 'delete') && bEvent.blockId in toBeMoved) {toBeMoved[bEvent.blockId].push(d)}
         else{
