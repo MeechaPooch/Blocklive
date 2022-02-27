@@ -8,7 +8,10 @@ app.use(cors())
 import http from 'http'
 const server = http.createServer(app);
 import {Server} from 'socket.io'
-const io = new Server(server, {cors:{origin:'*'}});
+const io = new Server(server, {
+     cors:{origin:'*'},
+     maxHttpBufferSize:2e7 // scrtch asset size limit
+});
 
 import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
