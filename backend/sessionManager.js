@@ -86,6 +86,19 @@ class BlockliveSess {
 }
 
 class ProjectWrapper {
+
+    // toJSON() {
+    //     let ret = {
+    //         id:this.id,
+    //         scratchId:this.scratchId,
+    //         scratchVersion:this.scratchVersion,
+    //         linkedWith:this.linkedWith,
+    //         owner:this.owner,
+    //         sharedWith:this.sharedWith,
+    //     }
+    //     return ret;
+    // }
+
     session
     project
 
@@ -138,6 +151,14 @@ class ProjectWrapper {
 }
 
 export default class SessionManager{
+
+    // toJSON() {
+    //     let ret = {
+    //         scratchprojects:this.scratchprojects,
+    //     }
+    //     return ret
+        
+    // }
 
     static inst;
 
