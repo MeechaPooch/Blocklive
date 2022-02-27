@@ -132,6 +132,7 @@ class ProjectWrapper {
         if(socket.id in this.session.connectedClients) {return}
         let client = new BlockliveClient(socket,username)
         this.session.addClient(client)
+        if(!this.project.lastUser) {this.project.lastUser = username}
     }
 
 }
