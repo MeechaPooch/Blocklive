@@ -80,7 +80,7 @@ function reconnectIfNeeded() {
         if(isConnected){
             registerChromePortListeners();
             liveMessage({meta:"myId",id:blId})
-            liveMessage({meta:"joinSession"})
+            liveMessage({meta:"joinSession"}) // TODO: maybe do away with sending join message?
             if(readyToRecieveChanges){getAndPlayNewChanges()}
         }
     }
