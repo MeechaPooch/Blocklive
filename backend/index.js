@@ -26,6 +26,8 @@ let userManager = new UserManager()
 let messageHandlers = {
      'joinSession':(data,client)=>{
           sessionManager.join(client,data.id,data.username)
+     },'joinSessions':(data,client)=>{
+          data.ids.forEach(id=>{sessionManager.join(client,id,data.username)})
      },
      'leaveSession':(data,client)=>{
           sessionManager.leave(client,data.id)

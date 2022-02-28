@@ -89,6 +89,8 @@ const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket']})
 console.log('connecting')
 socket.on('connect',()=>{
   console.log('connected with id: ',socket.id)
+  ports.forEach(port=>port.postMessage('resync'))
+  socket.send({type:'joinSessions',username:uname,ids:Object.keys(blockliveTabs)})
 })
 socket.on('disconnect',()=>{
 
@@ -196,7 +198,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       }
     } else if (msg.meta == 'joinSession') {
       await makeSureUsernameExists()
-      socket.send({type:"joinSession",id:portIds[port.name],username:uname}) // todo: replace username
+      socket.send({type:"joinSession",id:portIds[port.name],username:uname})
     } else if (msg.meta == 'setTitle') {
       playChange(blId,msg,port)
       // send to websocket

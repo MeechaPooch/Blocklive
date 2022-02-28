@@ -246,6 +246,8 @@ setInterval(reconnectIfNeeded,1000)
             blVersion = msg.version
         } else if(msg.meta == 'setTitle') {
             setTitle(msg.title)
+        } else if(msg.meta == 'resync') { // TODO: Do this better-- pass in changes from bg script
+            getAndPlayNewChanges()
         }
         } catch (e) {console.error(e)}
     }
