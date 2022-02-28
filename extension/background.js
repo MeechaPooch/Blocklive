@@ -93,7 +93,9 @@ socket.on('connect',()=>{
   socket.send({type:'joinSessions',username:uname,ids:Object.keys(blockliveTabs)})
 })
 socket.on('disconnect',()=>{
-
+  if(ports.length != 0) {
+    socket.connect()
+  }
 })
 socket.on('message',(data)=>{
   console.log('message',data)
@@ -162,6 +164,8 @@ let lastPortId = 0
 let ports = []
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
+  if(socket.disconnected) {socket.connect()}
+
   port.name = ++lastPortId
   ports.push(port)
 
@@ -213,6 +217,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     blockliveTabs[blockliveId].splice(list.indexOf(p),1);
     delete portIds[p.name]
     if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
+    if(ports.length == 0) {socket.disconnect()} // Todo: handle disconnecting and reconnecting backend socket
   })
 });
 
