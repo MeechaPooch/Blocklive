@@ -1,3 +1,8 @@
+let apiUrl = 'http://152.67.248.129:4000'
+
+
+function backgroundScript() {
+
 importScripts('background/socket.io.js')
 importScripts('background/blockliveProject.js')
 
@@ -5,7 +10,6 @@ importScripts('background/blockliveProject.js')
 // let username = 'ilhp10'
 
 // let apiUrl = 'http://127.0.0.1:4000'
-let apiUrl = 'http://152.67.248.129:4000'
 
 ////////// ACTIVE PROJECTS DATABASE //////////
 // blId -> [ports...]
@@ -265,3 +269,6 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(uname)
     }
   })
+}
+
+backgroundScript()
