@@ -1227,10 +1227,10 @@ let shareDropdown = `
             <cell id="blModalExample" style="display:none; gap:10px;flex-direction: row; align-items: center;">
                 <pic  style='width:40px; height:40px; border-radius: 100%; display:flex;background-position: center;background-size:cover; background-image:url("https://i.pinimg.com/originals/12/ff/9c/12ff9cd0f45317c362f0c87e2e55bd6c.jpg");';>
                 </pic>
-                <name onclick='window.open("https:\/\/scratch.mit.edu/users/" + this.innerText)', class="sharedName" style="max-width:122px;overflow:hidden; display:flex;align-self: center; font-size: large;font-weight:bold;">
+                <name onclick='window.open("https:\/\/scratch.mit.edu/users/" + this.innerText)', class="sharedName" style="cursor:pointer; max-width:122px;overflow:hidden; display:flex;align-self: center; font-size: large;font-weight:bold;">
                     WazzoTV
                 </name>
-                <x onclick="removeCollaborator(this.username)" style="display:flex; align:right;font-size:large; border-radius: 100%;padding: 0px;">
+                <x onclick="removeCollaborator(this.username)" style="cursor:pointer; display:flex; align:right;font-size:large; border-radius: 100%;padding: 0px;">
                     ✕
                 </x>
             </cell>
@@ -1246,7 +1246,7 @@ let shareDropdown = `
 
     </input>
         <results style="display: flex; height: 40px;">
-            <cell class="result" onclick="if(opening){opening=false;return;}addCollaborator(this.username);"  id="resultt" style="visibility: hidden; padding-right:20px; border-radius: 20px; display:flex; gap:10px;flex-direction: row; align-items: center;">
+            <cell class="result" onclick="if(opening){opening=false;return;}addCollaborator(this.username);"  id="resultt" style="cursor:pointer; visibility: hidden; padding-right:20px; border-radius: 20px; display:flex; gap:10px;flex-direction: row; align-items: center;">
                 <!-- <highlight class="resultHighlight" style="z-index: 0;position:absolute; width:240px; height: 50px; left:8px">
 
                 </highlight> -->
