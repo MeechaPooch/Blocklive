@@ -1,4 +1,14 @@
 class BlockliveProject {
+
+    static fromJSON(json) {
+        let ret = new ProjectWrapper()
+        Object.entries(json).forEach(entry=>{
+            ret[entry[0]] = entry[1]
+        })
+        return ret;
+    }
+
+
     // projectJSON
     // projectJSONVersion = 0
     version = -1
@@ -87,17 +97,29 @@ class BlockliveSess {
 
 class ProjectWrapper {
 
-    // toJSON() {
-    //     let ret = {
-    //         id:this.id,
-    //         scratchId:this.scratchId,
-    //         scratchVersion:this.scratchVersion,
-    //         linkedWith:this.linkedWith,
-    //         owner:this.owner,
-    //         sharedWith:this.sharedWith,
-    //     }
-    //     return ret;
-    // }
+    toJSON() {
+        let ret = {
+            project:this.project,
+            id:this.id,
+            scratchId:this.scratchId,
+            scratchVersion:this.scratchVersion,
+            linkedWith:this.linkedWith,
+            owner:this.owner,
+            sharedWith:this.sharedWith,
+        }
+        return ret;
+    }
+
+    static fromJSON(json) {
+        let ret = new ProjectWrapper('&')
+        Object.entries(json).forEach(entry=>{
+            if(entry[0] == 'project')
+            ret[entry[0]] = entry[1]
+        })
+        ret.project = BlockliveProject.fromJSON(json.project)
+        ret.session = new BlockliveSess(ret.project,ret.id)
+        return ret
+    }
 
     session
     project
@@ -114,6 +136,7 @@ class ProjectWrapper {
     sharedWith = []
 
     constructor(owner,scratchId,blId,title) {
+        if(owner == '&') {return}
         this.id = blId
         this.owner = owner
         this.scratchId = scratchId
@@ -152,13 +175,25 @@ class ProjectWrapper {
 
 export default class SessionManager{
 
-    // toJSON() {
-    //     let ret = {
-    //         scratchprojects:this.scratchprojects,
-    //     }
-    //     return ret
+    toJSON() {
+        let ret = {
+            scratchprojects:this.scratchprojects,
+            blocklive:this.blocklive,
+            lastId:this.lastId,
+        }
+        return ret
         
-    // }
+    }
+    static fromJSON(ob) {
+        let ret = new SessionManager();
+        if(ob.scratchprojects) { ret.scratchprojects = ob.scratchprojects; }
+        if(ob.lastId) { ret.lastId = ob.lastId; }
+        if(ob.blocklive) { Object.entries(ret.blocklive).forEach(entry=>{
+            ob.blocklive[entry[0]] = ProjectWrapper.fromJSON(entry[1]);
+        })}
+        
+        return ret;
+    }
 
     static inst;
 
