@@ -1422,8 +1422,8 @@ function removeCollaborator(user) {
 }
 
 function refreshShareModal() {
-    removeAllCollaboratorsGUI()
     return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},async (res)=>{
+        removeAllCollaboratorsGUI()
         for (boi of res) {if(!boi.pk) {console.log('oi!',boi);boi.pk = (await getUserInfo(boi.username)).pk};console.log(boi)}
         res.forEach(getWithPic)
         addCollaboratorGUI(res.shift(),true)
@@ -1501,7 +1501,7 @@ let blActivateClick = async ()=>{
         blShareClick()
     })
 }
-let blShareClick = ()=>{console.log('clicked'); blDropdown.style.display = (blDropdown.style.display == 'none' ? 'flex' : 'none') }
+let blShareClick = ()=>{console.log('clicked'); blDropdown.style.display = (blDropdown.style.display == 'none' ? 'flex' : 'none'); refreshShareModal() }
 
 console.log('listening for share button')
 blockliveButton = null
