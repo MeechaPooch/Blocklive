@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
 // var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk'
-var exId = 'ecpnaepgmcofbfjhpbcmjgijkekmkbdm'
+var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf'
 
 //////////// TRAP UTILS ///////////
 
@@ -1280,8 +1280,6 @@ blModalExample = document.querySelector('#blModalExample')
 
         shareDivs = {}
 
-        cachedUser = null
-
         
         earch.addEventListener("keyup", function(event) {
   // Number 13 is the "Enter" key on the keyboard
@@ -1293,25 +1291,16 @@ blModalExample = document.querySelector('#blModalExample')
 
         earch.oninput = async ()=>{
             console.log('hi')
-            let res
+            let currentSearching = earch.value.toLowerCase()
+            let user = await getUserInfo(earch.value)
+            if(currentSearching != earch.value.toLowerCase()) { return}
+            if(user) {
+           
+            result.innerHTML = user.username
+            result.parentNode.username = user.username
 
-            // await (await fetch("ilhp10/")).json();
-             try{(res=await (await fetch('https://scratch.mit.edu/site-api/users/all/' + earch.value)).json())} catch(e) {
-                 res=null
-             }
-            //  try{(res=await (await fetch('https://api.scratch.mit.edu/users/' + earch.value)).json())} catch(e) {
-            //      res=null
-            //  }
-            if(earch.value?.toLowerCase() != res?.user?.username?.toLowerCase()) {return}
-             if(!!res?.user?.username) {
-            result.innerHTML = res?.user?.username
-            result.parentNode.username = res?.user?.username
-            let img = res?.thumbnail_url
-            // let img = res?.user?.images['60x60']
-            cachedUser = res
-            console.log(img)
-                 resultt.style.visibility = 'visible'
-            resultPic.style.backgroundImage = \`url('\${img}')\`  
+            resultt.style.visibility = 'visible'
+            resultPic.style.backgroundImage = \`url('\${user.pic}')\`  
              } else {
                  resultt.style.visibility = 'hidden'
              }
@@ -1358,25 +1347,48 @@ background: #6aa8ff;
 
 
 
+usersCache = {}
+
+async function getUserInfo(username) {
+    if(!username) {return}
+    if(username?.toLowerCase() in usersCache) {return usersCache[username?.toLowerCase()]}
+
+    let res
+    try{ 
+        res=await (await fetch('https://scratch.mit.edu/site-api/users/all/' + username?.toLowerCase())).json()
+    } catch(e) {
+        return null
+    }
+    if(!res) {
+        return null
+    }
+
+    let user = res.user
+    user = getWithPic(user)
+    usersCache[user.username.toLowerCase()] = user
+    return user
+}
+function getWithPic(user) {
+    user.pic = `https://cdn2.scratch.mit.edu/get_image/user/${user.pk}_60x60.png`
+    return user
+}
 
 
-async function addCollaboratorGUI (username,omitX){
-    if(username.toLowerCase() in shareDivs) {return}
-    let res = cachedUser?.user?.username?.toLowerCase() == username.toLowerCase() ? cachedUser : await (await fetch(`https://scratch.mit.edu/site-api/users/all/${username}`)).json();
-    if(!res?.id) {return}
-    let img = res?.thumbnail_url
+async function addCollaboratorGUI (user,omitX){
+    if(user.username.toLowerCase() in shareDivs) {return}
+    if(!user) {return}
 
     let newCollab = blModalExample.cloneNode(-1)
     console.log(newCollab)
     newCollab.style.display = 'flex'
-    Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = res?.user?.username;
+    Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = user.username;
     let x = Array.from(newCollab.children).find(elem=>elem.localName =='x')
-    if(omitX) {
+    if(omitX === true) {
         x.remove()
     } else {
-        x.username = res?.user?.username;
+        x.username = user.username;
     }
-    Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = `url('${img}')`  
+    Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = `url('${user.pic}')`  
     shareDivs[username.toLowerCase()] = newCollab
     blModalExample.parentNode.append(newCollab);
 
@@ -1396,10 +1408,12 @@ function removeAllCollaboratorsGUI() {
     shareDivs = {}
 }
 
-function addCollaborator(user) {
+async function addCollaborator(username) {
     if(user.toLowerCase() in shareDivs) {return}
+    let user = await getUserInfo(username)
+    if(!user) {return}
     addCollaboratorGUI(user)
-    chrome.runtime.sendMessage(exId,{meta:"shareWith",user,id:blId})
+    chrome.runtime.sendMessage(exId,{meta:"shareWith",'username':user.username,id:blId,pk:user.pk})
 }
 
 function removeCollaborator(user) {
@@ -1410,6 +1424,8 @@ function removeCollaborator(user) {
 async function refreshShareModal() {
     removeAllCollaboratorsGUI()
     return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
+        res.forEach(boi=>{if(!boi.pk) {boi.pk = getUserInfo(boi.username).pk}})
+        res.forEach(getWithPic)
         addCollaboratorGUI(res.shift(),true)
         res.forEach(addCollaboratorGUI)
         promRes()

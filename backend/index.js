@@ -33,7 +33,7 @@ let messageHandlers = {
           sessionManager.leave(client,data.id)
      },
      'shareWith':(data,client)=>{
-          sessionManager.shareProject(data.id,data.user)
+          sessionManager.shareProject(data.id,data.user,data.pk)
      },
      'projectChange':(data,client,callback)=>{
           sessionManager.projectChange(data.blId,data,client)
@@ -204,7 +204,8 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
 app.get('/share/:id',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      let list = project?.sharedWith
-     res.send(list ? [project.owner].concat(list) : {err:'could not find blocklive project: ' + req.params.id} )
+     list = list.map(name=>({username:name,pk:userManager.getUser(name).pk})) // Add user ids for profile pics
+     res.send(list ? [{username:project.owner,pk:userManager.getUser(project.owner).pk}].concat(list) : {err:'could not find blocklive project: ' + req.params.id} )
 })
 app.put('/share/:id/:to/:from',(req,res)=>{
      if(sessionManager.getProject(req.params.id)?.owner == req.params.to) {
@@ -212,6 +213,7 @@ app.put('/share/:id/:to/:from',(req,res)=>{
           return
      }
      sessionManager.shareProject(req.params.id, req.params.to)
+     userManager.getUser(req.params.to).pk = req.query.pk
      userManager.share(req.params.to, req.params.id, req.params.from)
      res.send('cool beans ()()()')
 })

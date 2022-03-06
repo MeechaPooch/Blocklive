@@ -249,7 +249,7 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta == 'create') {
       sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}?title=${encodeURIComponent(request.title)}`)).json())
     } else if(request.meta == 'shareWith') {
-      fetch(`${apiUrl}/share/${request.id}/${request.user}/${uname}`,{
+      fetch(`${apiUrl}/share/${request.id}/${request.username}/${uname}?pk=${request.pk}`,{
         method:'PUT'
       })
     } else if(request.meta == 'unshareWith') {

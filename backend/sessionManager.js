@@ -280,8 +280,8 @@ export default class SessionManager{
         return this.blocklive[blId]
     }
 
-    shareProject(id,user) {
-        console.log(`sessMngr: sharing ${id} with ${user}`)
+    shareProject(id,user,pk) {
+        console.log(`sessMngr: sharing ${id} with ${user} (usrId ${pk})`)
         let project = this.getProject(id)
         if(!project) {return}
         project.sharedWith.push(user)
