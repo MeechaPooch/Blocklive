@@ -212,7 +212,7 @@ app.put('/share/:id/:to/:from',(req,res)=>{
           res.send('i lost all mah beans!!!!')
           return
      }
-     sessionManager.shareProject(req.params.id, req.params.to)
+     sessionManager.shareProject(req.params.id, req.params.to, req.query.pk)
      userManager.getUser(req.params.to).pk = req.query.pk
      userManager.share(req.params.to, req.params.id, req.params.from)
      res.send('cool beans ()()()')
