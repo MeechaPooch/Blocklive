@@ -290,7 +290,7 @@ export default class SessionManager{
         console.log(`sessMngr: unsharing ${id} with ${user}`)
         let project = this.getProject(id)
         if(!project) {return}
-        project.sharedWith.splice(project.sharedWith.indexOf(user))
+        project.sharedWith.splice(project.sharedWith.indexOf(user),1)
         // TODO: Handle what-if their project is the inpoint?
     }
 
