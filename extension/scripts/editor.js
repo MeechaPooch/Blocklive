@@ -1389,7 +1389,7 @@ async function addCollaboratorGUI (user,omitX){
         x.username = user.username;
     }
     Array.from(newCollab.children).find(elem=>elem.localName =='pic').style.backgroundImage = `url('${user.pic}')`  
-    shareDivs[username.toLowerCase()] = newCollab
+    shareDivs[user.username.toLowerCase()] = newCollab
     blModalExample.parentNode.append(newCollab);
 
     resultt.style.visibility = 'hidden'
@@ -1409,7 +1409,7 @@ function removeAllCollaboratorsGUI() {
 }
 
 async function addCollaborator(username) {
-    if(user.toLowerCase() in shareDivs) {return}
+    if(username.toLowerCase() in shareDivs) {return}
     let user = await getUserInfo(username)
     if(!user) {return}
     addCollaboratorGUI(user)
@@ -1421,10 +1421,10 @@ function removeCollaborator(user) {
     chrome.runtime.sendMessage(exId,{meta:"unshareWith",user,id:blId})
 }
 
-async function refreshShareModal() {
+function refreshShareModal() {
     removeAllCollaboratorsGUI()
-    return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},(res)=>{
-        res.forEach(boi=>{if(!boi.pk) {boi.pk = getUserInfo(boi.username).pk}})
+    return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},async (res)=>{
+        for (boi of res) {if(!boi.pk) {console.log('oi!',boi);boi.pk = (await getUserInfo(boi.username)).pk};console.log(boi)}
         res.forEach(getWithPic)
         addCollaboratorGUI(res.shift(),true)
         res.forEach(addCollaboratorGUI)
