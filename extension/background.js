@@ -1,5 +1,8 @@
 let apiUrl = 'http://152.67.248.129:4000'
 
+chrome.runtime.onInstalled.addListener(()=>{
+  chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
+})
 
 function backgroundScript() {
 
