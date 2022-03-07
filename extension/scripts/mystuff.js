@@ -78,7 +78,7 @@ function getbox(title,scratchId,lastModified,lastModBy,projectExists) {
       </a>
       </div>
       <div class="media-action">
-	      <div><a href="#" class="media-trash" style="color:#ff4ad5" onclick="leaveId(${scratchId},this.parentElement.parentElement.parentElement.parentElement);sendLeave(${scratchId})">${projectExists ? "Unlink" : "Leave"}</a></div>
+	      <div><a class="media-trash" style="color:#ff4ad5" onclick="leaveId(${scratchId},this.parentElement.parentElement.parentElement.parentElement);sendLeave(${scratchId})">${projectExists ? "Unlink" : "Leave"}</a></div>
       </div>
     </div>`
 }
