@@ -46,6 +46,12 @@ export default class UserManager {
         let map = this.getUser(username)?.sharedTo
         if(!map) {return}
         delete map[blId]
+
+        let ownedIndex = this.getUser(username)?.myProjects.indexOf(blId)
+        if(ownedIndex != -1) {
+            this.getUser(username)?.myProjects.splice(ownedIndex,1)
+        }
+
     }
     getSharedObjects(username) {
         return Object.values(this.getUser(username)?.sharedTo)
