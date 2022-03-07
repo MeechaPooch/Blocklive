@@ -292,8 +292,11 @@ export default class SessionManager{
         if(!project) {return}
         if(project.owner.toLowerCase() == user.toLowerCase()) {
             project.owner = project.sharedWith[0] ? project.sharedWith[0] : '';
-        } else {
-            project.sharedWith.splice(project.sharedWith.indexOf(user),1)
+        }
+        
+        let userIndex = project.sharedWith.indexOf(user)
+        if(userIndex != -1) {
+            project.sharedWith.splice(userIndex,1)
         }
         // TODO: Handle what-if their project is the inpoint?
     }
