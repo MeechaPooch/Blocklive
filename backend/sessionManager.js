@@ -290,6 +290,12 @@ export default class SessionManager{
         console.log(`sessMngr: unsharing ${id} with ${user}`)
         let project = this.getProject(id)
         if(!project) {return}
+
+        project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase)).forEach(proj=>{
+            project.linkedWith.splice(project.linkedWith.indexOf(proj))
+            delete this.scratchprojects[project.scratchId]
+        })
+
         if(project.owner.toLowerCase() == user.toLowerCase()) {
             project.owner = project.sharedWith[0] ? project.sharedWith[0] : '';
         }
