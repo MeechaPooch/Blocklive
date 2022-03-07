@@ -260,6 +260,10 @@ chrome.runtime.onMessageExternal.addListener(
       sendResponse(await(await fetch(`${apiUrl}/share/${request.id}`)).json())
     } else if (request.meta == 'getTitle') {
       sendResponse((await(await fetch(`${apiUrl}/projectTitle/${request.blId}`)).json()).title)
+    } else if(request.meta == 'leaveScratchId') {
+      fetch(`${apiUrl}/leaveScratchId/${request.scratchId}/${await refreshUsername()}`,{
+        method:'PUT'
+      })
     }
   });
 
