@@ -1238,9 +1238,10 @@ let shareDropdown = `
     </sharedWith>
     <hr style="display: flex; width: 100%; height:1px;border:none;background-color:#16488f"></hr>
     <search style="display:flex;flex-direction: column; ">
-        <text style="display:flex;align-self:  left;padding-top:5px;padding-bottom:5px;padding-left:4px; font-size: large;">
+        <text style="display:flex;flex-direction:column;align-self:  left;padding-top:5px;padding-bottom:5px;padding-left:4px; font-size: large;">
             Add Collaborators
-        </text>
+            <textt style="font-size:small; color:#b4d4ff; font-style:italic">Friends must friends whitelist you</textt>
+            </text>
         <input id='searchy' style="color:black; display: flex;  margin-bottom:10px; align-self: center;border-radius: 10px; border-style: none; width:190px; height:30px">
 
 
