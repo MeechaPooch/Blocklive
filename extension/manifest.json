@@ -21,7 +21,8 @@
         "service_worker":"background.js"
     },
     "permissions": [
-        "tabs"
+        "tabs",
+        "storage"
     ],
     "web_accessible_resources" : [{
         "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js"],

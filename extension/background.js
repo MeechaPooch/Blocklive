@@ -117,10 +117,10 @@ socket.on('message',(data)=>{
 })
 
 
-let uname = '*'
-// async function getUsername() {
-//   chrome.storage.local.get(['username'])
-// }
+let uname = chrome.storage.local.get(['uname'])
+uname = uname ? uname : '*'
+  
+
 let lastUnameRefresh = null
 async function refreshUsername() {
   if(uname!='*' && Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
@@ -133,8 +133,7 @@ async function refreshUsername() {
 let json = await res.json()
 if(!json.user) {return uname;}
 uname = json.user.username
-
-// chrome.storage.local.set({uname})
+chrome.storage.local.set({uname})
 
 return uname
 }
