@@ -1,0 +1,36 @@
+{
+    "name": "Blocklive: Scratch Realtime Collaboration",
+    "description": "Multiple Scratchers Work together in Real Time on a Single Project",
+    "version": "0.1.1",
+    "icons": {
+       "128": "icon128.png" 
+    },
+    "manifest_version": 3,
+    "content_scripts": [
+        {
+            "matches":["https://scratch.mit.edu/projects*"],
+            "css":[],
+            "js":["injectors/editor.js"]
+        },{
+            "matches":["https://scratch.mit.edu/mystuff*"],
+            "css":[],
+            "js":["injectors/mystuff.js"]
+        }
+    ],
+    "background": {
+        "service_worker":"background.js"
+    },
+    "permissions": [
+        "tabs"
+    ],
+    "web_accessible_resources" : [{
+        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js"],
+        "matches":["<all_urls>"]
+    }],
+    "externally_connectable": {
+        "matches": ["https://scratch.mit.edu/*"]
+    },
+    "action": {
+        "default_popup": "popups/popup.html"
+    }
+}
