@@ -97,7 +97,8 @@ console.log('connecting')
 socket.on('connect',()=>{
   console.log('connected with id: ',socket.id)
   ports.forEach(port=>port.postMessage('resync'))
-  socket.send({type:'joinSessions',username:uname,ids:Object.keys(blockliveTabs)})
+  let blIds = Object.keys(blockliveTabs) 
+  if(blIds.length != 0) {socket.send({type:'joinSessions',username:uname,ids:blIds})}
 })
 socket.on('disconnect',()=>{
   if(ports.length != 0) {
