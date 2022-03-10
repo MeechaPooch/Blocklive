@@ -7,10 +7,11 @@ export default class UserManager {
 
     befriend(base,to) {
         console.log(base + ' friending ' + to)
-        this.getUser(base)?.friends.push(to)
+        this.getUser(base)?.friends.push(to?.toLowerCase())
     }
     unbefriend(base,take) {
         console.log(base + ' unfriending ' + take)
+        take = take?.toLowerCase()
         this.getUser(base)?.friends.splice(this.getUser(base)?.friends.indexOf(take),1)
     }
 
@@ -35,6 +36,7 @@ export default class UserManager {
     }
 
     share(username,blId,from) {
+        from = from?.toLowerCase()
         console.log(`usrMngr: sharing ${blId} with ${username} from ${from}`)
         let map = this.getUser(username)?.sharedTo
         if(!map) {return}
@@ -42,6 +44,7 @@ export default class UserManager {
         map[blId] = {from,id:blId}
     }
     unShare(username,blId) {
+        username = username?.toLowerCase()
         console.log(`usrMngr: unsharing ${blId} with ${username}`)
         let map = this.getUser(username)?.sharedTo
         if(!map) {return}
@@ -60,7 +63,7 @@ export default class UserManager {
         let user = this.getUser(username)
         let objs = this.getSharedObjects(username)
         if(!objs) {return []}
-        return objs.filter((proj)=>(user.friends.indexOf(proj.from)!=-1)).map((proj)=>(proj.id))
+        return objs.filter((proj)=>(user.friends.indexOf(proj.from?.toLowerCase())!=-1)).map((proj)=>(proj.id))
     }
     getAllProjects(username) {
         return this.getUser(username).myProjects.concat(this.getShared(username))
