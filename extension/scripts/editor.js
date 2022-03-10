@@ -1319,7 +1319,8 @@ multiplyNode(document.querySelector('cell'), 2, true);
 fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEach(addCollaborator))})
 }
 `
-let shareCSS = `.sharedName:hover {
+let shareCSS = `
+.sharedName:hover {
     text-decoration: underline;
 }
 #resultName:hover {
@@ -1546,3 +1547,30 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         refreshShareModal()
     }
 )
+
+
+let COLORS = ['#ff00e6','orange','lime','yellow','teal']
+//// Inject active users display
+listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
+    let topBar = accountInfo.parentElement;
+
+    let panel = document.createElement('div')
+    panel.id = 'blUsersPanel'
+    panel.style = "display: flex; align-items: center; gap: 3px; max-width: 300px; overflow: scroll;"
+    topBar.insertBefore(panel,accountInfo)
+})
+
+function clearActive() {
+    document.getElementById('blUsersPanel').innerHTML = ''
+}
+
+function displayActive(users) {
+    for(let i = 0; i<7; i++) {
+        let user = document.createElement('img')
+        user.src = 'https://i.pinimg.com/originals/94/ff/ed/94ffed9011c704bcd570238a45c15b22.jpg'
+        user.style.borderRadius = '10px'
+        user.style.height = '80%'
+        user.style.border = '3px solid ' + COLORS[Math.round(Math.random()*COLORS.length)]
+        panel.appendChild(user)
+    }
+}
