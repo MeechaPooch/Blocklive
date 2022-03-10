@@ -98,7 +98,7 @@ socket.on('connect',()=>{
   console.log('connected with id: ',socket.id)
   ports.forEach(port=>port.postMessage('resync'))
   let blIds = Object.keys(blockliveTabs) 
-  if(blIds.length != 0) {socket.send({type:'joinSessions',username:uname,ids:blIds})}
+  if(blIds.length != 0) {socket.send({type:'joinSessions',username:await makeSureUsernameExists(),ids:blIds})}
 })
 socket.on('disconnect',()=>{
   if(ports.length != 0) {
@@ -209,7 +209,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       }
     } else if (msg.meta == 'joinSession') {
       await makeSureUsernameExists()
-      socket.send({type:"joinSession",id:portIds[port.name],username:uname})
+      socket.send({type:"joinSession",id:portIds[port.name],username:await makeSureUsernameExists()})
     } else if (msg.meta == 'setTitle') {
       playChange(blId,msg,port)
       // send to websocket
@@ -223,8 +223,10 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     let list = blockliveTabs[blockliveId]
     blockliveTabs[blockliveId].splice(list.indexOf(p),1);
     delete portIds[p.name]
-    if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
-    if(ports.length == 0) {socket.disconnect()} // Todo: handle disconnecting and reconnecting backend socket
+    setTimeout(()=>{
+      if(blockliveTabs[blockliveId].length == 0) {socket.send({type:'leaveSession',id:blockliveId})}
+      if(ports.length == 0) {socket.disconnect()} // Todo: handle disconnecting and reconnecting backend socket
+    },5000); // leave socket stuff if page doesnt reconnect in 5 seconds
   })
 });
 
