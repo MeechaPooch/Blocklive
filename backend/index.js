@@ -211,6 +211,7 @@ app.put('/leaveScratchId/:scratchId/:username',(req,res)=>{
 app.get('/share/:id',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      let list = project?.sharedWith
+     if(!list) {res.send('yeet yeet'); return;}
      list = list.map(name=>({username:name,pk:userManager.getUser(name).pk})) // Add user ids for profile pics
      res.send(list ? [{username:project.owner,pk:userManager.getUser(project.owner).pk}].concat(list) : {err:'could not find blocklive project: ' + req.params.id} )
 })
