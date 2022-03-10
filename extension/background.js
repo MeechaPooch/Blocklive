@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(()=>{
   chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
 })
 
-function backgroundScript() {
+async function backgroundScript() {
 
 importScripts('background/socket.io.js')
 importScripts('background/blockliveProject.js')
@@ -94,7 +94,7 @@ function playChange(blId,msg,optPort) {
 const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket']})
 // socket.on("connect_error", () => { socket.io.opts.transports = ["websocket"];});
 console.log('connecting')
-socket.on('connect',()=>{
+socket.on('connect',async ()=>{
   console.log('connected with id: ',socket.id)
   ports.forEach(port=>port.postMessage('resync'))
   let blIds = Object.keys(blockliveTabs) 
@@ -117,7 +117,7 @@ socket.on('message',(data)=>{
 })
 
 
-let uname = chrome.storage.local.get(['uname'])
+let uname = (await chrome.storage.local.get(['uname'])).uname
 uname = uname ? uname : '*'
   
 
