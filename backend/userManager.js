@@ -1,4 +1,11 @@
 export default class UserManager {
+
+    static fromJSON(json) {
+        let thing = new UserManager()
+        thing.users = json.users
+        return thing
+    }
+
     users = {}
 
     verify(username,token) {
