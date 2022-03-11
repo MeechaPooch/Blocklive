@@ -45,3 +45,9 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
 });
 
 
+document.getElementById('discord').onclick = ()=>{
+    chrome.tabs.create({url: `https\:/\/discord.gg/Th8dhGTE`});
+}
+document.getElementById('support').onclick = ()=>{
+    chrome.tabs.create({url: `https://www.buymeacoffee.com/ilhp10`});
+}
