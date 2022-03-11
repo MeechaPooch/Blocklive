@@ -15,13 +15,43 @@ const io = new Server(server, {
 
 import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
-let sessionManager = new SessionManager()
-let userManager = new UserManager()
+import fs from 'fs'
+// Load session and user manager objects
+if(fs.existsSync('storage/sessions.json')) {
+     var sessionManager = SessionManager.fromJSON(JSON.parse(fs.readFileSync('storage/sessions.json')))
+} else {
+     var sessionManager = new SessionManager()
+}
+if(fs.existsSync('storage/users.json')) {
+     var userManager = UserManager.fromJSON(JSON.parse(fs.readFileSync('storage/users.json')))
+} else {
+     var userManager = new UserManager()
+}
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 // userManager.befriend('ilhp10','tester124')
 // userManager.befriend('tester124','ilhp10')
 // console.log(JSON.stringify(sessionManager))
+
+function sleep(millis) {
+     return new Promise(res=>setTimeout(res,millis))
+}
+fs.mkdirSync('storage')
+function save() {
+     return Promise.all(
+          new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
+          new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
+     )
+}
+
+async function saveLoop() {
+     while(true) {
+          await save();
+          await sleep(10000)
+     }
+}
+saveLoop()
+
 
 let messageHandlers = {
      'joinSession':(data,client)=>{
