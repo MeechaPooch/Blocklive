@@ -1320,6 +1320,9 @@ fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEa
 }
 `
 let shareCSS = `
+
+@import url('http://fonts.cdnfonts.com/css/helvetica-neue-9');
+
 .sharedName:hover {
     text-decoration: underline;
 }
