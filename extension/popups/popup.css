@@ -1,19 +1,11 @@
-/* body {
-    width:300px;
-    height:400px;
-    background-color: rgb(0, 153, 255);
+body {
+    /* width:300px;
+    
+    background-color: rgb(0, 153, 255);  */
     display:flex;
-} */
-
-container {
-    display: flex;
-    width:300px;
-    height:400px;
-    /* outline: black 10px solid; */
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
 }
+
 
 #search {
     margin-top: 40px;
@@ -41,8 +33,6 @@ info{
     font-size:small;
     color:rgb(78, 78, 78);
 }
-input {
-}
 conta{
     display: flex;
     margin-top: 20px;
@@ -51,6 +41,7 @@ conta{
 
 ul{
     margin-top:10px;
+    /* min-height: 200px; */
 }
 
 .x{
