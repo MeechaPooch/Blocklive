@@ -1530,6 +1530,8 @@ let blActivateClick = async ()=>{
 
         // Set button onclick
         blockliveButton.onclick = blShareClick
+        reloadOnlineUsers()
+
         blShareClick()
     })
 }
@@ -1602,6 +1604,9 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
+
+    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
+    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
 })
 
 function clearActive() {
@@ -1620,6 +1625,9 @@ function clearActive() {
 }
 
 async function displayActive(users) {
+    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
+    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+
     let yo = yo_1
     let panel = document.getElementById('blUsersPanel')
     if(!panel) {return}
