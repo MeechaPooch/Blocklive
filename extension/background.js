@@ -273,7 +273,7 @@ chrome.runtime.onMessageExternal.addListener(
         method:'PUT'
       })
     } else if(request.meta == 'getActive') {
-      sendResponse(fetch(`${apiUrl}/active/${request.id}`))
+      sendResponse(await (await fetch(`${apiUrl}/active/${request.id}`)).json())
     }
   });
 

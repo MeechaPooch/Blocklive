@@ -1646,9 +1646,12 @@ async function displayActive(users) {
     }
 }
 
-setTimeout(()=>{
+
+const reloadOnlineUsers = ()=>{
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
         clearActive()
         displayActive(res)
     })
-},5000)
+}
+setInterval(reloadOnlineUsers,5000)
+setTimeout(reloadOnlineUsers,500)
