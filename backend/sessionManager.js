@@ -195,7 +195,7 @@ export default class SessionManager{
         if(ob.scratchprojects) { ret.scratchprojects = ob.scratchprojects; }
         if(ob.lastId) { ret.lastId = ob.lastId; }
         if(ob.blocklive) { Object.entries(ob.blocklive).forEach(entry=>{
-            ob.blocklive[entry[0]] = ProjectWrapper.fromJSON(entry[1]);
+            ret.blocklive[entry[0]] = ProjectWrapper.fromJSON(entry[1]);
         })}
         
         return ret;
