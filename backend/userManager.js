@@ -31,7 +31,7 @@ export default class UserManager {
 
     addUser(username) {
         if(!(username?.toLowerCase() in this.users)) {
-            this.users[username.toLowerCase()] = {friends:[],token:this.token(),sharedTo:{},myProjects:[]}
+            this.users[username.toLowerCase()] = {username,friends:[],token:this.token(),sharedTo:{},myProjects:[]}
         }
         return this.getUser(username)
     }

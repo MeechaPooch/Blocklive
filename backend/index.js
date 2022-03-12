@@ -16,6 +16,7 @@ const io = new Server(server, {
 import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 import fs from 'fs'
+import { ppid } from 'process';
 // Load session and user manager objects
 if(fs.existsSync('storage/sessions.json')) {
      var sessionManager = SessionManager.fromJSON(JSON.parse(fs.readFileSync('storage/sessions.json')))
@@ -56,8 +57,10 @@ saveLoop()
 let messageHandlers = {
      'joinSession':(data,client)=>{
           sessionManager.join(client,data.id,data.username)
+          if(data.pk) { userManager.getUser(data.username).pk = data.pk }
      },'joinSessions':(data,client)=>{
           data.ids.forEach(id=>{sessionManager.join(client,id,data.username)})
+          if(data.pk) { userManager.getUser(data.username).pk = data.pk }
      },
      'leaveSession':(data,client)=>{
           sessionManager.leave(client,data.id)
@@ -189,6 +192,18 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
 })
 app.get('/projectInpoint',(req,res)=>{
      res.send({err:"no project id specified"})
+})
+
+app.get('/active/:blId',(req,res)=>{
+     let usernames = sessionManager.getProject(req.params.blId)?.session.getConnectedUsernames()
+     if(usernames) {
+          res.send(usernames.map(name=>{
+               let user = userManager.getUser(name)
+               return {username:user.username,pk:user.pk}
+          }))
+     } else {
+          res.send({err:'could not get users for project with id: ' + req.params.blId})
+     }
 })
 
 app.get('/',(req,res)=>{

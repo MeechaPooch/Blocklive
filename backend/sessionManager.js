@@ -73,6 +73,10 @@ class BlockliveSess {
         return this.connectedClients[socket?.id]
     }
 
+    getConnectedUsernames() {
+        return [...(new Set(Object.values(this.connectedClients).map(client=>client.username?.toLowerCase())))]
+    }
+
     sendChangeFrom(socket,msg,excludeVersion) {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 

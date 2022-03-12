@@ -269,6 +269,8 @@ chrome.runtime.onMessageExternal.addListener(
       fetch(`${apiUrl}/leaveScratchId/${request.scratchId}/${await refreshUsername()}`,{
         method:'PUT'
       })
+    } else if(request.meta == 'getActive') {
+      sendResponse(fetch(`${apiUrl}/active/${request.id}`))
     }
   });
 

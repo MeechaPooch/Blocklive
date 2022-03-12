@@ -1321,8 +1321,6 @@ fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEa
 `
 let shareCSS = `
 
-@import url('http://fonts.cdnfonts.com/css/helvetica-neue-9');
-
 .sharedName:hover {
     text-decoration: underline;
 }
@@ -1347,6 +1345,35 @@ background: #6aa8ff;
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+
+
+.blActiveName {
+    // visibility: hidden;
+    filter: opacity(0%);
+
+    background-color: #ff00e6;
+    color: #fff;
+    transition: .2s;
+
+    padding: 5px;
+    border-radius: 6px;
+    display: flex;
+    align-self: center;
+   
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 1;
+
+  }
+  
+
+  .blActiveUser:hover ~ .blActiveName {
+    // visibility: visible;
+    filter: opacity(100%);
+  }
+
+
 `
 
 
@@ -1356,7 +1383,7 @@ usersCache = {}
 
 async function getUserInfo(username) {
     if(!username) {return}
-    if(username?.toLowerCase() in usersCache) {return usersCache[username?.toLowerCase()]}
+    if(username?.toLowerCase() in usersCache && usersCache[username?.toLowerCase()]?.pk) {return usersCache[username?.toLowerCase()]}
 
     let res
     try{ 
@@ -1440,11 +1467,10 @@ function refreshShareModal() {
 function makeBlockliveButton() {
     let button = document.createElement('blocklive-init')
     button.className = 'button_outlined-button_1bS__ menu-bar_menu-bar-button_3IDN0'
-    button.style.background = "#ff00e6"
     button.style.marginRight = '20px'
     button.style.gap = '7px'
     // button.style.background = ' linear-gradient(90deg, rgba(51,0,54,1) 0%, rgba(255,0,113,1) 60%)'
-    button.style.background = 'rgba(255,0,113,1)'
+    button.style.background = 'rgba(255,0,113,1)' // blocklive pink
     button.style.display = 'flex'
     button.style.flexDirection = 'row'
 
@@ -1552,28 +1578,80 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
 )
 
 
-let COLORS = ['#ff00e6','orange','lime','yellow','teal']
+let COLORS = ['teal','#c42b63']
 //// Inject active users display
 listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
     let topBar = accountInfo.parentElement;
 
     let panel = document.createElement('div')
     panel.id = 'blUsersPanel'
-    panel.style = "display: flex; align-items: center; gap: 3px; max-width: 300px; overflow: scroll;"
+    panel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px; overflow: scroll;"
     topBar.insertBefore(panel,accountInfo)
+
+    let activeText = document.createElement('div')
+    activeText.innerHTML = 'online:'
+    activeText.style.color = '#104691'
+    activeText.style.background = 'lightblue'
+    activeText.style.padding = '2px'
+    activeText.style.borderRadius= '3px'
+    activeText.style.alignSelf= 'center'
+
+    activeText.style.marginRight = '10px'
+    panel.appendChild(activeText)
+
+
+    displayActive([{'username':'ilhp10'},{username:'pokeninjaguy'},{username:'griffpatch'}])
+
 })
 
 function clearActive() {
     document.getElementById('blUsersPanel').innerHTML = ''
+
+    let activeText = document.createElement('div')
+    activeText.innerHTML = 'online:'
+    activeText.style.color = '#104691'
+    activeText.style.background = 'lightblue'
+    activeText.style.padding = '2px'
+    activeText.style.borderRadius= '3px'
+    activeText.style.alignSelf= 'center'
+
+    activeText.style.marginRight = '10px'
+    document.getElementById('blUsersPanel').appendChild(activeText)
 }
 
-function displayActive(users) {
-    for(let i = 0; i<7; i++) {
+async function displayActive(users) {
+    let panel = document.getElementById('blUsersPanel')
+    if(!panel) {return}
+    for(let i = 0; i<users.length; i++) {
+
+        let container = document.createElement('divv')
+        panel.style = "display: flex; justify-content: center; align-items: center;"
+        container.style.height = "70%"
+
+
         let user = document.createElement('img')
-        user.src = 'https://i.pinimg.com/originals/94/ff/ed/94ffed9011c704bcd570238a45c15b22.jpg'
+        if(!users[i].pk) {
+            user.src = (await getUserInfo(users[i].username)).pic
+        } else {
+            user.src = `https://cdn2.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
+        }
         user.style.borderRadius = '10px'
-        user.style.height = '80%'
-        user.style.border = '3px solid ' + COLORS[Math.round(Math.random()*COLORS.length)]
-        panel.appendChild(user)
+        user.style.height = '100%'
+        user.style.outline = '3px solid ' + COLORS[Math.floor(Math.random()*COLORS.length)]
+        user.className = 'blActiveUser'
+
+        let tooltip = document.createElement('div');
+        tooltip.innerHTML = users[i].username
+        tooltip.className = 'blActiveName'
+        container.appendChild(user)
+        container.appendChild(tooltip)
+        panel.appendChild(container)
     }
 }
+
+setTimeout(()=>{
+    chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
+        clearActive()
+        displayActive(res)
+    })
+},5000)
