@@ -37,7 +37,9 @@ if(fs.existsSync('storage/users.json')) {
 function sleep(millis) {
      return new Promise(res=>setTimeout(res,millis))
 }
-fs.mkdirSync('storage')
+if(!fs.existsSync('storage')) {
+     fs.mkdirSync('storage')
+}
 function save() {
      return Promise.all([
           new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
