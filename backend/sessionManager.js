@@ -189,6 +189,7 @@ export default class SessionManager{
         
     }
     static fromJSON(ob) {
+        console.log(ob)
         let ret = new SessionManager();
         if(ob.scratchprojects) { ret.scratchprojects = ob.scratchprojects; }
         if(ob.lastId) { ret.lastId = ob.lastId; }
