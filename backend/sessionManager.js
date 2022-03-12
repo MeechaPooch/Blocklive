@@ -297,7 +297,7 @@ export default class SessionManager{
         let project = this.getProject(id)
         if(!project) {return}
 
-        project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase)).forEach(proj=>{
+        project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase())).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
             delete this.scratchprojects[proj.scratchId]
         })
