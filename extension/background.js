@@ -98,7 +98,7 @@ socket.on('connect',async ()=>{
   console.log('connected with id: ',socket.id)
   ports.forEach(port=>port.postMessage('resync'))
   let blIds = Object.keys(blockliveTabs) 
-  if(blIds.length != 0) {socket.send({type:'joinSessions',username:await makeSureUsernameExists(),ids:blIds})}
+  if(blIds.length != 0) {socket.send({type:'joinSessions',username:await makeSureUsernameExists(),pk:upk,ids:blIds})}
 })
 socket.on('disconnect',()=>{
   if(ports.length != 0) {
@@ -118,8 +118,10 @@ socket.on('message',(data)=>{
 
 
 let uname = (await chrome.storage.local.get(['uname'])).uname
+let upk = (await chrome.storage.local.get(['upk'])).upk
 uname = uname ? uname : '*'
-  
+upk = upk ? upk : undefined
+
 
 let lastUnameRefresh = null
 async function refreshUsername() {
@@ -133,7 +135,8 @@ async function refreshUsername() {
 let json = await res.json()
 if(!json.user) {return uname;}
 uname = json.user.username
-chrome.storage.local.set({uname})
+upk = json.user.id
+chrome.storage.local.set({uname,upk})
 
 return uname
 }
@@ -209,7 +212,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       }
     } else if (msg.meta == 'joinSession') {
       await makeSureUsernameExists()
-      socket.send({type:"joinSession",id:portIds[port.name],username:await makeSureUsernameExists()})
+      socket.send({type:"joinSession",id:portIds[port.name],username:await makeSureUsernameExists(),pk:upk})
     } else if (msg.meta == 'setTitle') {
       playChange(blId,msg,port)
       // send to websocket

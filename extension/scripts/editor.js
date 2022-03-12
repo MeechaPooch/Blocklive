@@ -1599,9 +1599,6 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
-
-    displayActive([{'username':'ilhp10'},{username:'pokeninjaguy'},{username:'griffpatch'}])
-
 })
 
 function clearActive() {
