@@ -299,7 +299,7 @@ export default class SessionManager{
 
         project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase)).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
-            delete this.scratchprojects[project.scratchId]
+            delete this.scratchprojects[proj.scratchId]
         })
 
         if(project.owner.toLowerCase() == user.toLowerCase()) {
