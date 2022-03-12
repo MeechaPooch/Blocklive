@@ -1454,6 +1454,7 @@ function removeCollaborator(user) {
 }
 
 function refreshShareModal() {
+    if(!blId) {return}
     return new Promise(promRes=>{chrome.runtime.sendMessage(exId,{meta:'getShared',id:blId},async (res)=>{
         removeAllCollaboratorsGUI()
         for (boi of res) {if(!boi.pk) {console.log('oi!',boi);boi.pk = (await getUserInfo(boi.username)).pk};console.log(boi)}
@@ -1579,6 +1580,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
 
 
 let COLORS = ['teal','#c42b63']
+let yo_1 = Math.round(Math.random());
 //// Inject active users display
 listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
     let topBar = accountInfo.parentElement;
@@ -1617,6 +1619,7 @@ function clearActive() {
 }
 
 async function displayActive(users) {
+    let yo = yo_1
     let panel = document.getElementById('blUsersPanel')
     if(!panel) {return}
     for(let i = 0; i<users.length; i++) {
@@ -1634,7 +1637,10 @@ async function displayActive(users) {
         }
         user.style.borderRadius = '10px'
         user.style.height = '100%'
-        user.style.outline = '3px solid ' + COLORS[Math.floor(Math.random()*COLORS.length)]
+        yo++;
+        yo = yo%COLORS.length
+        user.style.outline = '3px solid ' + COLORS[yo]
+        // user.style.outline = '3px solid ' + COLORS[Math.floor(Math.random()*COLORS.length)]
         user.className = 'blActiveUser'
 
         let tooltip = document.createElement('div');
