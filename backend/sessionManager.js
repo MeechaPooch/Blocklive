@@ -1,7 +1,7 @@
 class BlockliveProject {
 
     static fromJSON(json) {
-        let ret = new ProjectWrapper()
+        let ret = new BlockliveProject(json.title)
         Object.entries(json).forEach(entry=>{
             ret[entry[0]] = entry[1]
         })
