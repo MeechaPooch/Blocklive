@@ -1352,7 +1352,7 @@ background: #6aa8ff;
     // visibility: hidden;
     filter: opacity(0%);
 
-    background-color: #ff00e6;
+    // background-color: #ff00e6;
     color: #fff;
     transition: .2s;
 
@@ -1580,6 +1580,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
 
 
 let COLORS = ['teal','#c42b63']
+let COLORS_BRIGHT = ['#00b9d1','#ff00e6']
 let yo_1 = Math.round(Math.random());
 //// Inject active users display
 listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
@@ -1636,7 +1637,11 @@ async function displayActive(users) {
             user.src = `https://cdn2.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
         }
         user.style.borderRadius = '10px'
-        user.style.height = '100%'
+        // user.style.height = '100%'
+        user.style.width = '33.59px'
+        user.style.height = '33.59px'
+
+        user.style.objectFit = 'cover'
         yo++;
         yo = yo%COLORS.length
         user.style.outline = '3px solid ' + COLORS[yo]
@@ -1645,6 +1650,7 @@ async function displayActive(users) {
 
         let tooltip = document.createElement('div');
         tooltip.innerHTML = users[i].username
+        tooltip.style.backgroundColor = COLORS_BRIGHT[yo]
         tooltip.className = 'blActiveName'
         container.appendChild(user)
         container.appendChild(tooltip)
