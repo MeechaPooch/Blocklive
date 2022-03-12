@@ -39,10 +39,10 @@ function sleep(millis) {
 }
 fs.mkdirSync('storage')
 function save() {
-     return Promise.all(
+     return Promise.all([
           new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
           new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
-     )
+     ])
 }
 
 async function saveLoop() {
