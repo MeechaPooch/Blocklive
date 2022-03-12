@@ -117,8 +117,9 @@ class ProjectWrapper {
     static fromJSON(json) {
         let ret = new ProjectWrapper('&')
         Object.entries(json).forEach(entry=>{
-            if(entry[0] == 'project')
-            ret[entry[0]] = entry[1]
+            if(entry[0] != 'project') {
+                ret[entry[0]] = entry[1]
+            }
         })
         ret.project = BlockliveProject.fromJSON(json.project)
         ret.session = new BlockliveSess(ret.project,ret.id)
