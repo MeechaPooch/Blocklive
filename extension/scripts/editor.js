@@ -800,6 +800,9 @@ function onBlockRecieve(d) {
     vm.editingTarget = nameToTarget(d.target)
     vm.runtime._editingTarget = vm.editingTarget
 
+    // pause workspace updating
+    pauseWorkspaceUpdating()
+
     try{
     let vEvent = d.event
     let bEvent = {}
@@ -859,8 +862,10 @@ function onBlockRecieve(d) {
     }
 
     //find true field
+    let queueUpdate = false;
     if(!!d.extrargs.fieldTag) {
         let realId = vm.editingTarget.blocks.getBlock(d.extrargs.parentId).inputs[d.extrargs.fieldTag].shadow
+        // queueUpdate = vm.editingTarget.blocks.getBlock(realId)?.opcode == 'sensing_of_object_menu' // workspace update if updates mid-
         vEvent.blockId = realId;
         bEvent.blockId = realId;
     }
@@ -927,6 +932,7 @@ function onBlockRecieve(d) {
     vm.editingTarget = oldEditingTarget
     vm.runtime._editingTarget = oldEditingTarget
     }
+    continueWorkspaceUpdating()
 }
 
 let oldTargUp = vm.emitTargetsUpdate.bind(vm)
@@ -936,8 +942,21 @@ vm.emitTargetsUpdate = function(...args) {
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
+
+bl_workspaceUpdatingPaused = false
+bl_workspaceUpdateRequested = false
+function pauseWorkspaceUpdating() {
+    bl_workspaceUpdatingPaused = true  
+}
+function continueWorkspaceUpdating() {
+    bl_workspaceUpdatingPaused = false
+    if(bl_workspaceUpdateRequested) {vm.emitWorkspaceUpdate()}
+    bl_workspaceUpdateRequested = false
+}
+
 vm.emitWorkspaceUpdate = function() {
     if(pauseEventHandling) {console.log('workspace update voided'); return;}
+    if(bl_workspaceUpdatingPaused) {bl_workspaceUpdateRequested = true; console.log('workspace update saved'); return;}
     if(!isWorkspaceAccessable()) {return;}
 
     console.log("WORKSPACE UPDATING")
