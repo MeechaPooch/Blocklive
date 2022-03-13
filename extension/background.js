@@ -124,8 +124,8 @@ upk = upk ? upk : undefined
 
 
 let lastUnameRefresh = null
-async function refreshUsername() {
-  if(uname!='*' && Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
+async function refreshUsername(force) {
+  // if(!force && uname!='*' && Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
   lastUnameRefresh = Date.now()
   res = await fetch("https://scratch.mit.edu/session/?blreferer", {
       headers: {
@@ -152,7 +152,7 @@ refreshUsername()
 // Listen for Project load
 let projectsPageTester = new RegExp('https://scratch.mit.edu/projects/*.')
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
-  if(changeInfo.url?.startsWith('https://scratch.mit.edu/')) {refreshUsername()}
+  if(changeInfo.url?.startsWith('https://scratch.mit.edu/')) {refreshUsername(true)}
   if(changeInfo.url) {
     await makeSureUsernameExists()
     
