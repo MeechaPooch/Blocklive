@@ -1242,7 +1242,7 @@ let shareDropdown = `
         <text style="display:flex;align-self: left;padding-left:4px; padding-top:5px;padding-bottom:5px;font-size: large;">
             Shared With
         </text>
-        <sharedList  style="overflow: scroll; max-height: 350px; display:flex; min-height: 20px; border-radius:10px;gap:5px;flex-direction: column;  ">
+        <sharedList  style="overflow: auto; max-height: 350px; display:flex; min-height: 20px; border-radius:10px;gap:5px;flex-direction: column;  ">
             <cell id="blModalExample" style="display:none; gap:10px;flex-direction: row; align-items: center;">
                 <pic  style='width:40px; height:40px; border-radius: 100%; display:flex;background-position: center;background-size:cover; background-image:url("https://i.pinimg.com/originals/12/ff/9c/12ff9cd0f45317c362f0c87e2e55bd6c.jpg");';>
                 </pic>
@@ -1609,7 +1609,7 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
 
     let panel = document.createElement('div')
     panel.id = 'blUsersPanel'
-    panel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px; overflow: scroll;"
+    panel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px; overflow: auto;"
     topBar.insertBefore(panel,accountInfo)
 
     let activeText = document.createElement('div')
