@@ -20,6 +20,7 @@ import { ppid } from 'process';
 // Load session and user manager objects
 if(fs.existsSync('storage/sessions.json')) {
      var sessionManager = SessionManager.fromJSON(JSON.parse(fs.readFileSync('storage/sessions.json')))
+     Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
 } else {
      var sessionManager = new SessionManager()
 }

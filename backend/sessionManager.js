@@ -30,6 +30,12 @@ class BlockliveProject {
     getChangesSinceVersion(lastVersion) {
         return this.changes.slice(lastVersion)
     }
+
+    trimChanges() {
+        for(let i=0; i<this.version-1; i++) {
+            this.changes[i] = {r:1}
+        }
+    }
 }
 
 class BlockliveClient {
@@ -256,7 +262,10 @@ export default class SessionManager{
                 array.splice(index, 1);
             }
         }
-    }
+        if(Object.keys(project.session.connectedClients).length == 0) {
+            project.project.trimChanges()
+        }
+    } 
 
     disconnectSocket(socket) {
         console.log("disconnected socket: " + socket.id)
