@@ -694,11 +694,13 @@ function blockListener(e) {
             }
         } else if(e.type == 'change' && (e.name == "VARIABLE" || e.name == "LIST")){
             let block = vm.editingTarget.blocks.getBlock(e.blockId)
-            if(!!block) {
+            if(!!block && (
+                block.opcode == "data_variable" || block.opcode == "data_listcontents"
+            )) {
                 extrargs.blockVarId = e.oldValue
                 extrargs.blockVarParent = block.parent
                 extrargs.blockVarPos = {x:block.x,y:block.y}
-                extrargs.blockVarInput = vm.editingTarget.blocks.getBlock(block.parent)?.inputs.find(input=>(input.block==e.blockId))?.name
+                extrargs.blockVarInput = Object.values(new Object(vm.editingTarget.blocks.getBlock(block.parent)?.inputs))?.find(input=>(input.block==e.blockId))?.name
             }
         } else if(e.type == 'delete' && (
             e.oldXml?.firstElementChild?.getAttribute('name') == 'VARIABLE' ||
@@ -708,7 +710,7 @@ function blockListener(e) {
             extrargs.blockVarId = block.fields.VARIABLE ? block.fields.VARIABLE.id : block.fields.LIST.id
             extrargs.blockVarParent = block.parent
             extrargs.blockVarPos = {x:block.x,y:block.y}
-            extrargs.blockVarInput = vm.editingTarget.blocks.getBlock(block.parent)?.inputs.find(input=>(input.block==e.blockId))?.name
+            extrargs.blockVarInput = Object.values(new Object(vm.editingTarget.blocks.getBlock(block.parent)?.inputs))?.find(input=>(input.block==e.blockId))?.name
         }
 
         // send field locator info
@@ -719,7 +721,7 @@ function blockListener(e) {
             let parentId = fieldInput.parent
             if(!!parentId) {
                 let parentBlock = vm.editingTarget.blocks.getBlock(parentId)
-                let inputTag = Object.values(parentBlock.inputs).find(input=>input.shadow==fieldInputId).name
+                let inputTag = Object.values(new Object(parentBlock.inputs)).find(input=>input.shadow==fieldInputId).name
 
                 extrargs.parentId = parentId
                 extrargs.fieldTag = inputTag
