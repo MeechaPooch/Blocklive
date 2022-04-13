@@ -1,8 +1,13 @@
 let apiUrl = 'http://152.67.248.129:4000'
 
-chrome.runtime.onInstalled.addListener(()=>{
-  chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
+chrome.runtime.onInstalled.addListener((reason)=>{
+  if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
+  } else if (details.reason === chrome.runtime.OnInstalledReason.UPDATE) {
+    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/new-blocklive-version'})
+  }
 })
+
 
 async function backgroundScript() {
 
