@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk'
-var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf'
+// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -9,7 +9,10 @@ function sleep(millis) {
     return new Promise(res=>setTimeout(res,millis));
 }
 let queryList = []
+let bl_projectId = null
 function mutationCallback() {
+    if(bl_projectId && store.getState().preview.projectInfo.id != bl_projectId) {location.reload()}
+    bl_projectId = store.getState().preview.projectInfo.id;
     let toDelete = []
     queryList.forEach(query=>{
         let elem = document.querySelector(query.query)
@@ -1237,7 +1240,7 @@ function doShareBlocksMessage(msg) {
 console.log('running gui inject...')
 let shareDropdown = `
 <container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; padding-left:15px; padding-right:15px;border-radius: 17px;">
-<font face="Helvetica Neue" style="color:white;font-weight:normal;">   
+<div  style="color:white;font-weight:normal;font-face='Helvetica Neue','Helvetica',Arial,sans-serif">   
 <sharedWith style="display:flex;flex-direction: column;">
         <text style="display:flex;align-self: left;padding-left:4px; padding-top:5px;padding-bottom:5px;font-size: large;">
             Shared With
@@ -1282,7 +1285,7 @@ let shareDropdown = `
             </cell>
         </results>
     </search>
-    </font>
+    </div>
     </container>
 
 `
@@ -1559,6 +1562,11 @@ let blShareClick = ()=>{console.log('clicked'); blDropdown.style.display = (blDr
 console.log('listening for share button')
 blockliveButton = null
 blDropdown = null
+
+function doIOwnThis() {
+    return store.getState().session.session.user.id == store.getState().preview.projectInfo.author.id;
+}
+
 listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
     (bc)=>{
         // bc.children[1].children[0].innerHTML = "Become Blajingus"
@@ -1567,6 +1575,7 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
         container.style.display = 'flex'
         container.style.flexDirection = 'column'
 
+        if(!doIOwnThis()) {return} // if 
         let button = makeBlockliveButton()
         blockliveButton = button
         let dropdown = document.createElement('blockliveDropdown')
@@ -1605,6 +1614,7 @@ let COLORS_BRIGHT = ['#00b9d1','#ff00e6']
 let yo_1 = Math.round(Math.random());
 //// Inject active users display
 listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
+   
     let topBar = accountInfo.parentElement;
 
     let panel = document.createElement('div')
@@ -1623,9 +1633,9 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
-
     if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
     else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    reloadOnlineUsers();
 })
 
 function clearActive() {
@@ -1686,7 +1696,7 @@ async function displayActive(users) {
 }
 
 
-const reloadOnlineUsers = ()=>{
+function reloadOnlineUsers() {
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
         clearActive()
         displayActive(res)
