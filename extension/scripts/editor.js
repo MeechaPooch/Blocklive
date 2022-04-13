@@ -661,6 +661,7 @@ oldBlockListener = vm.blockListener
 blockliveEvents = {}
 createEventMap = {}
 toBeMoved = {}
+// listen to local blockly events
 function blockListener(e) {
     console.log('is event handling & workspace updating paused?: ' + pauseEventHandling)
     if(pauseEventHandling) {return}
