@@ -1,4 +1,4 @@
-let apiUrl = 'http://152.67.248.129:4000'
+let apiUrl = 'http://spore.us.to:4000'
 
 chrome.runtime.onInstalled.addListener((reason)=>{
   if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
