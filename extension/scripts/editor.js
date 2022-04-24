@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf' // test
+var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+// var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -10,9 +10,10 @@ function sleep(millis) {
 }
 let queryList = []
 let bl_projectId = null
+store = null
 function mutationCallback() {
-    if(bl_projectId && store.getState().preview.projectInfo.id != bl_projectId) {location.reload()}
-    bl_projectId = store.getState().preview.projectInfo.id;
+    if(bl_projectId && store?.getState().preview.projectInfo.id != bl_projectId) {location.reload()}
+    bl_projectId = store?.getState().preview.projectInfo.id;
     let toDelete = []
     queryList.forEach(query=>{
         let elem = document.querySelector(query.query)
@@ -132,6 +133,7 @@ async function onTabLoad() {
     let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
     vm = reactInst.child.child.child.stateNode.props.vm;
     store = reactInst.child.child.child.stateNode.context.store
+    addButtonInjectors()
     blId = isNaN(parseFloat(location.pathname.split('/')[2])) ? '' : await getBlocklyId(scratchId);
     if(!blId) {
         chrome.runtime.sendMessage(exId,{meta:'callback'},(request) => { if(request.meta == 'initBlocklive') { 
@@ -1293,7 +1295,7 @@ let shareDropdown = `
 
 `
 let shareScript = `{
-let apiUrl = 'http://152.67.248.129:4000'
+let apiUrl = 'http://spore.us.to:4000'
 
 opening = false
 let result = document.querySelector('#resultName')
@@ -1341,7 +1343,7 @@ blModalExample = document.querySelector('#blModalExample')
 
 multiplyNode(document.querySelector('cell'), 2, true);
 
-fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEach(addCollaborator))})
+// fetch(\`\${apiUrl}/share/\${blId}\`).then(res=>{res.json().then(json=>json.forEach(addCollaborator))})
 }
 `
 let shareCSS = `
@@ -1569,7 +1571,7 @@ blDropdown = null
 function doIOwnThis() {
     return store.getState().session.session.user.id == store.getState().preview.projectInfo.author.id;
 }
-
+function addButtonInjectors() {
 listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
     (bc)=>{
         // bc.children[1].children[0].innerHTML = "Become Blajingus"
@@ -1611,10 +1613,6 @@ listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     }
 )
 
-
-let COLORS = ['teal','#c42b63']
-let COLORS_BRIGHT = ['#00b9d1','#ff00e6']
-let yo_1 = Math.round(Math.random());
 //// Inject active users display
 listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_account-info-group_MeJZP",(accountInfo)=>{
    
@@ -1640,8 +1638,14 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
     reloadOnlineUsers();
 })
+}
+
+let COLORS = ['teal','#c42b63']
+let COLORS_BRIGHT = ['#00b9d1','#ff00e6']
+let yo_1 = Math.round(Math.random());
 
 function clearActive() {
+    if(!document.getElementById('blUsersPanel')) {return}
     document.getElementById('blUsersPanel').innerHTML = ''
 
     let activeText = document.createElement('div')
@@ -1657,6 +1661,7 @@ function clearActive() {
 }
 
 async function displayActive(users) {
+    if(!document.getElementById('blUsersPanel')) {return}
     if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
     else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
 
