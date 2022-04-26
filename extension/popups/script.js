@@ -51,3 +51,6 @@ document.getElementById('discord').onclick = ()=>{
 document.getElementById('support').onclick = ()=>{
     chrome.tabs.create({url: `https://www.buymeacoffee.com/ilhp10`});
 }
+document.getElementById('source').onclick = ()=>{
+    chrome.tabs.create({url: `hhttps://github.com/MeechaPooch/Blocklive`});
+}
