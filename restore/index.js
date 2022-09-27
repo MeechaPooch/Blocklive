@@ -7,11 +7,11 @@ let db = []
 let users = {}
 while(exists) {
     i++
-    let bl = await (await fetch('http://152.67.248.129:4000/projectInpoint/' + i)).json()
+    let bl = await (await fetch('http://152.67.226.232:4000/projectInpoint/' + i)).json()
 
     exists = !!bl.scratchId
 if(!exists) {break}
-    bl.sharedWith = await (await fetch('http://152.67.248.129:4000/share/' + i)).json()
+    bl.sharedWith = await (await fetch('http://152.67.226.232:4000/share/' + i)).json()
     bl.sharedWith.forEach(user=>{users[user.username]=user})
     db.push(bl)
     console.log(bl)
@@ -20,7 +20,7 @@ if(!exists) {break}
 let promise = async ()=>{}
 Object.keys(users).forEach(name=>{
     console.log(name)
-    promise = Promise.all([promise,fetch('http://152.67.248.129:4000/friends/' + name).then(
+    promise = Promise.all([promise,fetch('http://152.67.226.232:4000/friends/' + name).then(
         res=>{
             res.json().then(json=>{
                 users[name].friends = json

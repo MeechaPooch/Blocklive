@@ -7,7 +7,7 @@ console.log(thing)
 Object.entries(thing).forEach(person=>{
     console.log(person[1].friends?.forEach)
     person[1].friends?.forEach?.(friend=>{
-        fetch(`http://152.67.248.129:4000/friends/${person[0]}/${friend}`,{method:'post'})
+        fetch(`http://152.67.226.232:4001/friends/${person[0]}/${friend}`,{method:'post'})
     })
 })
 
