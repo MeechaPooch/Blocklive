@@ -138,7 +138,7 @@ let sendMessages = ['blProjectInfo','projectChange','loadFromId','projectChanges
 
 io.on('connection', (client) => {
      client.on("message",(data,callback)=>{
-          console.log('message recieved',data,'from: ' + client.id)
+          // console.log('message recieved',data,'from: ' + client.id)
           if(data.type in messageHandlers) {
                messageHandlers[data.type](data,client,callback)
           } else {console.log('discarded unknown mesage type: ' + data.type)}
