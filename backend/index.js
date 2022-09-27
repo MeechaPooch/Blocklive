@@ -25,7 +25,7 @@ if(fs.existsSync('storage/sessions')) {
      let sessionsObj = {}
      sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
      sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
-     sessionsObj.lastId = new Integer(fs.readFileSync('storage/sessions/lastId').toString())
+     sessionsObj.lastId = parseInt(fs.readFileSync('storage/sessions/lastId').toString())
      console.log(sessionsObj.lastId)
 
      sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json'))
