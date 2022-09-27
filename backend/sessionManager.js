@@ -13,6 +13,7 @@ class BlockliveProject {
     // projectJSONVersion = 0
     version = -1
     changes = []
+    changeOffset = 0; // TODO!
     lastTime = Date.now();
     lastUser = "";
     title;
@@ -188,7 +189,7 @@ export default class SessionManager{
 
     toJSON() {
         let ret = {
-            scratchprojects:this.scratchprojects,
+            scratchprojects:this.scratchprojects, //todo return only changed projects
             blocklive:this.blocklive,
             lastId:this.lastId,
         }

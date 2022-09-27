@@ -1,3 +1,13 @@
+// user:
+//  friends LIST of STRING
+//  projects owned by user LIST of 
+//  projects shared to user LIST
+//     > blocklive id
+//     > from user
+//  scratch id (pk- "primary key")
+//
+
+
 export default class UserManager {
 
     static fromJSON(json) {
@@ -9,29 +19,29 @@ export default class UserManager {
     users = {}
 
     verify(username,token) {
-        return !!(getUser(username)?.token == token)
+        return !!(getUser(username)?.token == token) // 🟢
     }
 
     befriend(base,to) {
         console.log(base + ' friending ' + to)
-        this.getUser(base)?.friends.push(to?.toLowerCase())
+        this.getUser(base)?.friends.push(to?.toLowerCase()) // 🚨
     }
     unbefriend(base,take) {
         console.log(base + ' unfriending ' + take)
         take = take?.toLowerCase()
-        this.getUser(base)?.friends.splice(this.getUser(base)?.friends.indexOf(take),1)
+        this.getUser(base)?.friends.splice(this.getUser(base)?.friends.indexOf(take),1) // 🚨
     }
 
     getUser(username) {
         if(!(username?.toLowerCase() in this.users)) {
-            this.addUser(username)
+            this.addUser(username) 
         }
-        return this.users[username.toLowerCase()]
+        return this.users[username.toLowerCase()] // 🟢
     }
 
     addUser(username) {
         if(!(username?.toLowerCase() in this.users)) {
-            this.users[username.toLowerCase()] = {username,friends:[],token:this.token(),sharedTo:{},myProjects:[]}
+            this.users[username.toLowerCase()] = {username,friends:[],token:this.token(),sharedTo:{},myProjects:[]} // 🚨
         }
         return this.getUser(username)
     }

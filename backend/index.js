@@ -17,9 +17,20 @@ import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 import fs from 'fs'
 import { ppid } from 'process';
+import path from 'path';
 // Load session and user manager objects
-if(fs.existsSync('storage/sessions.json')) {
-     var sessionManager = SessionManager.fromJSON(JSON.parse(fs.readFileSync('storage/sessions.json')))
+if(fs.existsSync('storage/sessions')) {
+     // build sessions json from files
+     // todo: build single recursive directory to object parsing function
+     let sessionsObj = {}
+     sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
+     sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
+     sessionsObj.lastId = new Integer(fs.readFileSync('storage/sessions/lastId').toString())
+     console.log(sessionsObj.lastId)
+
+     sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json'))
+
+     var sessionManager = SessionManager.fromJSON(sessionsObj)
      Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
 } else {
      var sessionManager = new SessionManager()
@@ -41,12 +52,40 @@ function sleep(millis) {
 if(!fs.existsSync('storage')) {
      fs.mkdirSync('storage')
 }
+
+function saveMapToFolder(obj, dir) {
+     if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
+     let promises = []
+     Object.entries(obj).forEach(entry=>{
+          promises.push(
+               new Promise(res=>fs.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1]),null,res))
+          )
+     })
+     return Promise.all(promises)
+}
+function loadMapFromFolder(dir) {
+     let obj = {}
+     // add promises
+     fs.readdirSync(dir,{withFileTypes:true})
+          .filter(dirent=>dirent.isFile())
+          .map(dirent=>([dirent.name,fs.readFileSync(dir + path.sep + dirent.name)]))
+          .forEach(entry=>{
+               obj[entry[0]] = JSON.parse(entry[1]) // parse file to object
+     })
+     console.log(obj)
+     return obj
+}
 function save() {
      return Promise.all([
-          new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
+          // new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
+          // new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
+          saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive'),
+          saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects'),
+          new Promise(res=>fs.writeFile('storage/sessions/lastId',sessionManager.lastId,null,res)),
           new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
      ])
 }
+saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive')
 
 async function saveLoop() {
      while(true) {
@@ -284,7 +323,7 @@ app.put('/unshare/:id/:to/',(req,res)=>{
 })
 
 
-const port = 4000
+const port = 4001
 server.listen(port,'0.0.0.0');
 console.log('listening on port ' + port)
 

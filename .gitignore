@@ -2,3 +2,4 @@
 *.crx
 *.pem
 *.DS_Store
+backend/storage
