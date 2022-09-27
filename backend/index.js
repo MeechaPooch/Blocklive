@@ -28,25 +28,15 @@ let sessionsObj = {}
 sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
 sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
-console.log(sessionsObj.lastId)
-
-sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json'))
+console.log(sessionsObj)
 
 var sessionManager = SessionManager.fromJSON(sessionsObj)
 Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
 
 /// LOAD USER MANAGER
-// var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')})
-var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))})
-Object.values(sessionManager.blocklive).forEach(proj=>{
-     let owner = proj.owner;
-     let sharedWith = proj.sharedWith;
-     sharedWith.forEach(person=>{
-          userManager.befriend(owner,person)
-          userManager.befriend(person,owner)
-     })
+var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')}) // load from users folder
+// var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))}) // load from file users.json
 
-})
 
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
@@ -78,7 +68,7 @@ function saveMapToFolder(obj, dir) {
 function loadMapFromFolder(dir) {
      let obj = {}
      // check that directory exists, otherwise return empty obj
-     if(!fs.existsSync('dir')) {return obj}
+     if(!fs.existsSync(dir)) {return obj}
      // add promises
      fs.readdirSync(dir,{withFileTypes:true})
           .filter(dirent=>dirent.isFile())
@@ -86,7 +76,6 @@ function loadMapFromFolder(dir) {
           .forEach(entry=>{
                obj[entry[0]] = JSON.parse(entry[1]) // parse file to object
      })
-     console.log(obj)
      return obj
 }
 function save() {
