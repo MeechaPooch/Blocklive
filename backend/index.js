@@ -18,6 +18,7 @@ import UserManager from './userManager.js'
 import fs from 'fs'
 import { ppid } from 'process';
 import path from 'path';
+import sanitize from 'sanitize-filename';
 // Load session and user manager objects
 
 
@@ -58,6 +59,7 @@ function saveMapToFolder(obj, dir) {
      if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
      let promises = []
      Object.entries(obj).forEach(entry=>{
+          entry[0] = sanitize(entry[0])
           promises.push(
                new Promise(res=>fs.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1]),null,res))
           )
