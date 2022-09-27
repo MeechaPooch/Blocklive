@@ -37,6 +37,14 @@ Object.values(sessionManager.blocklive).forEach(project=>project.project.trimCha
 var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')}) // load from users folder
 // var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))}) // load from file users.json
 
+Object.values(sessionManager.blocklive).forEach(proj=>{
+     let owner = proj.owner;
+     let sharedWith = proj.sharedWith;
+     sharedWith.forEach(person=>{
+          userManager.share(person,proj.id, owner)
+     })
+})
+
 
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
