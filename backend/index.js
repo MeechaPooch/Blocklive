@@ -81,7 +81,7 @@ function save() {
           // new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
           saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive'),
           saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects'),
-          new Promise(res=>fs.writeFile('storage/sessions/lastId',sessionManager.lastId,null,res)),
+          new Promise(res=>fs.writeFile('storage/sessions/lastId',new String(sessionManager.lastId),null,res)),
           new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
      ])
 }
