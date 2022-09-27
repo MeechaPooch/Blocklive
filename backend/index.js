@@ -19,23 +19,24 @@ import fs from 'fs'
 import { ppid } from 'process';
 import path from 'path';
 // Load session and user manager objects
-if(fs.existsSync('storage/sessions')) {
-     // build sessions json from files
-     // todo: build single recursive directory to object parsing function
-     let sessionsObj = {}
-     sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
-     sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
-     sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
-     console.log(sessionsObj.lastId)
 
-     sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json'))
 
-     var sessionManager = SessionManager.fromJSON(sessionsObj)
-     Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
-} else {
-     var sessionManager = new SessionManager()
-}
-var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')})
+/// LOAD SESSION MANAGER
+// todo: build single recursive directory to object parsing function
+let sessionsObj = {}
+sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
+sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
+sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
+console.log(sessionsObj.lastId)
+
+sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json'))
+
+var sessionManager = SessionManager.fromJSON(sessionsObj)
+Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
+
+/// LOAD USER MANAGER
+// var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')})
+var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))})
 
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
@@ -51,6 +52,9 @@ if(!fs.existsSync('storage')) {
 }
 
 function saveMapToFolder(obj, dir) {
+     // if obj is null, return
+     if(!obj) {console.warn('tried to save null object to dir: ' + dir); return}
+     // make directory if it doesnt exist
      if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
      let promises = []
      Object.entries(obj).forEach(entry=>{
