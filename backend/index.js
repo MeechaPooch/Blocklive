@@ -30,6 +30,8 @@ sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchproject
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
 console.log(sessionsObj)
 
+sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
+
 var sessionManager = SessionManager.fromJSON(sessionsObj)
 Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
 
@@ -67,11 +69,8 @@ function saveMapToFolder(obj, dir) {
      let promises = []
      Object.entries(obj).forEach(entry=>{
           entry[0] = sanitize(entry[0])
-          promises.push(
-               new Promise(res=>fs.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1]),null,res))
-          )
+          fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
      })
-     return Promise.all(promises)
 }
 function loadMapFromFolder(dir) {
      let obj = {}
@@ -87,14 +86,10 @@ function loadMapFromFolder(dir) {
      return obj
 }
 function save() {
-     return Promise.all([
-          // new Promise(res=>fs.writeFile('storage/sessions.json',JSON.stringify(sessionManager),null,res)),
-          // new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
-          saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive'),
-          saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects'),
-          new Promise(res=>fs.writeFile('storage/sessions/lastId',(sessionManager.lastId).toString(),null,res)),
-          saveMapToFolder(userManager.users,'storage/users')
-     ])
+     saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive');
+     saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects');
+     fs.writeFileSync('storage/sessions/lastId',(sessionManager.lastId).toString());
+     saveMapToFolder(userManager.users,'storage/users');
 }
 saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive')
 
