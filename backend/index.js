@@ -35,11 +35,8 @@ if(fs.existsSync('storage/sessions')) {
 } else {
      var sessionManager = new SessionManager()
 }
-if(fs.existsSync('storage/users.json')) {
-     var userManager = UserManager.fromJSON(JSON.parse(fs.readFileSync('storage/users.json')))
-} else {
-     var userManager = new UserManager()
-}
+var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')})
+
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
 // userManager.befriend('ilhp10','tester124')
@@ -65,6 +62,8 @@ function saveMapToFolder(obj, dir) {
 }
 function loadMapFromFolder(dir) {
      let obj = {}
+     // check that directory exists, otherwise return empty obj
+     if(!fs.existsSync('dir')) {return obj}
      // add promises
      fs.readdirSync(dir,{withFileTypes:true})
           .filter(dirent=>dirent.isFile())
@@ -81,8 +80,8 @@ function save() {
           // new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
           saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive'),
           saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects'),
-          new Promise(res=>fs.writeFile('storage/sessions/lastId',new String(sessionManager.lastId),null,res)),
-          new Promise(res=>fs.writeFile('storage/users.json',JSON.stringify(userManager),null,res))
+          new Promise(res=>fs.writeFile('storage/sessions/lastId',(sessionManager.lastId).toString(),null,res)),
+          saveMapToFolder(userManager.users,'storage/users')
      ])
 }
 saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive')
