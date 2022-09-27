@@ -38,6 +38,15 @@ Object.values(sessionManager.blocklive).forEach(project=>project.project.trimCha
 /// LOAD USER MANAGER
 // var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')})
 var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))})
+Object.values(sessionManager.blocklive).forEach(proj=>{
+     let owner = proj.owner;
+     let sharedWith = proj.sharedWith;
+     sharedWith.forEach(person=>{
+          userManager.befriend(owner,person)
+          userManager.befriend(person,owner)
+     })
+
+})
 
 // let id = sessionManager.newProject('tester124','644532638').id
 // sessionManager.linkProject(id,'602888445','ilhp10',5)
@@ -273,7 +282,7 @@ app.get('/friends/:user',(req,res)=>{
 
 // get list of blocklive id's shared with user
 app.get('/userProjects/:user',(req,res)=>{
-     res,send(userManager.getShared(req.params.user))
+     res.send(userManager.getShared(req.params.user))
 })
 // get list of scratch project info shared with user for displaying in mystuff
 app.get('/userProjectsScratch/:user',(req,res)=>{
