@@ -30,7 +30,7 @@ sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchproject
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
 console.log(sessionsObj)
 
-sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
+// sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
 
 var sessionManager = SessionManager.fromJSON(sessionsObj)
 Object.values(sessionManager.blocklive).forEach(project=>project.project.trimChanges())
@@ -39,13 +39,15 @@ Object.values(sessionManager.blocklive).forEach(project=>project.project.trimCha
 var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')}) // load from users folder
 // var userManager = UserManager.fromJSON({users:JSON.parse(fs.readFileSync('storage/users.json'))}) // load from file users.json
 
-Object.values(sessionManager.blocklive).forEach(proj=>{
-     let owner = proj.owner;
-     let sharedWith = proj.sharedWith;
-     sharedWith.forEach(person=>{
-          userManager.share(person,proj.id, owner)
-     })
-})
+
+// share projects from sessions db in users db
+// Object.values(sessionManager.blocklive).forEach(proj=>{
+//      let owner = proj.owner;
+//      let sharedWith = proj.sharedWith;
+//      sharedWith.forEach(person=>{
+//           userManager.share(person,proj.id, owner)
+//      })
+// })
 
 
 // let id = sessionManager.newProject('tester124','644532638').id
