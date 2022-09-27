@@ -24,11 +24,11 @@ import sanitize from 'sanitize-filename';
 
 /// LOAD SESSION MANAGER
 // todo: build single recursive directory to object parsing function
-// let sessionsObj = {}
-// sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
-// sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
-// sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
-// console.log(sessionsObj)
+let sessionsObj = {}
+sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
+sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
+sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
+console.log(sessionsObj)
 
 sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
 
@@ -81,7 +81,11 @@ function loadMapFromFolder(dir) {
           .filter(dirent=>dirent.isFile())
           .map(dirent=>([dirent.name,fs.readFileSync(dir + path.sep + dirent.name)]))
           .forEach(entry=>{
-               obj[entry[0]] = JSON.parse(entry[1]) // parse file to object
+               try{
+                    obj[entry[0]] = JSON.parse(entry[1]) // parse file to object
+               } catch (e) {
+                    console.error('json parse error on file: ' + dir + path.sep + "\x1b[1m" /* <- bold */ + entry[0] + "\x1b[0m" /* <- reset */)
+               }
      })
      return obj
 }
