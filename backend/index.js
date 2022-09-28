@@ -71,6 +71,7 @@ function saveMapToFolder(obj, dir) {
      let promises = []
      Object.entries(obj).forEach(entry=>{
           entry[0] = sanitize(entry[0])
+          if(entry[0] = '') {return}
           fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
      })
 }
@@ -156,6 +157,7 @@ io.on('connection', (client) => {
 });
 
 app.get('/newProject/:scratchId/:owner',(req,res)=>{
+     if(sanitize(req.params.scratchId) == '') {res.send({err:'invalid scratch id'}); return}
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {
           console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner + ' titled: ' + req.query.title)
