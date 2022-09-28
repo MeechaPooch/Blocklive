@@ -71,7 +71,7 @@ function saveMapToFolder(obj, dir) {
      let promises = []
      Object.entries(obj).forEach(entry=>{
           entry[0] = sanitize(entry[0])
-          if(entry[0] = '') {return}
+          if(entry[0] == '') {return}
           fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
      })
 }
