@@ -44,6 +44,8 @@ class BlockliveClient {
     username
     socket
 
+    cursor = {targetName:null,scale:1,clientX:0,clientY:0,cursorX:0,cursorY:0}
+
     constructor(socket, username) {
         this.socket = socket
         this.username = username
@@ -82,6 +84,13 @@ class BlockliveSess {
 
     getConnectedUsernames() {
         return [...(new Set(Object.values(this.connectedClients).map(client=>client.username?.toLowerCase())))]
+    }
+
+    // get one client per username
+    getConnectedUsersClients() {
+        let clients = {}
+        Object.values(this.connectedClients).forEach(client=>{clients[client.username.toLowerCase()]=client})
+        return clients
     }
 
     sendChangeFrom(socket,msg,excludeVersion) {

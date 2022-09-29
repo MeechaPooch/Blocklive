@@ -138,6 +138,14 @@ let messageHandlers = {
           if(!project) {return}
           project.project.title = data.msg.title
           project.session.sendChangeFrom(client,data.msg,true)
+     },
+     'setCursor':(data,client)=>{
+          let project = sessionManager.getProject(data.blId)
+          if(!project) {return}
+          let cursor = project.session.getClientFromSocket(client).cursor
+          Object.entries(data.cursor).forEach(e=>{
+               if(e[0] in cursor) { cursor[e[0]] = cursor[e[1]] }
+          })
      }
 }
 
@@ -252,10 +260,11 @@ app.get('/projectInpoint',(req,res)=>{
 
 app.get('/active/:blId',(req,res)=>{
      let usernames = sessionManager.getProject(req.params.blId)?.session.getConnectedUsernames()
+     let clients = sessionManager.getProject(req.params.blId)?.session.getConnectedUsersClients()
      if(usernames) {
           res.send(usernames.map(name=>{
                let user = userManager.getUser(name)
-               return {username:user.username,pk:user.pk}
+               return {username:user.username,pk:user.pk,cursor:clients[name].cursor}
           }))
      } else {
           res.send({err:'could not get users for project with id: ' + req.params.blId})
@@ -298,7 +307,7 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
           projectObj.lastUser = project.project.lastUser
 
           return projectObj
-     })
+     }).filter(Boolean) // filter out non-existant projects // TODO: automatically delete dead pointers like this
      res.send(projectsList)
 })
 
