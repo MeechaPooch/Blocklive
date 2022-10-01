@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+// var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -337,10 +337,10 @@ function isWorkspaceAccessable() {
 }
 
 function getWorkspace() {
-    let retVal = null
+    let retVal = Blockly.getMainWorkspace()
     if(typeof ScratchBlocks == 'undefined') {return retVal}
     Object.entries(ScratchBlocks.Workspace.WorkspaceDB_).forEach(wkv=>{
-        if(!wkv[1].isFlyout) {retVal = wkv[1]}
+        if(!wkv[1].isFlyout && wkv[1].deleteAreaToolbox_) {retVal = wkv[1]}
     })
     return retVal;
 }
