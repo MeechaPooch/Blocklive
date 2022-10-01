@@ -144,7 +144,7 @@ let messageHandlers = {
           if(!project) {return}
           let cursor = project.session.getClientFromSocket(client).cursor
           Object.entries(data.cursor).forEach(e=>{
-               if(e[0] in cursor) { cursor[e[0]] = cursor[e[1]] }
+               if(e[0] in cursor) { cursor[e[0]] = e[1] }
           })
      }
 }
