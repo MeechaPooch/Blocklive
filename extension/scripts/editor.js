@@ -230,7 +230,10 @@ setInterval(reconnectIfNeeded,1000)
 
     blockliveListener = async (msg) => {
         if(BL_UTILS.isDragging()) {
-            playAfterDragStop.push(msg)
+            // dong add to list if its a move event on the current moving block
+            if(msg.meta == 'vm.blockListen' && msg.type == 'move' && msg.event.blockId == BL_UTILS.getDraggingId()) {return}
+            else { playAfterDragStop.push(msg) }
+            return;
         }
         // console.log('recieved message',msg)
         if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
@@ -800,7 +803,8 @@ function blockListener(e) {
                 if(e.type == 'delete') {
                     message = null
                 } else { 
-                    liveMessage(createEventMap[e.blockId]) 
+                    liveMessage(createEventMap[e.blockId])
+                    // setTimeout(()=>{liveMessage(createEventMap[e.blockId])},5000 )
                 }
                 delete createEventMap[e.blockId]
             }
@@ -809,10 +813,14 @@ function blockListener(e) {
                     message = null
                 } else { 
                     liveMessage(createEventMap[e.commentId]) 
+                    // setTimeout(()=>{liveMessage(createEventMap[e.commentId]) },5000)
                 }
                 delete createEventMap[e.commentId]
             }
-            if(!!message){liveMessage(message)}
+            if(!!message){
+                liveMessage(message)
+                // setTimeout(()=>{liveMessage(message)},5000)
+            }
         }
     }
     // ___DONT___ Forward (do) event
