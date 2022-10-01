@@ -179,7 +179,7 @@ let lastPortId = 0
 let ports = []
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
-  if(socket.disconnected) {socket.connect()}
+  if(!socket.connected) {socket.connect()}
 
   port.name = ++lastPortId
   ports.push(port)
@@ -187,6 +187,12 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
   let blId = ''
   // console.assert(port.name === "knockknock");
   port.onMessage.addListener(async function(msg) {
+    console.log('isConnected',socket.connected)
+    if(!socket.connected) {
+      // messageOnConnect.push(msg)
+      socket.connect();
+    }
+
     console.log(msg)
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
       let blIdd = portIds[port.name]

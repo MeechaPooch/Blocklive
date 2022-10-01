@@ -1547,6 +1547,8 @@ function makeBlockliveButton() {
     let button = document.createElement('blocklive-init')
     button.className = 'button_outlined-button_1bS__ menu-bar_menu-bar-button_3IDN0'
     button.style.marginRight = '20px'
+    button.style.paddingLeft = '7px'
+    button.style.paddingRight = '7px'
     button.style.gap = '7px'
     // button.style.background = ' linear-gradient(90deg, rgba(51,0,54,1) 0%, rgba(255,0,113,1) 60%)'
     button.style.background = 'rgba(255,0,113,1)' // blocklive pink
