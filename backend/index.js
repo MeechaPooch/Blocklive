@@ -72,7 +72,12 @@ function saveMapToFolder(obj, dir) {
      Object.entries(obj).forEach(entry=>{
           entry[0] = sanitize(entry[0])
           if(entry[0] == '') {return}
-          fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
+          try{
+               fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
+          } catch (e) {
+               console.error('Error when saving filename: ' + entry[0])
+               console.error(e)
+          }
      })
 }
 function loadMapFromFolder(dir) {
