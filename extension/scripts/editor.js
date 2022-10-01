@@ -11,7 +11,14 @@ function sleep(millis) {
 let queryList = []
 let bl_projectId = null
 store = null
+let playAfterDragStop = []
 function mutationCallback() {
+    if(typeof BL_UTILS == 'object'){
+        if(!BL_UTILS.isDragging() && playAfterDragStop.length > 0) {
+            playAfterDragStop.forEach(msg=>{blockliveListener(msg)})
+            playAfterDragStop = []
+        }
+    }
     if(bl_projectId && store?.getState().preview.projectInfo.id != bl_projectId) {location.reload()}
     bl_projectId = store?.getState().preview.projectInfo.id;
     let toDelete = []
@@ -222,6 +229,9 @@ setInterval(reconnectIfNeeded,1000)
 /// other things
 
     blockliveListener = async (msg) => {
+        if(BL_UTILS.isDragging()) {
+            playAfterDragStop.push(msg)
+        }
         // console.log('recieved message',msg)
         if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
         try{
@@ -335,6 +345,13 @@ function getWorkspaceId() {
     return getWorkspace()?.id
 }
 
+function getDraggingId() {
+    return Blockly.getMainWorkspace().getBlockDragSurface().getCurrentBlock()?.getAttribute('data-id')
+}
+function isDragging() {
+    return Blockly.getMainWorkspace().isDragging()
+}
+
 // STAGE IDENTIFIER. DO NOT SET SPRITE NAME TO THIS UNLESS YOU WANT TO PURPOSEFULLY BREAK LINKAGE!!!!
 let stageName = 'jHHVSbKjDsRhSWhIlYtd...___+_0)0+-amongus'
 function targetToName(target) {
@@ -357,6 +374,7 @@ BL_UTILS = {
     isWorkspaceAccessable,
     getWorkspace,
     getWorkspaceId,
+    getDraggingId, isDragging,
     targetToName,
     nameToTarget,
     getSelectedCostumeIndex,
@@ -1700,21 +1718,24 @@ async function displayActive(users) {
             let u = users[i]
 
             let editingTargetId = BL_UTILS.nameToTarget(u.cursor.targetName).id
-            vm.setEditingTarget(editingTargetId)
+            if(u.cursor.targetName) {
+                vm.setEditingTarget(editingTargetId)
+            }
 
-
-            setTimeout(()=>{
-                let workspace = Blockly.getMainWorkspace()
-                workspace.setScale(u.cursor.scale);
-                workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);},
-                200
-            )
+            let workspace = BL_UTILS.getWorkspace()
+            if(u.cursor.scale && u.cursor.scrollX && u.cursor.scrollY) {
+            if(!BL_UTILS.getWorkspace().startDragMetrics) {
+                BL_UTILS.getWorkspace().startDragMetrics = BL_UTILS.getWorkspace().scrollbar.oldHostMetrics_
+            }
+            workspace.setScale(u.cursor.scale);
+            workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);}
         }
 
-        function doThing(e, t) {
-            var o = this.startDragMetrics;
-            e = Math.min(e, -o.contentLeft), t = Math.min(t, -o.contentTop), e = Math.max(e, o.viewWidth - o.contentLeft - o.contentWidth), t = Math.max(t, o.viewHeight - o.contentTop - o.contentHeight), Blockly.WidgetDiv.hide(!0), Blockly.DropDownDiv.hideWithoutAnimation(), this.scrollbar.set(-e - o.contentLeft, -t - o.contentTop)
-        }
+        // setInterval(()=>{
+        // console.log('getBlockDragSurface',Blockly.getMainWorkspace().getBlockDragSurface(),
+        //     'isDragging',Blockly.getMainWorkspace().isDragging()
+        // )},500)
+
 
         panel.style = "display: flex; justify-content: center; align-items: center;"
         container.style.height = "70%"
