@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-// var exId = 'lkemkleahdmbjeeeclnglhjhniiknhlf' // test
+// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -63,7 +63,9 @@ var isConnected = false;
 function liveMessage(message,res) {
     reconnectIfNeeded()
     let msg = message
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {blVersion++}
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
+        blVersion++
+    }
     port.postMessage(message,res)
 }
 
@@ -1227,6 +1229,17 @@ function doShareBlocksMessage(msg) {
 
 // port.postMessage();
 
+function postCursorPosition() {
+    let workspace = getWorkspace()
+    let scrollX = workspace.scrollX
+    let scrollY = workspace.scrollY
+    let scale = workspace.scale
+    let cursor = {scrollX,scrollY,scale}
+    liveMessage({type:'setCursor',cursor})
+}
+setInterval(postCursorPosition,5000)
+
+
 }
 
 
@@ -1671,6 +1684,19 @@ async function displayActive(users) {
     for(let i = 0; i<users.length; i++) {
 
         let container = document.createElement('divv')
+        container.onclick = ()=>{
+            let u = users[i]
+            console.log('h')
+            let workspace = Blockly.getMainWorkspace()
+            workspace.setScale(u.cursor.scale);
+            workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);
+        }
+
+        function doThing(e, t) {
+            var o = this.startDragMetrics;
+            e = Math.min(e, -o.contentLeft), t = Math.min(t, -o.contentTop), e = Math.max(e, o.viewWidth - o.contentLeft - o.contentWidth), t = Math.max(t, o.viewHeight - o.contentTop - o.contentHeight), Blockly.WidgetDiv.hide(!0), Blockly.DropDownDiv.hideWithoutAnimation(), this.scrollbar.set(-e - o.contentLeft, -t - o.contentTop)
+        }
+
         panel.style = "display: flex; justify-content: center; align-items: center;"
         container.style.height = "70%"
 
@@ -1706,9 +1732,11 @@ async function displayActive(users) {
 
 function reloadOnlineUsers() {
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
+        blCursors = res
         clearActive()
         displayActive(res)
     })
 }
+
 setInterval(reloadOnlineUsers,5000)
 setTimeout(reloadOnlineUsers,500)

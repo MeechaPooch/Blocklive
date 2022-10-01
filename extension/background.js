@@ -1,6 +1,6 @@
 let apiUrl = 'http://spore.us.to:4000'
 
-chrome.runtime.onInstalled.addListener((reason)=>{
+chrome.runtime.onInstalled.addListener((details)=>{
   if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
   } else if (details.reason === chrome.runtime.OnInstalledReason.UPDATE) {
@@ -222,6 +222,9 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       playChange(blId,msg,port)
       // send to websocket
       socket.send({type:'setTitle',blId,msg})
+    } else {
+      msg.blId = blId ?? msg.blId
+      socket.send(msg)
     }
 
   });
