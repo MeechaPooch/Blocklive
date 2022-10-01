@@ -44,7 +44,7 @@ function waitFor(lambda) {
     return new Promise(async res=>{
         let output;
         while(!(output = lambda())) {
-            console.log('waiting for lambda resolve: ' + lambda)
+            // console.log('waiting for lambda resolve: ' + lambda)
             await sleep(100)
         }
         res(output);
@@ -222,7 +222,7 @@ setInterval(reconnectIfNeeded,1000)
 /// other things
 
     blockliveListener = async (msg) => {
-        console.log('recieved message',msg)
+        // console.log('recieved message',msg)
         if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
         try{
         if (msg.meta=="sprite.proxy") {
@@ -240,11 +240,11 @@ setInterval(reconnectIfNeeded,1000)
             doShareBlocksMessage(msg)        
         } else if (msg.meta == 'vm.replaceBlocks') {
             if(!nameToTarget(msg.target)?.blocks) {
-                console.log('saving for later')
+                // console.log('saving for later')
                 addNewTargetEvent(msg.target,msg);
             }
             else {
-                console.log('doing')
+                // console.log('doing')
                 blVersion++
                 replaceBlockly(msg)
             }
@@ -317,6 +317,8 @@ function getPaper() {
 
 ///.......... ALL THE HACKY THINGS ..........//
 
+
+
 function isWorkspaceAccessable() {
     return !!document.querySelector('.blocklyWorkspace')
 }
@@ -350,6 +352,15 @@ const getSelectedCostumeIndex = () => {
     if (!numberEl) return -1;
     return +numberEl.textContent - 1;
 };
+
+BL_UTILS = {
+    isWorkspaceAccessable,
+    getWorkspace,
+    getWorkspaceId,
+    targetToName,
+    nameToTarget,
+    getSelectedCostumeIndex,
+}
 
 // send to api when project saved and name change
 let lastProjectState = store.getState().scratchGui.projectState.loadingState
@@ -399,7 +410,7 @@ function replaceBlockly(msg) {
     let target = nameToTarget(msg.target);
     let blocks = target.blocks
     Object.keys(blocks._blocks).forEach(v=>{blocks.deleteBlock(v)})
-    console.log(msg.blocks)
+    // console.log(msg.blocks)
     Object.values(msg.blocks).forEach(block=>{blocks.createBlock(block)})
     if(targetToName(vm.editingTarget) == targetToName(target)) {vm.emitWorkspaceUpdate()}
 }
@@ -468,8 +479,8 @@ function anyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,dontD
             if(pauseEventHandling) {
                 return action.bind(bindTo)(...args)
             } else {
-            console.log('intrecepted:')
-            console.log(...args)
+            // console.log('intrecepted:')
+            // console.log(...args)
             let extrargsObj = null;
             if(!!extrargs) {extrargsObj=extrargs(args)}
             proxiedArgs = args
@@ -544,8 +555,8 @@ function asyncAnyproxy(bindTo,action,name,extrargs,mutator,before,then,dontSend,
             if(pauseEventHandling) {
                 return action.bind(bindTo)(...args)
             } else {
-            console.log('intrecepted:')
-            console.log(...args)
+            // console.log('intrecepted:')
+            // console.log(...args)
             let extrargsObj = null;
             if(!!extrargs) {extrargsObj=extrargs(args)}
             proxiedArgs = args
@@ -670,9 +681,9 @@ createEventMap = {}
 toBeMoved = {}
 // listen to local blockly events
 function blockListener(e) {
-    console.log('is event handling & workspace updating paused?: ' + pauseEventHandling)
+    // console.log('is event handling & workspace updating paused?: ' + pauseEventHandling)
     if(pauseEventHandling) {return}
-    console.log('just intrecepted',e)
+    // console.log('just intrecepted',e)
     if(e.type == 'ui'){uiii = e}
     if(e.type == 'create'){createe = e}
     if(e.type == 'delete'){deletee = e}
@@ -748,7 +759,7 @@ function blockListener(e) {
             extrargs.isCBCreateOrDelete = extrargs.isCBCreateOrDelete || e.oldXml?.getAttribute('type') == 'procedures_definition'
         }
 
-        console.log("sending",e,extrargs,'target',targetToName(vm.editingTarget))
+        // console.log("sending",e,extrargs,'target',targetToName(vm.editingTarget))
 
         let message = {meta:"vm.blockListen",type:e.type,extrargs,event:e,json:e.toJson(),target:targetToName(vm.editingTarget),}
         
@@ -760,7 +771,7 @@ function blockListener(e) {
         // intercept auto generated move event
         } else if ((e.type == 'move') && e.blockId in toBeMoved){
             let moveEvents = toBeMoved[e.blockId]
-            console.log("move events",moveEvents)
+            // console.log("move events",moveEvents)
             delete toBeMoved[e.blockId]
             moveEvents.forEach(moveMessage=>onBlockRecieve(moveMessage))
         }
@@ -859,7 +870,7 @@ function onBlockRecieve(d) {
                     }
                 }
             })
-            if(!closestBlock) {console.log('bruh')}
+            if(!closestBlock) {/*console.log('bruh')*/}
             else {
                 vEvent.blockId = closestBlock.id;
                 bEvent.blockId = closestBlock.id;
@@ -1112,7 +1123,7 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
 //     })
 vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
     let costumeIndex = getSelectedCostumeIndex()
-    console.log(data)
+    // console.log(data)
     // update paint editor if reciever is editing the costume
     if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
         let costume = vm.editingTarget.getCostumes()[costumeIndex]
@@ -1234,10 +1245,11 @@ function postCursorPosition() {
     let scrollX = workspace.scrollX
     let scrollY = workspace.scrollY
     let scale = workspace.scale
-    let cursor = {scrollX,scrollY,scale}
+    let targetName = BL_UTILS.targetToName(vm.editingTarget)
+    let cursor = {scrollX,scrollY,scale,targetName}
     liveMessage({type:'setCursor',cursor})
 }
-setInterval(postCursorPosition,5000)
+setInterval(postCursorPosition,2500)
 
 
 }
@@ -1451,7 +1463,7 @@ async function addCollaboratorGUI (user,omitX){
     if(!user) {return}
 
     let newCollab = blModalExample.cloneNode(-1)
-    console.log(newCollab)
+    // console.log(newCollab)
     newCollab.style.display = 'flex'
     Array.from(newCollab.children).find(elem=>elem.localName =='name').innerHTML = user.username;
     let x = Array.from(newCollab.children).find(elem=>elem.localName =='x')
@@ -1686,10 +1698,17 @@ async function displayActive(users) {
         let container = document.createElement('divv')
         container.onclick = ()=>{
             let u = users[i]
-            console.log('h')
-            let workspace = Blockly.getMainWorkspace()
-            workspace.setScale(u.cursor.scale);
-            workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);
+
+            let editingTargetId = BL_UTILS.nameToTarget(u.cursor.targetName).id
+            vm.setEditingTarget(editingTargetId)
+
+
+            setTimeout(()=>{
+                let workspace = Blockly.getMainWorkspace()
+                workspace.setScale(u.cursor.scale);
+                workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);},
+                200
+            )
         }
 
         function doThing(e, t) {
@@ -1738,5 +1757,5 @@ function reloadOnlineUsers() {
     })
 }
 
-setInterval(reloadOnlineUsers,5000)
+setInterval(reloadOnlineUsers,2500)
 setTimeout(reloadOnlineUsers,500)
