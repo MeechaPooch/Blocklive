@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-// var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -352,7 +352,7 @@ function getDraggingId() {
     return Blockly.getMainWorkspace().getBlockDragSurface().getCurrentBlock()?.getAttribute('data-id')
 }
 function isDragging() {
-    return Blockly.getMainWorkspace().isDragging()
+    return Blockly.getMainWorkspace()?.isDragging()
 }
 
 // STAGE IDENTIFIER. DO NOT SET SPRITE NAME TO THIS UNLESS YOU WANT TO PURPOSEFULLY BREAK LINKAGE!!!!
@@ -1268,6 +1268,7 @@ function doShareBlocksMessage(msg) {
 
 function postCursorPosition() {
     let workspace = getWorkspace()
+    if(!workspace) {return}
     let scrollX = workspace.scrollX
     let scrollY = workspace.scrollY
     let scale = workspace.scale
@@ -1318,7 +1319,7 @@ let shareDropdown = `
     <search style="display:flex;flex-direction: column; ">
         <text style="display:flex;flex-direction:column;align-self:  left;padding-top:5px;padding-bottom:5px;padding-left:4px; font-size: large;">
             Add Collaborators
-            <textt style="font-size:small; color:#b4d4ff; font-style:italic">Friends must friends whitelist you</textt>
+            <textt style="font-size:small; color:#b4d4ff; font-style:italic">Friends must add you on their list</textt>
             </text>
         <input id='searchy' style="color:black; display: flex;  margin-bottom:10px; align-self: center;border-radius: 10px; border-style: none; width:190px; height:30px">
 
