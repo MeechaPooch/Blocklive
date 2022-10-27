@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <bod class="tag">
+               <div class="square">
+            </div>
+
+            <div class="circle">
+            </div>
+
+            <div class="usernameTag">
+              <div class="fuck"> test124</div> 
+            </div>
+         
+
+
+        </bod>
+    </body>
+
+    <style>
+        body{
+            background-color:rgb(130, 182, 255);
+        }
+    .tag{
+        position: absolute;
+        /* outline-color: rgb(255, 41, 216); */
+        /* transform:translate(150px,50px) ;     */
+
+    }
+    .fuck{
+        background-color: rgb(255, 0, 212);
+        color:white;
+        padding: 4px;
+    border-radius: 20px;
+
+    }
+
+    .usernameTag{   
+        position: absolute;
+        /* transform:rotate(-135deg)  ; */
+        top:90px;
+
+        font-size: 30px;
+        font-family: helvetica;
+        font-weight: bold;
+        text-align: center;
+        width: 100px;
+      
+        opacity: 0;
+
+    transition: .2s;
+
+ 
+    display: flex;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    justify-items:center;
+   
+    }
+
+    .tag:hover .usernameTag{
+        opacity: 1;
+    }
+
+    .circle {
+        position:absolute;
+        width:100px;
+        height:100px;
+        border-radius: 100%;
+        background-color: rgb(255, 41, 216);
+        left:0px;
+        top:0px;
+        border: solid 2px rgb(255, 41, 216); 
+        background: url("https://img.freepik.com/premium-photo/astronaut-outer-open-space-planet-earth-stars-provide-background-erforming-space-planet-earth-sunrise-sunset-our-home-iss-elements-this-image-furnished-by-nasa_150455-16829.jpg?w=2000");
+        background-size: cover;
+    }
+
+    .square{    
+        position:absolute;
+        transform: translate(4px,3px) rotate(135deg);
+        transform-origin: bottom right;
+        width:50px;
+        height:50px;
+        background-color: rgb(255, 41, 216);
+        top:0;
+        left:0px;
+
+    }
+
+    .tag.turnOn {
+        animation-name: indicateOn;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+
+    }
+    .tag.turnOff{
+        animation-name: indicateOff;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+    }
+
+    @keyframes indicateOn {
+        from {
+        transform:translate(0px,50px)  ;
+            opacity: 0;
+        }
+        to {
+        transform:translate(150px,50px)  ;
+        opacity: 1;
+
+        }
+    }
+    @keyframes indicateOff {
+        to {
+            
+            outline-offset: 20px;
+            outline-color: rgba(0,0,0,0);
+        }
+        from {
+            outline-offset: 0px;
+        }
+    }
+
+    </style>
+
+    <script>
+        // document.querySelector('.rect').style.animation = 'outlineSelect reverse'
+
+        document.querySelector('.tag').classList.remove('turnOff')
+        document.querySelector('.tag').classList.add('turnOn')
+
+        // document.querySelector('.tag').classList.remove('turnOn')
+        // document.querySelector('.tag').classList.add('turnOff')
+    </script>
+</html>
+
+

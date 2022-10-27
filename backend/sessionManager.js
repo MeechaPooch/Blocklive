@@ -109,8 +109,10 @@ class BlockliveSess {
     }
 
     onProjectChange(socket, msg) {
+        let client = this.getClientFromSocket(socket);
+        msg.user = client?.username
         this.project.recordChange(msg)
-        this.project.lastUser = this.getClientFromSocket(socket) ? this.getClientFromSocket(socket).username : this.project.lastUser
+        this.project.lastUser = client ? client.username : this.project.lastUser
         this.sendChangeFrom(socket,msg)
     }
 }

@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+// var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -187,7 +187,7 @@ function getBlocklyId(scratchId) {
 function getInpoint(blockliveId) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId:blockliveId},res)})     
 }
-function getChanges(blId,version) {
+function getChanges(Id,version) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version},res)})
 }
 function fetchTitle(blId) {
@@ -198,21 +198,33 @@ let getAndPlayNewChanges
 
 async function activateBlocklive() {
 
-    // set scope exposed functions    
-    getAndPlayNewChanges = async ()=>{
-        console.log('syncing since version: ' +  blVersion)
-        fetchTitle(blId).then(title=>setTitle(title)) // set title
-
-        // sync all other project changes
-        changes = await getChanges(blId,blVersion)
+    playChanges = async (changes)=>{
         pauseEventHandling = true
         for (let i = 0; i < changes.length; i++) {
             await blockliveListener(changes[i])
         }
         if(changes.currentVersion){blVersion = changes.currentVersion}
         pauseEventHandling = false
+
         vm.emitWorkspaceUpdate()
         vm.emitTargetsUpdate()
+    }
+
+    // set scope exposed functions    
+    getAndPlayNewChanges = async ()=>{
+
+        console.log('syncing since version: ' +  blVersion) 
+        fetchTitle(blId).then(title=>setTitle(title)) // set title
+
+        // sync all other project changes
+        changes = await getChanges(blId,blVersion)
+        if(typeof BL_UTILS != 'undefined' && BL_UTILS.isDragging()) {
+            console.log('queing it for later')
+            playAfterDragStop.push({meta:'resyncCached',changes})
+        } else {
+            await playChanges(changes)
+        }
+    
     }
 
 ///.......... CONNECT TO CHROME PORT ..........//
@@ -229,16 +241,20 @@ setInterval(reconnectIfNeeded,1000)
 /// other things
 
     blockliveListener = async (msg) => {
-        if(BL_UTILS.isDragging()) {
+        if(typeof BL_UTILS != 'undefined' && BL_UTILS.isDragging()) {
             // dong add to list if its a move event on the current moving block
             if(msg.meta == 'vm.blockListen' && msg.type == 'move' && msg.event.blockId == BL_UTILS.getDraggingId()) {return}
             else { playAfterDragStop.push(msg) }
             return;
         }
+    
         // console.log('recieved message',msg)
         if(!!msg.version){blVersion = msg.version-1} // TODO: possibly disable this
         try{
-        if (msg.meta=="sprite.proxy") {
+        if(msg.meta == 'resyncCached') {
+            // remember to await shit
+            await playChanges(msg.changes)
+        } else if (msg.meta=="sprite.proxy") {
             blVersion++
             await proxyActions[msg.data.name](...(['linguini'].concat(msg.data).concat(msg.data.args)))
         } else if (msg.meta =="vm.blockListen") {
@@ -958,13 +974,38 @@ function onBlockRecieve(d) {
             // record played blocklive event
             blockliveEvents[getStringEventRep(bEvent)] = true
             // run event
+
+            // try to add transition element stuff
+            // if(false ) {
+            if(bEvent.type == 'move') {
+                let blockElement = getWorkspace()?.getBlockById(bEvent.blockId)?.getSvgRoot()
+                console.log(blockElement)
+                if(blockElement) {
+                    blockElement.style.transition='transform 0.5s';
+                }
+            }
+        // }
+    
+            // blockElement?.style.transitionProperty='transform';
+
             bEvent.run(true)
+            // blockElement?.style.transition='transform 0.5s';
+
             lastEventRun = bEvent 
 
             // for custom blocks, update toolbox
             if(bEvent.element == "mutation" || d.extrargs.isCBCreateOrDelete) {
                 getWorkspace().getToolbox().refreshSelection()
             }
+
+            // highlight blocks
+            if(['create','move','change'].indexOf(bEvent.type)) {
+                console.log(d)
+                let blockId = bEvent.blockId
+                outlineBlock(blockId)
+            }
+            // 'comment_create','comment_change','comment_move'
+
         }
     }
     } else {
@@ -1035,6 +1076,9 @@ vm.emitWorkspaceUpdate = function() {
     })
 
     oldEWU()
+
+    // set animation
+    // Blockly.getMainWorkspace().getAllBlocks().forEach(block=>{block.getSvgRoot().style.transition='transform 0.5s';})
 }
 
 // vm.editingTarget = a;
@@ -1283,6 +1327,106 @@ setInterval(postCursorPosition,2500)
 
 
 
+function createTagElement(username,color) {
+    let innerHTML = `
+               <div class="square" style="background-color: ${color}">
+            </div>
+
+            <div class="circle" style="background-color: ${color}; border: solid 2px ${color};">
+            </div>
+
+            <div class="usernameTag">
+              <div class="tagName" style="background-color: ${color};"">${username}</div> 
+            </div>
+            `
+
+    let tag = document.createElement('g')
+    // let tag = document.createElement(username)
+    tag.className ='tag'
+    tag.innerHTML = innerHTML;
+    return tag;
+}
+
+function setTag(tag, state) {
+    if(state) {
+        tag.classList.remove('turnOff')
+        tag.classList.add('turnOn')
+    } else {
+        tag.classList.remove('turnOn')
+        tag.classList.add('turnOff')
+    }
+}
+function setOutline(blocks,state){
+    if(state) {
+        blocks.classList.remove('turnOff')
+        blocks.classList.add('blocRect','turnOn')
+    } else {
+        blocks.classList.remove('turnOn')
+        blocks.classList.add('blocRect','turnOff')
+    }
+}
+
+function selectBlock(blocks,username,state,color) {
+    blocks.style.outlineColor = color;
+    let tag = blocks.querySelector('g' + '.tag')
+    // let tag = blocks.querySelector(username + '.tag')
+    if(!tag) {
+        tag = createTagElement(username,color)
+        blocks.appendChild(tag)
+    }
+    setOutline(blocks,state,color)
+    setTag(tag,state,color)
+}
+
+
+BL_BlockOutlinesUsers = {} // {username: {blockid?,styles:{}}}
+BL_BlockTimeouts = {} // {blockid:timeoutid}
+BL_BlockOutlinesBlocks = {} // {blockid:def}
+
+function resetBlock(outlineObj) {
+    let block = Blockly.getMainWorkspace().getBlockById(outlineObj.blockId) 
+        ?? Blockly.getMainWorkspace().getCommentById(outlineObj.blockId) 
+    if(!block) {return}
+    let element = block.getSvgRoot()
+    element.style.transition = 'all 0.5s'
+    selectBlock(element,'ilhp10',false)
+}
+function setBlockStyles(blockId,blockElem,newStyles) {
+    let styles = {}
+    blockElem.style.transition = 'transform 0.5s'
+    selectBlock(blockElem,'ilhp10',true,'rgb(238, 0, 255)')
+    return {blockId,styles}
+}
+
+
+
+function outlineBlock(blockId, username) {
+    if(blockId in BL_BlockOutlinesBlocks) {
+        resetBlock(BL_BlockOutlinesBlocks[blockId])
+        delete BL_BlockOutlinesBlocks[blockId]
+        clearTimeout(BL_BlockTimeouts[blockId])
+        delete BL_BlockTimeouts[blockId]
+    }
+    if(username in BL_BlockOutlinesUsers) {
+        resetBlock(BL_BlockOutlinesUsers[username])
+        delete BL_BlockOutlinesUsers[username]
+    } 
+    let workspace = Blockly.getMainWorkspace()
+    if(!workspace) {return}
+    let block = workspace.getBlockById(blockId) ?? workspace.getCommentById(blockId) 
+    if(!block) {return}
+
+    let blockElem = block.getSvgRoot();
+
+    const blockResetDef = setBlockStyles(blockId,blockElem,
+        {'outline':'solid 8px rgb(255,0,113)'}
+    )
+    BL_BlockOutlinesUsers[username] = blockResetDef;
+    BL_BlockOutlinesBlocks[blockId] = blockResetDef;
+    
+    let timeoutId = setTimeout(()=>{resetBlock(blockResetDef)},2500) // clear outline in 5 seconds
+    BL_BlockTimeouts[blockId] = timeoutId
+}
 
 
 
@@ -1451,6 +1595,154 @@ background: #6aa8ff;
     // visibility: visible;
     filter: opacity(100%);
   }
+
+
+
+
+
+
+// highlight blocks
+
+
+.tag{
+    position: absolute;
+    /* outline-color: rgb(255, 41, 216); */
+    /* transform:translate(150px,50px) ;     */
+    transform:translate(-110px,0px)  ;
+
+}
+.tagName{
+    color:white;
+    padding: 4px;
+border-radius: 20px;
+
+}
+
+.usernameTag{   
+    position: absolute;
+    /* transform:rotate(-135deg)  ; */
+    top:90px;
+
+    font-size: 30px;
+    font-family: helvetica;
+    font-weight: bold;
+    text-align: center;
+    width: 100px;
+  
+    opacity: 0;
+
+transition: .2s;
+
+
+display: flex;
+align-self: center;
+align-items: center;
+justify-content: center;
+justify-items:center;
+
+}
+
+.tag:hover .usernameTag{
+    opacity: 1;
+}
+
+.circle {
+    position:absolute;
+    width:100px;
+    height:100px;
+    border-radius: 100%;
+    left:0px;
+    top:0px;
+    background: url("https://img.freepik.com/premium-photo/astronaut-outer-open-space-planet-earth-stars-provide-background-erforming-space-planet-earth-sunrise-sunset-our-home-iss-elements-this-image-furnished-by-nasa_150455-16829.jpg?w=2000");
+    background-size: cover;
+}
+
+.square{    
+    position:absolute;
+    transform: translate(4px,3px) rotate(135deg);
+    transform-origin: bottom right;
+    width:50px;
+    height:50px;
+    top:0;
+    left:0px;
+
+}
+
+.tag.turnOn {
+    animation-name: indicateOn;
+    animation-duration: .25s;
+    animation-fill-mode:forwards;
+
+}
+.tag.turnOff{
+    animation-name: indicateOff;
+    animation-duration: .25s;
+    animation-fill-mode:forwards;
+}
+
+@keyframes indicateOn {
+    from {
+        transform:translate(-170px,0px);
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes indicateOff {
+    from {
+        opacity: 1;
+
+    }
+    to {
+        transform:translate(-170px,0px);
+        opacity: 0;
+    }
+}
+
+
+.blocRect{
+    outline-style: solid;
+    outline-width: 6px;
+    border-radius: 20px;
+}
+/* .pinkOutline{
+    outline-color: rgb(255, 41, 216);
+}
+.blueOutline{
+    outline-color: rgb(0, 99, 165);
+} */
+.blocRect.turnOn {
+    animation-name: outlineSelect;
+    animation-duration: .25s;
+    animation-fill-mode:forwards;
+
+}
+.blocRect.turnOff{
+    animation-name: outlineUnselect;
+    animation-duration: .25s;
+    animation-fill-mode:forwards;
+}
+
+@keyframes outlineSelect {
+    from {
+        outline-offset: 20px;
+        outline-color: rgba(0,0,0,0);
+    }
+    to {
+        outline-offset: 0px;
+    }
+}
+@keyframes outlineUnselect {
+    to {
+        outline-offset: 20px;
+        outline-color: rgba(0,0,0,0);
+    }
+    from {
+        outline-offset: 0px;
+    }
+}
+
 
 
 `

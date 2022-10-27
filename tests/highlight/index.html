@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <bod class="rect">
+
+
+
+        </bod>
+    </body>
+
+    <style>
+    .rect{
+        position: absolute;
+        left:100px;
+        top:100px;
+        width:100px;
+        height:100px;
+        outline-style: solid;
+        outline-color: rgb(255, 41, 216);
+        outline-width: 6px;
+
+    }
+    .rect.turnOn {
+        animation-name: outlineSelect;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+
+    }
+    .rect.turnOff{
+        animation-name: outlineUnselect;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+    }
+
+    @keyframes outlineSelect {
+        from {
+            outline-offset: 20px;
+            outline-color: rgba(0,0,0,0);
+        }
+        to {
+            outline-offset: 0px;
+        }
+    }
+    @keyframes outlineUnselect {
+        to {
+            outline-offset: 20px;
+            outline-color: rgba(0,0,0,0);
+        }
+        from {
+            outline-offset: 0px;
+        }
+    }
+
+    </style>
+
+    <script>
+        // document.querySelector('.rect').style.animation = 'outlineSelect reverse'
+
+        document.querySelector('.rect').classList.remove('turnOff')
+        document.querySelector('.rect').classList.add('turnOn')
+
+        document.querySelector('.rect').classList.remove('turnOn')
+        document.querySelector('.rect').classList.add('turnOff')
+    </script>
+</html>
+

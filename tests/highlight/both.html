@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+    <blocks></blocks>
+
+
+</body>
+
+
+
+
+<style>
+
+
+blocks{
+    left:100px;
+    top:100px;
+    position:absolute;
+    height:100px;
+    width:200px;
+    /* border-radius: 50%; */
+    background-color: rgb(18, 234, 7);
+}
+
+.tag{
+        position: absolute;
+        /* outline-color: rgb(255, 41, 216); */
+        /* transform:translate(150px,50px) ;     */
+        transform:translate(-110px,0px)  ;
+
+    }
+    .tagName{
+        color:white;
+        padding: 4px;
+    border-radius: 20px;
+
+    }
+
+    .usernameTag{   
+        position: absolute;
+        /* transform:rotate(-135deg)  ; */
+        top:90px;
+
+        font-size: 30px;
+        font-family: helvetica;
+        font-weight: bold;
+        text-align: center;
+        width: 100px;
+      
+        opacity: 0;
+
+    transition: .2s;
+
+ 
+    display: flex;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    justify-items:center;
+   
+    }
+
+    .tag:hover .usernameTag{
+        opacity: 1;
+    }
+
+    .circle {
+        position:absolute;
+        width:100px;
+        height:100px;
+        border-radius: 100%;
+        left:0px;
+        top:0px;
+        background: url("https://img.freepik.com/premium-photo/astronaut-outer-open-space-planet-earth-stars-provide-background-erforming-space-planet-earth-sunrise-sunset-our-home-iss-elements-this-image-furnished-by-nasa_150455-16829.jpg?w=2000");
+        background-size: cover;
+    }
+
+    .square{    
+        position:absolute;
+        transform: translate(4px,3px) rotate(135deg);
+        transform-origin: bottom right;
+        width:50px;
+        height:50px;
+        top:0;
+        left:0px;
+
+    }
+
+    .tag.turnOn {
+        animation-name: indicateOn;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+
+    }
+    .tag.turnOff{
+        animation-name: indicateOff;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+    }
+
+    @keyframes indicateOn {
+        from {
+            transform:translate(-170px,0px);
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @keyframes indicateOff {
+        from {
+            opacity: 1;
+
+        }
+        to {
+            transform:translate(-170px,0px);
+            opacity: 0;
+        }
+    }
+
+
+    .blocRect{
+        outline-style: solid;
+        outline-width: 6px;
+        border-radius: 20px;
+    }
+    /* .pinkOutline{
+        outline-color: rgb(255, 41, 216);
+    }
+    .blueOutline{
+        outline-color: rgb(0, 99, 165);
+    } */
+    .blocRect.turnOn {
+        animation-name: outlineSelect;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+
+    }
+    .blocRect.turnOff{
+        animation-name: outlineUnselect;
+        animation-duration: .25s;
+        animation-fill-mode:forwards;
+    }
+
+    @keyframes outlineSelect {
+        from {
+            outline-offset: 20px;
+            outline-color: rgba(0,0,0,0);
+        }
+        to {
+            outline-offset: 0px;
+        }
+    }
+    @keyframes outlineUnselect {
+        to {
+            outline-offset: 20px;
+            outline-color: rgba(0,0,0,0);
+        }
+        from {
+            outline-offset: 0px;
+        }
+    }
+
+
+</style>
+
+
+<script>
+    
+function createTagElement(username,color) {
+    let innerHTML = `
+               <div class="square" style="background-color: ${color}">
+            </div>
+
+            <div class="circle" style="background-color: ${color}; border: solid 2px ${color};">
+            </div>
+
+            <div class="usernameTag">
+              <div class="tagName" style="background-color: ${color};"">${username}</div> 
+            </div>
+            `
+
+    let tag = document.createElement(username)
+    tag.className ='tag'
+    tag.innerHTML = innerHTML;
+    return tag;
+}
+
+function setTag(tag, state) {
+    if(state) {
+        tag.classList.remove('turnOff')
+        tag.classList.add('turnOn')
+    } else {
+        tag.classList.remove('turnOn')
+        tag.classList.add('turnOff')
+    }
+}
+function setOutline(blocks,state){
+    if(state) {
+        blocks.classList.remove('turnOff')
+        blocks.classList.add('blocRect','turnOn')
+    } else {
+        blocks.classList.remove('turnOn')
+        blocks.classList.add('blocRect','turnOff')
+    }
+}
+
+function selectBlock(blocks,username,state,color) {
+    blocks.style.outlineColor = color;
+    let tag = blocks.querySelector(username + '.tag')
+    if(!tag) {
+        tag = createTagElement(username,color)
+        blocks.appendChild(tag)
+    }
+    setOutline(blocks,state,color)
+    setTag(tag,state,color)
+}
+
+selectBlock
+
+let block = document.querySelector('blocks')
+    
+</script>
+
+</html>
