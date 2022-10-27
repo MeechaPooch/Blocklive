@@ -160,7 +160,8 @@ let messageHandlers = {
      'setCursor':(data,client)=>{
           let project = sessionManager.getProject(data.blId)
           if(!project) {return}
-          let cursor = project.session.getClientFromSocket(client).cursor
+          let cursor = project.session.getClientFromSocket(client)?.cursor
+          if(!cursor) {return}
           Object.entries(data.cursor).forEach(e=>{
                if(e[0] in cursor) { cursor[e[0]] = e[1] }
           })
