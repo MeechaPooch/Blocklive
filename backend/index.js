@@ -2,6 +2,8 @@
 // numbers being passed as strings
 
 // copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
+import os from 'os'
+import path from 'path';
 let privateKey = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
 let certificate = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
 
@@ -30,7 +32,6 @@ import SessionManager from './sessionManager.js'
 import UserManager from './userManager.js'
 import fs from 'fs'
 import { ppid } from 'process';
-import path from 'path';
 import sanitize from 'sanitize-filename';
 // Load session and user manager objects
 
