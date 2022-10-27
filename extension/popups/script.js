@@ -21,7 +21,7 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
         if(name.includes(' ')) {return}
         document.querySelector('#searchh').value = ''
         addFriendGUI(name)
-        fetch(`http://spore.us.to:4000/friends/${username}/${name}`,{method:"POST"});
+        fetch(`https://spore.us.to:4000/friends/${username}/${name}`,{method:"POST"});
     }
 
     function removeFriend(name) {
@@ -29,7 +29,7 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
         for(let child of document.querySelector('#friends').children) {
             if(child.username == name) {child.remove(); break;}
         }
-        fetch(`http://spore.us.to:4000/friends/${username}/${name}`,{method:"DELETE"});
+        fetch(`https://spore.us.to:4000/friends/${username}/${name}`,{method:"DELETE"});
     }
 
     document.querySelector('#searchh').addEventListener("keyup", function(event) {
@@ -41,7 +41,7 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
 
 
     // populate with current friends
-    fetch(`http://spore.us.to:4000/friends/${username}`).then(res=>res.json().then(list=>list.forEach(addFriendGUI)))
+    fetch(`https://spore.us.to:4000/friends/${username}`).then(res=>res.json().then(list=>list.forEach(addFriendGUI)))
 });
 
 

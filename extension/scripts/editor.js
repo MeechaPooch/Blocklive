@@ -1491,7 +1491,7 @@ let shareDropdown = `
 
 `
 let shareScript = `{
-let apiUrl = 'http://spore.us.to:4000'
+let apiUrl = 'https://spore.us.to:4000'
 
 opening = false
 let result = document.querySelector('#resultName')

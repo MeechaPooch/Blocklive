@@ -1,4 +1,4 @@
-let apiUrl = 'http://spore.us.to:4000'
+let apiUrl = 'https://spore.us.to:4000'
 
 chrome.runtime.onInstalled.addListener(()=>{
   chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
