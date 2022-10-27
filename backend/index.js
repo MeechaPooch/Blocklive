@@ -2,8 +2,9 @@
 // numbers being passed as strings
 
 // copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
-var privateKey = fs.readFileSync( '~/letsencrypt/live/spore.us.to/privkey.pem' );
-var certificate = fs.readFileSync( '~/letsencrypt/live/spore.us.to/fullchain.pem' );
+import os from 'os';
+let privateKey = fs.readFileSync( os.homedir() + '/letsencrypt/live/spore.us.to/privkey.pem' );
+let certificate = fs.readFileSync( os.homedir() + '~/letsencrypt/live/spore.us.to/fullchain.pem' );
 
 import express from 'express'
 const app = express();
