@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-// var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 //////////// TRAP UTILS ///////////
 
@@ -1116,7 +1116,7 @@ vm.updateSoundBuffer = asyncEditingProxy(vm.updateSoundBuffer,'updatesound',null
 vm.addSound = proxy(vm.addSound,"addsound",
     (args)=>{
         let targetName
-        if(!!args[1]){targetName = targetToName(vm.runtime.getTargetById(args[2]))} else {targetName = targetToName(vm.editingTarget)}
+        if(!!args[1]){targetName = targetToName(vm.runtime.getTargetById(args[1]))} else {targetName = targetToName(vm.editingTarget)}
         return {target:targetName}
     },
     (data)=>{

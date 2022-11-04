@@ -58,7 +58,7 @@ socket.on('message',(data)=>{
     //   playChange(data.blId,data.msg)
    } else if(data.type=='yourVersion') {
       data.version
-   }
+   } 
 })
 
   
@@ -1016,11 +1016,13 @@ vm.updateSoundBuffer = asyncEditingProxy(vm.updateSoundBuffer,'updatesound',null
     return retArgs
 })
 
-
+// dont use editingproxy since addsound takes a targetid as an arguemnt
 vm.addSound = proxy(vm.addSound,"addsound",
     (args)=>{
-        let targetName
+        console.log('add sound',args)
+        let targetName;
         if(!!args[1]){targetName = targetToName(vm.runtime.getTargetById(args[2]))} else {targetName = targetToName(vm.editingTarget)}
+        console.log('target name',targetName)
         return {target:targetName}
     },
     (data)=>{

@@ -1,7 +1,7 @@
 console.log('mystuff inject started')
 
-var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-// var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
+var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
 
 ////////// INJECT UTILS //////////
 
