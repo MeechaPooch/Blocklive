@@ -15,6 +15,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.2",
     "http": "^0.0.1-security",
+    "node-fetch": "^3.2.10",
     "sanitize-filename": "^1.6.3",
     "socket.io": "^4.4.1",
     "socket.io-client": "^4.4.1"

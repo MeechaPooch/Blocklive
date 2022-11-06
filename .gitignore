@@ -3,3 +3,5 @@
 *.pem
 *.DS_Store
 backend/storage
+*secrets*
+!secrets.zip
