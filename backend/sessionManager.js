@@ -1,3 +1,7 @@
+import fs from 'fs'
+import path, { sep } from 'path';
+import sanitize from 'sanitize-filename';
+
 class BlockliveProject {
 
     static fromJSON(json) {
@@ -166,7 +170,6 @@ class ProjectWrapper {
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
-        owner = owner
     }
 
     scratchSaved(id,version) {
@@ -320,6 +323,7 @@ export default class SessionManager{
         project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase())).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
             delete this.scratchprojects[proj.scratchId]
+            fs.rmSync('scratchprojects' + path.sep + sanitize(proj.scratchId))
         })
 
         if(project.owner.toLowerCase() == user.toLowerCase()) {
