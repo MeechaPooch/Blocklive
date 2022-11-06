@@ -7,7 +7,7 @@ import {uptimeWebhookUrl} from './secrets/secrets.js'
 function addProcess(pid,url) {
     processes[pid] = {pid,url,status:0}
 }
-addProcess('blocklive','https://spore.us.to:40000/')
+addProcess('blocklive','https://spore.us.to:4000/')
 
 function checkAll() {
     Object.keys(processes).forEach(pid=>check(pid))
