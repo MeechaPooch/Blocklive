@@ -37,9 +37,10 @@ class BlockliveProject {
     }
 
     trimChanges() {
-        for(let i=0; i<this.version-1; i++) {
-            this.changes[i] = {r:1}
-        }
+        // LOL DONT
+        // for(let i=0; i<this.version-1; i++) {
+        //     this.changes[i] = {r:1}
+        // }
     }
 }
 
