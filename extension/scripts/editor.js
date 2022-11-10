@@ -1359,11 +1359,23 @@ function setTag(tag, state) {
 function setOutline(blocks,state){
     if(state) {
         blocks.classList.remove('turnOff')
+        blocks.classList.remove('turnedOff')
         blocks.classList.add('blocRect','turnOn')
     } else {
         blocks.classList.remove('turnOn')
+        blocks.classList.remove('turnedOn')
         blocks.classList.add('blocRect','turnOff')
     }
+    let animation = blocks.getAnimations().find(anim=>anim.animationName?.includes('outline'))
+    animation.addEventListener('finish',()=>{
+        if(state) {
+            blocks.classList.remove('turnOn')
+            blocks.classList.add('turnedOn')
+        } else {
+            blocks.classList.remove('turnOff')
+            blocks.classList.add('turnedOff')
+        } 
+    })
 }
 
 function selectBlock(blocks,username,state,color) {
@@ -1716,12 +1728,17 @@ justify-items:center;
     animation-name: outlineSelect;
     animation-duration: .25s;
     animation-fill-mode:forwards;
-
+}
+.blocRect.turnedOn {
+    outline-offset: 0px;
 }
 .blocRect.turnOff{
     animation-name: outlineUnselect;
     animation-duration: .25s;
     animation-fill-mode:forwards;
+}
+.blocRect.turnedOff{
+    outline:none;
 }
 
 @keyframes outlineSelect {
