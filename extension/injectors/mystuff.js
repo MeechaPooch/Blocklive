@@ -2,6 +2,8 @@ console.log('injecting mystuff.js')
 
 // alert(chrome.runtime.id)
 let scriptElem = document.createElement('script')
+scriptElem.dataset.exId = chrome.runtime.id
+scriptElem.classList.add("blocklive-ext")
 let srcThign = chrome.runtime.getURL("/scripts/mystuff.js")
 scriptElem.src = srcThign
 // document.body.append(scriptElem)
