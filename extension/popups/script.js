@@ -41,7 +41,10 @@ chrome.runtime.sendMessage({meta:"getUsername"},function(username){
 
 
     // populate with current friends
-    fetch(`https://spore.us.to:4000/friends/${username}`).then(res=>res.json().then(list=>list.forEach(addFriendGUI)))
+    fetch(`https://spore.us.to:4000/friends/${username}`)
+        .then((res)=>{document.querySelector('#friends').innerHTML = '';return res})
+        .then(res=>res.json().then(list=>list.forEach(addFriendGUI)))
+        .catch(()=>{document.querySelector('#friends').innerHTML = '<span style="color:red;">Error: Request Failed :(<span>'})
 });
 
 

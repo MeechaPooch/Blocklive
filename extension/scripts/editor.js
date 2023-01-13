@@ -160,15 +160,19 @@ onTabLoad()
 async function joinExistingBlocklive(id) {
     projectReplaceInitiated = true
     console.log('joining blocklive id',id,)
-    let inpoint = await getInpoint(id)
+    // let inpoint = await getInpoint(id)
+    let inpoint = await getJson(id)
+    let projectJson = inpoint.json;
     if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);return;}
     pauseEventHandling = true
     try {
-    console.log('downloading scratch id',inpoint.scratchId)
-    await vm.downloadProjectIdPromise(inpoint.scratchId)
-        blVersion = inpoint.scratchVersion
+    // console.log('downloading scratch id',inpoint.scratchId)
+    console.log('loading scratch project inpoint',inpoint)
+    await vm.loadProject(projectJson)
+        blVersion = inpoint.version
     } catch (e) {
-        prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
+        prompt(`Scratch couldn't load the project JSON we had saved for this project. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nSend this blocklive id to @ilhp10 on scratch:`,`${blId};`)
+        // prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
     }
     //yo wussup poochdawg
 
@@ -184,8 +188,11 @@ function getBlocklyId(scratchId) {
     chrome.runtime.sendMessage(exId,{meta:'getBlId',scratchId},promRes)
     })
 }
-function getInpoint(blockliveId) {
-    return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId:blockliveId},res)})     
+// function getInpoint(blockliveId) {
+//     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getInpoint',blId:blockliveId},res)})     
+// }
+function getJson(blockliveId) {
+    return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getJson',blId:blockliveId},res)})     
 }
 function getChanges(Id,version) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getChanges',blId,version},res)})
@@ -411,7 +418,8 @@ store.subscribe(function() {
 
         if(state.endsWith('UPDATING')) {
             console.log('🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢')
-            chrome.runtime.sendMessage(exId,{meta:'projectSaved',blId,scratchId,version:blVersion})
+            chrome.runtime.sendMessage(exId,{meta:'projectSavedJSON',blId,json:vm.toJSON(),version:blVersion,})
+            // chrome.runtime.sendMessage(exId,{meta:'projectSaved',blId,scratchId,version:blVersion})
         }
     }
 
@@ -720,7 +728,7 @@ toBeMoved = {}
 function blockListener(e) {
     // console.log('is event handling & workspace updating paused?: ' + pauseEventHandling)
     if(pauseEventHandling) {return}
-    // console.log('just intrecepted',e)
+    console.log('just intrecepted',e)
     if(e.type == 'ui'){uiii = e}
     if(e.type == 'create'){createe = e}
     if(e.type == 'delete'){deletee = e}
@@ -1903,7 +1911,9 @@ let blActivateClick = async ()=>{
     await waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2]))))
     scratchId = location.pathname.split('/')[2]
 
-    chrome.runtime.sendMessage(exId,{meta:'create',scratchId,title:store.getState().preview.projectInfo.title},async (response)=>{
+    let json = vm.toJSON()
+
+    chrome.runtime.sendMessage(exId,{json,meta:'create',scratchId,title:store.getState().preview.projectInfo.title},async (response)=>{
         blId = response.id 
 
         // ACTIVATE BLOKLIVE!!!

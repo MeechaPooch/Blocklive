@@ -12,12 +12,19 @@ class BlockliveProject {
         return ret;
     }
 
+    toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
+        let ret = {...this}
+        ret.indexZeroVersion += ret.changes.length
+        ret.changes = [];
+        return ret;
+    }
+
 
     // projectJSON
     // projectJSONVersion = 0
     version = -1
     changes = []
-    changeOffset = 0; // TODO!
+    indexZeroVersion = 0;
     lastTime = Date.now();
     lastUser = "";
     title;
@@ -33,10 +40,12 @@ class BlockliveProject {
     }
 
     getChangesSinceVersion(lastVersion) {
-        return this.changes.slice(lastVersion)
+        return this.changes.slice(Math.max(0,lastVersion-this.indexZeroVersion))
     }
 
     trimChanges() {
+        this.indexZeroVersion += this.changes.length;
+        this.changes = []
         // LOL DONT
         // for(let i=0; i<this.version-1; i++) {
         //     this.changes[i] = {r:1}
@@ -129,7 +138,8 @@ class ProjectWrapper {
             project:this.project,
             id:this.id,
             scratchId:this.scratchId,
-            scratchVersion:this.scratchVersion,
+            projectJson:this.projectJson,
+            jsonVersion:this.jsonVersion,
             linkedWith:this.linkedWith,
             owner:this.owner,
             sharedWith:this.sharedWith,
@@ -154,36 +164,50 @@ class ProjectWrapper {
 
     // blocklive id
     id
-    // most up to date scratch project id
+    // most recently saved json
+    projectJson
+    // json version
+    jsonVersion = 0
+
+    // // most up to date scratch project id
     scratchId
-    // index of next change i think
-    scratchVersion = 0
+    // // index of next change i think
+    // scratchVersion = 0
     linkedWith = [] // {scratchId, owner}
 
     owner
     sharedWith = []
 
-    constructor(owner,scratchId,blId,title) {
+    constructor(owner,scratchId,projectJson,blId,title) {
         if(owner == '&') {return}
         this.id = blId
         this.owner = owner
+        this.projectJson = projectJson
         this.scratchId = scratchId
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
     }
 
-    scratchSaved(id,version) {
-        // dont replace scratch id if current version is already ahead
-        if(version <= this.scratchVersion) {console.log('version too low. not recording. most recent version & id:',this.scratchVersion, this.scratchId);return}
-        this.scratchId = id
-        this.scratchVersion = version
-        console.log('linkedWith length', this.linkedWith.length)
-        this.linkedWith.find(proj=>proj.scratchId == id).version = version
+    // scratchSaved(id,version) {
+    //     // dont replace scratch id if current version is already ahead
+    //     if(version <= this.scratchVersion) {console.log('version too low. not recording. most recent version & id:',this.scratchVersion, this.scratchId);return}
+    //     this.scratchId = id
+    //     this.scratchVersion = version
+    //     console.log('linkedWith length', this.linkedWith.length)
+    //     this.linkedWith.find(proj=>proj.scratchId == id).version = version
+    // }
+    scratchSavedJSON(json,version) {
+        if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
+        this.projectJson = json
+        this.jsonVersion = version
+        // console.log('linkedWith length', this.linkedWith.length)
+        // this.linkedWith.find(proj=>proj.scratchId == id).version = version
     }
 
-    linkProject(scratchId, owner, version) {
-        this.linkedWith.push({scratchId,owner,version})
+    linkProject(scratchId, owner) {
+        this.linkedWith.push({scratchId,owner})
+        // this.linkedWith.push({scratchId,owner,version})
     }
 
     // returns {scratchId, owner}
@@ -245,10 +269,11 @@ export default class SessionManager{
         this.scratchprojects[scratchId] = {owner,blId:id}
     }
 
-    newProject(owner,scratchId,title) {
+    // constructor(owner,scratchId,json,blId,title) {
+    newProject(owner,scratchId,json,title) {
         if(scratchId in this.scratchprojects) {return this.getProject(this.scratchprojects[scratchId].blId)}
         let id = new String(this.getNextId())
-        let project = new ProjectWrapper(owner,scratchId,id,title)
+        let project = new ProjectWrapper(owner,scratchId,json,id,title)
         this.blocklive[id] = project
         this.scratchprojects[scratchId] = {owner,blId:id}
 

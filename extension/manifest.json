@@ -1,7 +1,7 @@
 {
     "name": "Blocklive: Scratch Realtime Collaboration",
     "description": "Multiple Scratchers Work together in Real Time on a Single Project",
-    "version": "0.1.6.1",
+    "version": "0.1.6.2",
     "icons": {
        "128": "icon128.png" 
     },
@@ -15,6 +15,10 @@
             "matches":["https://scratch.mit.edu/mystuff*"],
             "css":[],
             "js":["injectors/mystuff.js"]
+        },{
+            "matches":["https://turbowarp.org/editor"],
+            "css":[],
+            "js":["injectors/turbowarp_editor.js"]
         }
     ],
     "background": {
@@ -25,7 +29,7 @@
         "storage"
     ],
     "web_accessible_resources" : [{
-        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js"],
+        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js","/scripts/turbowarp_editor.js"],
         "matches":["<all_urls>"]
     }],
     "externally_connectable": {

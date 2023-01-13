@@ -1,4 +1,5 @@
 let apiUrl = 'https://spore.us.to:4000'
+// let apiUrl = 'http://localhost:4000'
 
 chrome.runtime.onInstalled.addListener((details)=>{
   if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
@@ -26,6 +27,9 @@ let blockliveTabs = {}
 let projects = {}
 // portName -> blId
 let portIds = {}
+
+let lastPortId = 0
+let ports = []
 
 let newProjects = {} // tabId (or 'newtab') -> blId
 let tabCallbacks = {} // tabId -> callback function
@@ -96,7 +100,9 @@ function playChange(blId,msg,optPort) {
 }
 
 //////// INIT SOCKET CONNECTION ///////
-const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket']})
+// ['websocket', 'xhr-polling', 'polling', 'htmlfile', 'flashsocket']
+const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket', 'xhr-polling', 'polling', 'htmlfile', 'flashsocket']})
+// const socket = io.connect(apiUrl,{jsonp:false,transports:['websocket']})
 // socket.on("connect_error", () => { socket.io.opts.transports = ["websocket"];});
 console.log('connecting')
 socket.on('connect',async ()=>{
@@ -106,10 +112,16 @@ socket.on('connect',async ()=>{
   if(blIds.length != 0) {socket.send({type:'joinSessions',username:await makeSureUsernameExists(),pk:upk,ids:blIds})}
 })
 socket.on('disconnect',()=>{
-  if(ports.length != 0) {
-    socket.connect()
-  }
+  setTimeout(
+    ()=>{if(ports.length != 0) {
+    socket.connect();
+  }},600)
 })
+socket.on("connect_error", () => {
+  setTimeout(() => {
+    socket.connect();
+  }, 1000);
+}); // copied from https://socket.io/docs/v3/client-socket-instance/
 socket.on('message',(data)=>{
   console.log('message',data)
   if(data.type=='projectChange') {
@@ -174,9 +186,6 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 }
 );
 
-let lastPortId = 0
-
-let ports = []
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
   if(!socket.connected) {socket.connect()}
@@ -255,8 +264,10 @@ chrome.runtime.onMessageExternal.addListener(
     if(request.meta == 'getBlId') {
       if(!request.scratchId || request.scratchId == '.') {return ''}
       sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}`)).text()).replaceAll('"',''))
-    } else if(request.meta =='getInpoint') {
-      sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
+    // } else if(request.meta =='getInpoint') {
+    //   sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
+    } else if(request.meta =='getJson') {
+      sendResponse(await (await fetch(`${apiUrl}/projectJSON/${request.blId}`)).json())
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
     } else if(request.meta == 'getUsername') {
@@ -266,10 +277,19 @@ chrome.runtime.onMessageExternal.addListener(
     } else if(request.meta == 'projectSaved') {
       // {meta:'projectSaved',blId,scratchId,version:blVersion}
       fetch(`${apiUrl}/projectSaved/${request.scratchId}/${request.version}`,{method:'POST'})
+    } else if(request.meta == 'projectSavedJSON') {
+      // {meta:'projectSaved',blId,scratchId,version:blVersion}
+      fetch(`${apiUrl}/projectSavedJSON/${request.blId}/${request.version}`,{method:'POST',body:request.json,headers:{'Content-Type': 'application/json'}})
     } else if(request.meta == 'myStuff') {
       sendResponse(await(await fetch(`${apiUrl}/userProjectsScratch/${await refreshUsername()}`)).json())
     } else if(request.meta == 'create') {
-      sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}?title=${encodeURIComponent(request.title)}`)).json())
+      // sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}?title=${encodeURIComponent(request.title)}`)).json())
+      sendResponse(await(await fetch(`${apiUrl}/newProject/${request.scratchId}/${await refreshUsername()}?title=${encodeURIComponent(request.title)}`,
+      {
+        method:'POST',
+        body:request.json,
+        headers:{'Content-Type': 'application/json'}
+      })).json())
     } else if(request.meta == 'shareWith') {
       fetch(`${apiUrl}/share/${request.id}/${request.username}/${uname}?pk=${request.pk}`,{
         method:'PUT'

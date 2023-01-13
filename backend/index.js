@@ -4,22 +4,23 @@
 // copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
 import os from 'os'
 import path from 'path';
-let privateKey = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
-let certificate = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
-
+// let privateKey = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
+// let certificate = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
+///////////
 import express from 'express'
 const app = express();
 import cors from 'cors'
-app.use(cors())
+app.use(cors({origin:'*'}))
+app.use(express.json())
 ////////////
-// import http from 'http'
-// const server = http.createServer(app);
+import http from 'http'
+const server = http.createServer(app);
 ////////////
-import https from 'https'
-const server = https.createServer({
-     key: privateKey,
-     cert: certificate,
-},app);
+// import https from 'https'
+// const server = https.createServer({
+//      key: privateKey,
+//      cert: certificate,
+// },app);
 ///////////
 
 import {Server} from 'socket.io'
@@ -184,12 +185,14 @@ io.on('connection', (client) => {
      })
 });
 
-app.get('/newProject/:scratchId/:owner',(req,res)=>{
+app.post('/newProject/:scratchId/:owner',(req,res)=>{
+     console.log('yeetee')
      if(sanitize(req.params.scratchId) == '') {res.send({err:'invalid scratch id'}); return}
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+     let json = req.body;
      if(!project) {
           console.log('creating new project from scratch project: ' + req.params.scratchId + " by " + req.params.owner + ' titled: ' + req.query.title)
-          project = sessionManager.newProject(req.params.owner,req.params.scratchId,req.query.title)
+          project = sessionManager.newProject(req.params.owner,req.params.scratchId,json,req.query.title)
           userManager.newProject(req.params.owner,project.id)
      }
      res.send({id:project.id})
@@ -214,30 +217,50 @@ app.get('/projectTitle/:id',(req,res)=>{
           res.send({title:project.project.title})
      }
 })
-app.post('/projectSaved/:scratchId/:version',(req,res)=>{
-     console.log('saving project, scratchId: ',req.params.scratchId, ' version: ',req.params.version)
-     let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+// app.post('/projectSaved/:scratchId/:version',(req,res)=>{
+//      console.log('saving project, scratchId: ',req.params.scratchId, ' version: ',req.params.version)
+//      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
+//      if(!project) {console.log('could not find project!!!');
+//      res.send('not as awesome awesome :)')
+//      return;
+// }
+//      project.scratchSaved(req.params.scratchId,parseFloat(req.params.version))
+//      res.send('awesome :)')
+// })
+app.post('/projectSavedJSON/:blId/:version',(req,res)=>{
+     let json = req.body;
+     console.log('saving project, blId: ',req.params.blId, ' version: ',req.params.version,'json:',json)
+     let project = sessionManager.getProject(req.params.blId)
      if(!project) {console.log('could not find project!!!');
-     res.send('not as awesome awesome :)')
-     return;
-}
-     project.scratchSaved(req.params.scratchId,parseFloat(req.params.version))
+          res.send('not as awesome awesome :)')
+          return;
+     }
+     project.scratchSavedJSON(json,parseFloat(req.params.version))
      res.send('awesome :)')
 })
-app.get('/whereTo/:username/:scratchId',(req,res)=>{
-     if (req.params.scratchId in sessionManager.scratchprojects) {
-          let project = sessionManager.getScratchToBLProject(res.params.scratchId)
-          let possibleProject = project.getOwnersProject(req.params.username)
-          if(possibleProject) {
-               res.send({scratchId:possibleProject.scratchId, blId:project.id, owner:possibleProject.owner})
-          } else {
-               res.send(sessionManager.scratchprojects[req.params.scratchId])
-          }
-
-     } else {
-          res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
-     }
+app.get('/projectJSON/:blId',(req,res)=>{
+     let blId = req.params.blId;
+     let project = sessionManager.getProject(blId);
+     if(!project) {res.send(404); return;}
+     let json = project.projectJson;
+     let version = project.jsonVersion
+     res.send({json,version});
+     return;
 })
+// app.get('/whereTo/:username/:scratchId',(req,res)=>{
+//      if (req.params.scratchId in sessionManager.scratchprojects) {
+//           let project = sessionManager.getScratchToBLProject(res.params.scratchId)
+//           let possibleProject = project.getOwnersProject(req.params.username)
+//           if(possibleProject) {
+//                res.send({scratchId:possibleProject.scratchId, blId:project.id, owner:possibleProject.owner})
+//           } else {
+//                res.send(sessionManager.scratchprojects[req.params.scratchId])
+//           }
+
+//      } else {
+//           res.send({err:('could not find blocklive project associated with scratch project id: ' + req.params.scratchId)})
+//      }
+// })
 app.get('/changesSince/:id/:version',(req,res)=>{
      let project = sessionManager.getProject(req.params.id)
      if(!project) {res.send([])}
@@ -250,18 +273,18 @@ app.put('/linkScratch/:scratchId/:blId/:owner',(req,res)=>{
      sessionManager.linkProject(req.params.blId,req.params.scratchId,req.params.owner,0)
      res.send('cool :)')
 })
-app.get('/projectInpoint/:blId',(req,res)=>{
-     let project = sessionManager.getProject(req.params.blId)
-     if(!project) {
-          // res.status(404)
-          res.send({err:'project with id: ' +req.params.blId+' does not exist'})
-     }
-     else {
-          let scratchId = project.scratchId
-          // let changes = project.project.getChangesSinceVersion(project.scratchVersion)
-          res.send({scratchId,scratchVersion:project.scratchVersion})
-     }
-})
+// app.get('/projectInpoint/:blId',(req,res)=>{
+//      let project = sessionManager.getProject(req.params.blId)
+//      if(!project) {
+//           // res.status(404)
+//           res.send({err:'project with id: ' +req.params.blId+' does not exist'})
+//      }
+//      else {
+//           let scratchId = project.scratchId
+//           // let changes = project.project.getChangesSinceVersion(project.scratchVersion)
+//           res.send({scratchId,scratchVersion:project.scratchVersion})
+//      }
+// })
 app.get('/userRedirect/:scratchId/:username',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      if(!project) {res.send({goto:'none'})}
@@ -274,9 +297,9 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
           }
      }
 })
-app.get('/projectInpoint',(req,res)=>{
-     res.send({err:"no project id specified"})
-})
+// app.get('/projectInpoint',(req,res)=>{
+//      res.send({err:"no project id specified"})
+// })
 
 app.get('/active/:blId',(req,res)=>{
      let usernames = sessionManager.getProject(req.params.blId)?.session.getConnectedUsernames()
