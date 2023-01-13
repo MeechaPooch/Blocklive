@@ -4,8 +4,8 @@
 // copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
 import os from 'os'
 import path from 'path';
-// let privateKey = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
-// let certificate = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
+let privateKey = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
+let certificate = fs.readFileSync( os.homedir() + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
 ///////////
 import express from 'express'
 const app = express();
@@ -13,14 +13,14 @@ import cors from 'cors'
 app.use(cors({origin:'*'}))
 app.use(express.json())
 ////////////
-import http from 'http'
-const server = http.createServer(app);
+// import http from 'http'
+// const server = http.createServer(app);
 ////////////
-// import https from 'https'
-// const server = https.createServer({
-//      key: privateKey,
-//      cert: certificate,
-// },app);
+import https from 'https'
+const server = https.createServer({
+     key: privateKey,
+     cert: certificate,
+},app);
 ///////////
 
 import {Server} from 'socket.io'
