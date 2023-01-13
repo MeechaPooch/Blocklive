@@ -15,10 +15,6 @@
             "matches":["https://scratch.mit.edu/mystuff*"],
             "css":[],
             "js":["injectors/mystuff.js"]
-        },{
-            "matches":["https://turbowarp.org/editor"],
-            "css":[],
-            "js":["injectors/turbowarp_editor.js"]
         }
     ],
     "background": {

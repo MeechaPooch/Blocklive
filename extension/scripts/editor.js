@@ -1,7 +1,7 @@
 console.log('CollabLive Editor Inject Running...')
 
-// var exId = 'gelkmljpoacdjkjkcfekkmgkpnmeomlk' // real
-var exId = 'pbhmkinipohcnagebjpbolglhfebplkm' // test
+// get exId
+const exId = document.querySelector(".blocklive-ext").dataset.exId
 
 //////////// TRAP UTILS ///////////
 
