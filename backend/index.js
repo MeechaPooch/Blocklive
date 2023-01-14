@@ -11,7 +11,7 @@ import express from 'express'
 const app = express();
 import cors from 'cors'
 app.use(cors({origin:'*'}))
-app.use(express.json())
+app.use(express.json({ limit: '5MB' }))
 ////////////
 // import http from 'http'
 // const server = http.createServer(app);
