@@ -1341,7 +1341,7 @@ function createTagElement(username,color) {
     text.style.fontFamily = "Scratch"
     text.setAttribute("fill", "white")
     text.style.fontSize = "1.25rem"
-    text.style.transform = "translate(1rem, -2rem)"
+    text.style.transform = "translate(.5rem, -1rem)"
     var newUsername = username
     if (username.length > 12) {
         newUsername = username.slice(0, 12)+"..."
@@ -1351,9 +1351,9 @@ function createTagElement(username,color) {
     var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
     rect.setAttribute("width", "12rem")
     rect.setAttribute("height", "2rem")
-    rect.setAttribute("rx", "1rem")
+    rect.setAttribute("rx", ".5rem")
     rect.classList.add("blockly-name-tag")
-    rect.style.transform = "translate(0.5rem, -3.2rem)"
+    rect.style.transform = "translate(0rem, -2.2rem)"
     rect.setAttribute("fill", "rgb(238, 0, 255)")
     return [text, rect]
 }
@@ -1728,7 +1728,7 @@ justify-items:center;
 
 .blocRect{
     outline-style: solid;
-    outline-width: 6px;
+    outline-width: 0px;
     border-radius: 20px;
 }
 /* .pinkOutline{
@@ -1745,6 +1745,15 @@ justify-items:center;
 .blocRect.turnedOn {
     outline-offset: 0px;
 }
+.blocRect path {
+    transition: stroke-width: .3s;
+}
+
+.turnedOn path:not([data-shapes="round"] > path) {
+    stroke: rgb(255, 41, 216);
+    stroke-width: 2.5px;
+}
+
 .blocRect.turnOff{
     animation-name: outlineUnselect;
     animation-duration: .25s;
