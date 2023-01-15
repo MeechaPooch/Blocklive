@@ -1338,7 +1338,7 @@ function createTagElement(username,color) {
     document.querySelector("rect.blockly-name-tag")?.remove()
     document.querySelector("text.blockly-name-tag")?.remove()
     var text = document.createElementNS("http://www.w3.org/2000/svg", "text")
-    text.style.fontFamily = "Scratch"
+    text.style.fontFamily = '"Helvetica Neue", Helvetica, Arial, sans-serif'
     text.setAttribute("fill", "white")
     text.style.fontSize = "1.25rem"
     text.style.transform = "translate(.5rem, -1rem)"
