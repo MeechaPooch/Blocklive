@@ -106,23 +106,12 @@ var blockliveServer
 
 let blId = ''
 blVersion = 0
-
-// get vm
-function scratchGUI() {
-    return window.vm ||
-(() => {
-  const app = document.querySelector("#app");
-  return app[
-    Object.keys(app).find((key) => key.startsWith("__reactContainer"))
-  ].child.stateNode.store.getState().scratchGui;
-})();
-}
-let vm = scratchGUI().vm
-
-scratchId = scratchGUI().projectState.projectId
+scratchId = location.pathname.split('/')[2] //TODO: use better method?
+// scratchId = '644532638'
 let pauseEventHandling = false
 let projectReplaceInitiated = false
 let onceProjectLoaded = []
+let vm
 let readyToRecieveChanges = false
 
 async function startBlocklive(creatingNew) {
@@ -147,13 +136,14 @@ async function onTabLoad() {
     // Get usable scratch id
     // await waitFor(()=>{!isNaN(parseFloat(location.pathname.split('/')[2]))})
     // scratchId = location.pathname.split('/')[2]
-    waitFor(()=>(!isNaN(parseFloat(scratchGUI().projectState.projectId)))).then(()=>{scratchId = scratchGUI().projectState.projectId})
+    waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2])))).then(()=>{scratchId = location.pathname.split('/')[2]})
 
     // trap vm and store
     let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
+    vm = reactInst.child.child.child.stateNode.props.vm;
     store = reactInst.child.child.child.stateNode.context.store
     addButtonInjectors()
-    blId = isNaN(parseFloat(scratchGUI().projectState.projectId)) ? '' : await getBlocklyId(scratchId);
+    blId = isNaN(parseFloat(location.pathname.split('/')[2])) ? '' : await getBlocklyId(scratchId);
     if(!blId) {
         chrome.runtime.sendMessage(exId,{meta:'callback'},(request) => { if(request.meta == 'initBlocklive') { 
             blId = request.blId; 
@@ -1933,8 +1923,8 @@ let blActivateClick = async ()=>{
     // save project in scratch
     store.dispatch({type: "scratch-gui/project-state/START_MANUAL_UPDATING"})
 
-    await waitFor(()=>(!isNaN(parseFloat(scratchGUI().projectState.projectId))))
-    scratchId = scratchGUI().projectState.projectId
+    await waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2]))))
+    scratchId = location.pathname.split('/')[2]
 
     let json = vm.toJSON()
 
