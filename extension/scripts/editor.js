@@ -1008,9 +1008,8 @@ function onBlockRecieve(d) {
 
             // highlight blocks
             if(['create','move','change'].indexOf(bEvent.type)) {
-                console.log(d)
                 let blockId = bEvent.blockId
-                outlineBlock(blockId)
+                outlineBlock(blockId, d.user)
             }
             // 'comment_create','comment_change','comment_move'
 
@@ -1336,23 +1335,27 @@ setInterval(postCursorPosition,2500)
 
 
 function createTagElement(username,color) {
-    let innerHTML = `
-               <div class="square" style="background-color: ${color}">
-            </div>
-
-            <div class="circle" style="background-color: ${color}; border: solid 2px ${color};">
-            </div>
-
-            <div class="usernameTag">
-              <div class="tagName" style="background-color: ${color};"">${username}</div> 
-            </div>
-            `
-
-    let tag = document.createElement('g')
-    // let tag = document.createElement(username)
-    tag.className ='tag'
-    tag.innerHTML = innerHTML;
-    return tag;
+    document.querySelector("rect.blockly-name-tag")?.remove()
+    document.querySelector("text.blockly-name-tag")?.remove()
+    var text = document.createElementNS("http://www.w3.org/2000/svg", "text")
+    text.style.fontFamily = "Scratch"
+    text.setAttribute("fill", "white")
+    text.style.fontSize = "1.25rem"
+    text.style.transform = "translate(1rem, -2rem)"
+    var newUsername = username
+    if (username.length > 12) {
+        newUsername = username.slice(0, 12)+"..."
+    }
+    text.textContent = newUsername
+    text.classList.add("blockly-name-tag")
+    var rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+    rect.setAttribute("width", "12rem")
+    rect.setAttribute("height", "2rem")
+    rect.setAttribute("rx", "1rem")
+    rect.classList.add("blockly-name-tag")
+    rect.style.transform = "translate(0.5rem, -3.2rem)"
+    rect.setAttribute("fill", "rgb(238, 0, 255)")
+    return [text, rect]
 }
 
 function setTag(tag, state) {
@@ -1392,10 +1395,12 @@ function selectBlock(blocks,username,state,color) {
     // let tag = blocks.querySelector(username + '.tag')
     if(!tag) {
         tag = createTagElement(username,color)
-        blocks.appendChild(tag)
+        blocks.appendChild(tag[1])
+        blocks.appendChild(tag[0])
     }
     setOutline(blocks,state,color)
-    setTag(tag,state,color)
+    setTag(tag[1],state,color)
+    setTag(tag[0],state,color)
 }
 
 
@@ -1403,18 +1408,18 @@ BL_BlockOutlinesUsers = {} // {username: {blockid?,styles:{}}}
 BL_BlockTimeouts = {} // {blockid:timeoutid}
 BL_BlockOutlinesBlocks = {} // {blockid:def}
 
-function resetBlock(outlineObj) {
+function resetBlock(outlineObj, username) {
     let block = Blockly.getMainWorkspace().getBlockById(outlineObj.blockId) 
         ?? Blockly.getMainWorkspace().getCommentById(outlineObj.blockId) 
     if(!block) {return}
     let element = block.getSvgRoot()
     element.style.transition = 'all 0.5s'
-    selectBlock(element,'ilhp10',false)
+    selectBlock(element, username,false)
 }
-function setBlockStyles(blockId,blockElem,newStyles) {
+function setBlockStyles(blockId,blockElem,newStyles, username) {
     let styles = {}
     blockElem.style.transition = 'transform 0.5s'
-    selectBlock(blockElem,'ilhp10',true,'rgb(238, 0, 255)')
+    selectBlock(blockElem, username,true,'rgb(238, 0, 255)')
     return {blockId,styles}
 }
 
@@ -1422,13 +1427,13 @@ function setBlockStyles(blockId,blockElem,newStyles) {
 
 function outlineBlock(blockId, username) {
     if(blockId in BL_BlockOutlinesBlocks) {
-        resetBlock(BL_BlockOutlinesBlocks[blockId])
+        resetBlock(BL_BlockOutlinesBlocks[blockId], username)
         delete BL_BlockOutlinesBlocks[blockId]
         clearTimeout(BL_BlockTimeouts[blockId])
         delete BL_BlockTimeouts[blockId]
     }
     if(username in BL_BlockOutlinesUsers) {
-        resetBlock(BL_BlockOutlinesUsers[username])
+        resetBlock(BL_BlockOutlinesUsers[username], username)
         delete BL_BlockOutlinesUsers[username]
     } 
     let workspace = Blockly.getMainWorkspace()
@@ -1439,12 +1444,12 @@ function outlineBlock(blockId, username) {
     let blockElem = block.getSvgRoot();
 
     const blockResetDef = setBlockStyles(blockId,blockElem,
-        {'outline':'solid 8px rgb(255,0,113)'}
+        {'outline':'solid 8px rgb(255,0,113)'}, username
     )
     BL_BlockOutlinesUsers[username] = blockResetDef;
     BL_BlockOutlinesBlocks[blockId] = blockResetDef;
     
-    let timeoutId = setTimeout(()=>{resetBlock(blockResetDef)},2500) // clear outline in 5 seconds
+    let timeoutId = setTimeout(()=>{resetBlock(blockResetDef, username)},2500) // clear outline in 5 seconds
     BL_BlockTimeouts[blockId] = timeoutId
 }
 
@@ -1745,8 +1750,18 @@ justify-items:center;
     animation-duration: .25s;
     animation-fill-mode:forwards;
 }
+
 .blocRect.turnedOff{
     outline:none;
+}
+
+.blockly-name-tag {
+    opacity: 1;
+    transition: opacity .3s;
+}
+
+.turnedOff > .blockly-name-tag {
+    opacity: 0;
 }
 
 @keyframes outlineSelect {
