@@ -43,9 +43,14 @@ class BlockliveProject {
         return this.changes.slice(Math.max(0,lastVersion-this.indexZeroVersion))
     }
 
-    trimChanges() {
-        this.indexZeroVersion += this.changes.length;
-        this.changes = []
+    // trim changes to lenght n
+    trimChanges(n) {
+        // bound n: 0 < n < total changes lenght
+        if(!n) {n=0}
+        n = Math.min(n,this.changes.length);
+
+        this.indexZeroVersion += this.changes.length - n;
+        this.changes = this.changes.slice(-n)
         // LOL DONT
         // for(let i=0; i<this.version-1; i++) {
         //     this.changes[i] = {r:1}
@@ -304,7 +309,7 @@ export default class SessionManager{
             }
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
-            project.project.trimChanges()
+            project.project.trimChanges(10)
         }
     } 
 
