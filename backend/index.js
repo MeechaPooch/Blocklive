@@ -123,7 +123,8 @@ saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive')
 
 async function saveLoop() {
      while(true) {
-          await save();
+          try{ await save(); } 
+          catch (e) { console.error(e) }
           await sleep(10000)
      }
 }
