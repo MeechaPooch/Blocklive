@@ -1,12 +1,7 @@
 // be mindful of:
 // numbers being passed as strings
 
-// copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
-import os from 'os'
-import path from 'path';
-let homedir = '/home/opc'
-let privateKey = fs.readFileSync( homedir + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
-let certificate = fs.readFileSync( homedir + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
+
 ///////////
 import express from 'express'
 const app = express();
@@ -14,14 +9,20 @@ import cors from 'cors'
 app.use(cors({origin:'*'}))
 app.use(express.json({ limit: '5MB' }))
 ////////////
-// import http from 'http'
-// const server = http.createServer(app);
+import http from 'http'
+const server = http.createServer(app);
 ////////////
-import https from 'https'
-const server = https.createServer({
-     key: privateKey,
-     cert: certificate,
-},app);
+// // copied from https://stackoverflow.com/questions/11804202/how-do-i-setup-a-ssl-certificate-for-an-express-js-server
+// import os from 'os'
+// import path from 'path';
+// let homedir = '/home/opc'
+// let privateKey = fs.readFileSync( homedir + path.sep + 'letsencrypt/live/spore.us.to/privkey.pem' );
+// let certificate = fs.readFileSync( homedir + path.sep + 'letsencrypt/live/spore.us.to/fullchain.pem' );
+// import https from 'https'
+// const server = https.createServer({
+//      key: privateKey,
+//      cert: certificate,
+// },app);
 ///////////
 
 import {Server} from 'socket.io'
@@ -35,6 +36,8 @@ import UserManager from './userManager.js'
 import fs from 'fs'
 import { ppid } from 'process';
 import sanitize from 'sanitize-filename';
+
+import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchprojectsPath, usersPath} from './filesave.js'
 // Load session and user manager objects
 
 
@@ -75,51 +78,13 @@ var userManager = UserManager.fromJSON({users:loadMapFromFolder('storage/users')
 function sleep(millis) {
      return new Promise(res=>setTimeout(res,millis))
 }
-if(!fs.existsSync('storage')) {
-     fs.mkdirSync('storage')
-}
-
-function saveMapToFolder(obj, dir) {
-     // if obj is null, return
-     if(!obj) {console.warn('tried to save null object to dir: ' + dir); return}
-     // make directory if it doesnt exist
-     if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
-     let promises = []
-     Object.entries(obj).forEach(entry=>{
-          entry[0] = sanitize(entry[0])
-          if(entry[0] == '') {return}
-          try{
-               fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));
-          } catch (e) {
-               console.error('Error when saving filename: ' + entry[0])
-               console.error(e)
-          }
-     })
-}
-function loadMapFromFolder(dir) {
-     let obj = {}
-     // check that directory exists, otherwise return empty obj
-     if(!fs.existsSync(dir)) {return obj}
-     // add promises
-     fs.readdirSync(dir,{withFileTypes:true})
-          .filter(dirent=>dirent.isFile())
-          .map(dirent=>([dirent.name,fs.readFileSync(dir + path.sep + dirent.name)]))
-          .forEach(entry=>{
-               try{
-                    obj[entry[0]] = JSON.parse(entry[1]) // parse file to object
-               } catch (e) {
-                    console.error('json parse error on file: ' + dir + path.sep + "\x1b[1m" /* <- bold */ + entry[0] + "\x1b[0m" /* <- reset */)
-               }
-     })
-     return obj
-}
 function save() {
-     saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive');
-     saveMapToFolder(sessionManager.scratchprojects,'storage/sessions/scratchprojects');
-     fs.writeFileSync('storage/sessions/lastId',(sessionManager.lastId).toString());
-     saveMapToFolder(userManager.users,'storage/users');
+     saveMapToFolder(sessionManager.blocklive,blocklivePath);
+     saveMapToFolder(sessionManager.scratchprojects,scratchprojectsPath);
+     fs.writeFileSync(lastIdPath,(sessionManager.lastId).toString());
+     saveMapToFolder(userManager.users,usersPath);
 }
-saveMapToFolder(sessionManager.blocklive,'storage/sessions/blocklive')
+saveMapToFolder(sessionManager.blocklive,blocklivePath)
 
 async function saveLoop() {
      while(true) {

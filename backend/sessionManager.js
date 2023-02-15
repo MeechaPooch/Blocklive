@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
+import { blocklivePath } from './filesave.js';
 
 class BlockliveProject {
 
@@ -267,6 +268,23 @@ export default class SessionManager{
         SessionManager.inst = this
     }
 
+    offloadProject(id) {
+        try{
+            let toSaveBlocklive = {id:this.blocklive[id]}
+            saveMapToFolder(toSaveBlocklive,blocklivePath);
+            delete this.blocklive[id]
+        } catch (e) {console.error(e)}
+    }
+    reloadProject(id) {
+        if(!(id in this.blocklive)) {
+            try {
+                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
+                let json = JSON.parse(file)
+                this.blocklive[sanitize(id)] = json
+            } catch (e) {console.error(e)}
+        }
+    }
+
     linkProject(id,scratchId,owner,version) {
         let project = this.getProject(id)
         if(!project) {return}
@@ -310,6 +328,7 @@ export default class SessionManager{
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
             project.project.trimChanges(10)
+            this.offloadProject(id)
         }
     } 
 
@@ -337,6 +356,7 @@ export default class SessionManager{
     }
 
     getProject(blId) {
+        reloadProject(blId)
         return this.blocklive[blId]
     }
 
