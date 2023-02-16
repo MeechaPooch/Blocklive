@@ -1192,13 +1192,22 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
         return ret
     }
 )
-// vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",
-//     (args)=>({h:args[1].height,w:args[1].width}),
-//     (data)=>{
-//         let args = data.args;
-//         args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
-//         return args
-//     })
+vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",null,(_a,_b,data)=>{
+    let costumeIndex = getSelectedCostumeIndex()
+    // console.log(data)
+    // update paint editor if reciever is editing the costume
+    if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+        // todo use some other method of refreshing the canvas
+        document.getElementById('react-tabs-4').click()
+        document.getElementById('react-tabs-2').click()
+    }
+},
+    (args)=>({height:args[1].height,width:args[1].width}),
+    (data)=>{
+        let args = data.args;
+        args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
+        return args
+    })
 vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
     let costumeIndex = getSelectedCostumeIndex()
     // console.log(data)
