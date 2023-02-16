@@ -95,7 +95,9 @@ class BlockliveSess {
         this.connectedClients[client.id()] = client
     }
     removeClient(id) {
+        let username = this.connectedClients[id]?.username
         delete this.connectedClients[id]
+        return username
     }
 
     getClientFromSocket(socket) {
@@ -326,7 +328,7 @@ export default class SessionManager{
     leave(socket,id,voidMap) {
         let project = this.getProject(id)
         if(!project) {return}
-        project.session.removeClient(socket.id)
+        let username = project.session.removeClient(socket.id)
         if(socket.id in this.socketMap && !voidMap) {
             let array = this.socketMap[socket.id].projects
 
