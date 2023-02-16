@@ -285,7 +285,8 @@ export default class SessionManager{
             try {
                 let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
                 let json = JSON.parse(file)
-                this.blocklive[sanitize(id)] = json
+                let project = ProjectWrapper.fromJSON(entry[1]);
+                this.blocklive[sanitize(id)] = project
             } catch (e) {console.error(e)}
         }
     }
