@@ -116,7 +116,7 @@ class BlockliveSess {
     sendChangeFrom(socket,msg,excludeVersion) {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
-                console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
+                // console.log('sending message to: ' + client.username + " | type: " + msg.type)
                 client.trySendMessage({
                 type:'projectChange',
                 blId:this.id,
@@ -313,6 +313,7 @@ export default class SessionManager{
         if(this.socketMap[socket.id].projects.indexOf(project.id) == -1){
             this.socketMap[socket.id].projects.push(project.id)
         }
+        console.log(username + ' joined | blId: ' + id + ', scratchId: ' + project.scratchId)
     }
     leave(socket,id,voidMap) {
         let project = this.getProject(id)
@@ -330,6 +331,7 @@ export default class SessionManager{
             project.project.trimChanges(10)
             this.offloadProject(id)
         }
+        console.log(username + ' LEFT | blId: ' + id + ', scratchId: ' + project.scratchId)
     } 
 
     disconnectSocket(socket) {
