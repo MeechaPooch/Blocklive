@@ -203,6 +203,11 @@ class ProjectWrapper {
     //     console.log('linkedWith length', this.linkedWith.length)
     //     this.linkedWith.find(proj=>proj.scratchId == id).version = version
     // }
+
+    isSharedWith(username) {
+        return username==this.owner || this.sharedWith.includes(username)
+    }
+
     scratchSavedJSON(json,version) {
         if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
         this.projectJson = json
@@ -361,7 +366,6 @@ export default class SessionManager{
         this.reloadProject(blId)
         return this.blocklive[blId]
     }
-
     shareProject(id,user,pk) {
         console.log(`sessMngr: sharing ${id} with ${user} (usrId ${pk})`)
         let project = this.getProject(id)

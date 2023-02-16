@@ -260,8 +260,10 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
           let ownedProject = project.getOwnersProject(req.params.username)
           if(!!ownedProject) {
                res.send({goto:ownedProject.scratchId})
-          } else {
+          } else if(project.isSharedWith(req.params.username)) {
                res.send({goto:'new', blId:project.id})
+          } else {
+               res.send({goto:'none',notshared:true})
           }
      }
 })
