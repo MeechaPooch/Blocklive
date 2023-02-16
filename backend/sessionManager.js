@@ -358,7 +358,7 @@ export default class SessionManager{
     }
 
     getProject(blId) {
-        reloadProject(blId)
+        this.reloadProject(blId)
         return this.blocklive[blId]
     }
 
