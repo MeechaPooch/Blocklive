@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
+import { blocklivePath } from './filesave.js';
 
 class BlockliveProject {
 
@@ -115,7 +116,7 @@ class BlockliveSess {
     sendChangeFrom(socket,msg,excludeVersion) {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
-                console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
+                // console.log('sending message to: ' + client.username + " | type: " + msg.type)
                 client.trySendMessage({
                 type:'projectChange',
                 blId:this.id,
@@ -267,6 +268,23 @@ export default class SessionManager{
         SessionManager.inst = this
     }
 
+    offloadProject(id) {
+        try{
+            let toSaveBlocklive = {id:this.blocklive[id]}
+            saveMapToFolder(toSaveBlocklive,blocklivePath);
+            delete this.blocklive[id]
+        } catch (e) {console.error(e)}
+    }
+    reloadProject(id) {
+        if(!(id in this.blocklive)) {
+            try {
+                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
+                let json = JSON.parse(file)
+                this.blocklive[sanitize(id)] = json
+            } catch (e) {console.error(e)}
+        }
+    }
+
     linkProject(id,scratchId,owner,version) {
         let project = this.getProject(id)
         if(!project) {return}
@@ -295,6 +313,7 @@ export default class SessionManager{
         if(this.socketMap[socket.id].projects.indexOf(project.id) == -1){
             this.socketMap[socket.id].projects.push(project.id)
         }
+        console.log(username + ' joined | blId: ' + id + ', scratchId: ' + project.scratchId)
     }
     leave(socket,id,voidMap) {
         let project = this.getProject(id)
@@ -310,7 +329,9 @@ export default class SessionManager{
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
             project.project.trimChanges(10)
+            this.offloadProject(id)
         }
+        console.log(username + ' LEFT | blId: ' + id + ', scratchId: ' + project.scratchId)
     } 
 
     disconnectSocket(socket) {
@@ -337,6 +358,7 @@ export default class SessionManager{
     }
 
     getProject(blId) {
+        reloadProject(blId)
         return this.blocklive[blId]
     }
 
