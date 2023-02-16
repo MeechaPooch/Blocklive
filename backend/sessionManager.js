@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
-import { blocklivePath } from './filesave.js';
+import { blocklivePath, saveMapToFolder } from './filesave.js';
 
 class BlockliveProject {
 
@@ -287,7 +287,9 @@ export default class SessionManager{
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
                 this.blocklive[sanitize(id)] = project
-            } catch (e) {console.error(e)}
+            } catch (e) {
+                console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
+            }
         }
     }
 
