@@ -44,7 +44,8 @@ import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchp
 /// LOAD SESSION MANAGER
 // todo: build single recursive directory to object parsing function
 let sessionsObj = {}
-sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
+// sessionsObj.blocklive = loadMapFromFolder('storage/sessions/blocklive');
+sessionsObj.blocklive = {};
 sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
 console.log(sessionsObj)
