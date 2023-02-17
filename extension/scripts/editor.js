@@ -70,7 +70,7 @@ var isConnected = false;
 function liveMessage(message,res) {
     reconnectIfNeeded()
     let msg = message
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap") {
         blVersion++
     }
     port.postMessage(message,res)
@@ -284,6 +284,8 @@ setInterval(reconnectIfNeeded,1000)
                 blVersion++
                 replaceBlockly(msg)
             }
+        } else if(msg.meta == 'vm.updateBitmap') { // TODO: Do this better-- pass in changes from bg script
+            await updateBitmap(msg)
         } else if(msg.meta=='yourVersion') {
             console.log('version ponged: ' + msg.version)
             blVersion = msg.version
@@ -1032,7 +1034,10 @@ function onBlockRecieve(d) {
 }
 
 let oldTargUp = vm.emitTargetsUpdate.bind(vm)
+let etuListeners = []
 vm.emitTargetsUpdate = function(...args) {
+    etuListeners.forEach(e=>e?.())
+    etuListeners = []
     if(pauseEventHandling) {return}
     else {oldTargUp(...args)}
 }
@@ -1192,27 +1197,28 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
         return ret
     }
 )
-vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",null,(_a,_b,data)=>{
-    let costumeIndex = getSelectedCostumeIndex()
-    // console.log(data)
-    // update paint editor if reciever is editing the costume
-    if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
-        // todo use some other method of refreshing the canvas
-        document.getElementById('react-tabs-4').click()
-        document.getElementById('react-tabs-2').click()
-    }
-},
-    (args)=>({height:args[1].height,width:args[1].width}),
-    (data)=>{
-        let args = data.args;
-        args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
-        return args
-    })
+// vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",null,(_a,_b,data)=>{
+//     let costumeIndex = getSelectedCostumeIndex()
+//     // console.log(data)
+//     // update paint editor if reciever is editing the costume
+//     if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+//         // todo use some other method of refreshing the canvas
+//         document.getElementById('react-tabs-4').click()
+//         document.getElementById('react-tabs-2').click()
+//     }
+// },
+//     (args)=>({height:args[1].height,width:args[1].width}),
+//     (data)=>{
+//         let args = data.args;
+//         args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
+//         return args
+//     })
 vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
     let costumeIndex = getSelectedCostumeIndex()
     // console.log(data)
     // update paint editor if reciever is editing the costume
-    if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+    // todo: instead of checking with vm.editingTarget, use _a or _b
+    if(targetToName(_a) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
         let costume = vm.editingTarget.getCostumes()[costumeIndex]
         let paper = getPaper()
         console.log('switching paper costume')
@@ -1226,6 +1232,84 @@ vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
             paper.props.zoomLevelId)
     }
 })
+let oldUpdateBitmap = vm.updateBitmap
+vm.updateBitmap = (...args)=>{
+    // args: costumeIndex, bitmap, rotationCenterX, rotationCenterY, bitmapResolution
+    oldUpdateBitmap.bind(vm)(...args);
+    // vm runs emitTargetsUpdate after creating new asset
+    etuListeners.push(async()=>{
+        let target = BL_UTILS.targetToName(vm.editingTarget);
+
+        let costumeIndex = args[0]
+        let bitmapResolution = args[4]
+        let costume = vm.editingTarget.getCostumes()[costumeIndex];
+        let sendCostume = JSON.parse(JSON.stringify(costume))
+        delete sendCostume.asset
+        console.log(costume)
+        let asset = costume.asset;
+    
+        let bitmap = args[1]
+        let w=bitmap.sourceWidth === 0 ? 0 : bitmap.width;
+        let h=bitmap.sourceHeight === 0 ? 0 : bitmap.height;
+
+        // send costume to scratch servers
+        let stored = await vm.runtime.storage.store(asset.assetType,asset.dataFormat,asset.data,asset.assetId);
+        // get costume info to send
+
+        liveMessage({meta:'vm.updateBitmap',costume:sendCostume,target,costumeIndex,assetType:asset.assetType,h,w,bitmapResolution})
+    })
+}
+async function updateBitmap(msg) {
+    console.log(msg)
+    console.log(msg.costume.assetId)
+    let target = BL_UTILS.nameToTarget(msg.target)
+    let costume = target.getCostumes()[msg.costumeIndex]
+    asset = await vm.runtime.storage.load(msg.assetType,msg.costume.assetId,msg.costume.dataFormat)
+
+    costume.asset = asset
+        Object.entries(msg.costume).forEach(entry=>{
+            costume[entry[0]] = entry[1]
+        }
+    )
+
+    vm.emitTargetsUpdate()
+
+    // update paper 
+    let selectedCostumeIndex = getSelectedCostumeIndex()
+    if(BL_UTILS.targetToName(vm.editingTarget) == msg.target && selectedCostumeIndex != -1 && msg.costumeIndex == selectedCostumeIndex) {
+        let costume = vm.editingTarget.getCostumes()[msg.costumeIndex]
+        let paper = getPaper()
+        console.log('switching paper costume')
+        if(!paper) {return;}
+        paper.switchCostume(
+            costume.dataFormat,
+            costume.asset.encodeDataURI(),
+            costume.rotationCenterX,
+            costume.rotationCenterY,
+            paper.props.zoomLevelId,
+            paper.props.zoomLevelId)
+    }
+
+    // image = new ImageData(new Uint8ClampedArray(asset.data.buffer),msg.w,msg.h)
+    // console.log(image)
+
+    /// TODO GET BITMAP SHOWING UP IN RENDER
+    // const tmpCanvas = document.createElement('canvas');
+    // tmpCanvas.width = msg.w;
+    // tmpCanvas.height = msg.h;
+    // const tmpCtx = tmpCanvas.getContext('2d');
+    // const imageData = tmpCtx.createImageData(msg.w, msg.h);
+    // imageData.data.set(asset.data);
+    // tmpCtx.putImageData(imageData, 0, 0);
+    // console.log(imageData)
+
+    // vm.runtime.renderer.updateBitmapSkin(
+    //     costume.skinId,
+    //     tmpCanvas,
+    //     msg.bitmapResolution,
+    //     [costume.rotationCenterX / msg.bitmapResolution, costume.rotationCenterY / msg.bitmapResolution]
+    // );
+}
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 // vm.updateSvg = proxy(vm.updateSvg,"updatesvg",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 newTargetEvents = {} // targetName => [events...] //todo make let statement
