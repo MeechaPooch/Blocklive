@@ -1797,7 +1797,8 @@ function postCursorPosition() {
     let scrollY = workspace.scrollY
     let scale = workspace.scale
     let targetName = BL_UTILS.targetToName(vm.editingTarget)
-    let cursor = {scrollX,scrollY,scale,targetName}
+    let editorTab = store?.getState()?.scratchGui?.editorTab?.activeTabIndex
+    let cursor = {scrollX,scrollY,scale,targetName,editorTab}
     liveMessage({type:'setCursor',cursor})
 }
 setInterval(postCursorPosition,2500)
@@ -2525,12 +2526,15 @@ async function displayActive(users) {
             }
 
             let workspace = BL_UTILS.getWorkspace()
+            store.getState().scratchGui.editorTab.activeTabIndex = u.cursor.editorTab
             if(u.cursor.scale && u.cursor.scrollX && u.cursor.scrollY) {
             if(!BL_UTILS.getWorkspace().startDragMetrics) {
                 BL_UTILS.getWorkspace().startDragMetrics = BL_UTILS.getWorkspace().scrollbar.oldHostMetrics_
             }
             workspace.setScale(u.cursor.scale);
             workspace.scroll(u.cursor.scrollX,u.cursor.scrollY);}
+
+            vm.emitTargetsUpdate();
         }
 
         // setInterval(()=>{

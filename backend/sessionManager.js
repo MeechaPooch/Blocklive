@@ -82,7 +82,7 @@ class BlockliveClient {
     username
     socket
 
-    cursor = {targetName:null,scale:1,scrollX:0,scrollY:0,cursorX:0,cursorY:0}
+    cursor = {targetName:null,scale:1,scrollX:0,scrollY:0,cursorX:0,cursorY:0,editorTab:0}
 
     constructor(socket, username) {
         this.socket = socket
