@@ -242,6 +242,10 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       playChange(blId,msg,port)
       // send to websocket
       socket.send({type:'setTitle',blId,msg})
+    } else if (msg.meta == 'chat') {
+      playChange(blId,msg,port)
+      // send to websocket
+      socket.send({type:'chat',blId,msg})
     } else {
       msg.blId = blId ?? msg.blId
       socket.send(msg)

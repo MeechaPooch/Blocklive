@@ -5,39 +5,10 @@
         <bl-chat-head id="bl-chat-banner">
             <bl-chat-head-text>Live Chat</bl-chat-head-text>
             <bl-chat-head-filler></bl-chat-head-filler>
-            <bl-chat-head-x>+</bl-chat-head-x>
+            <bl-chat-head-x onclick="toggleChat(false)">+</bl-chat-head-x>
         </bl-chat-head>
         <bl-chat-msgs>
-
             <bl-msg-space></bl-msg-space>
-
-       
-            <bl-msg-sender>
-                <bl-msg-sender-img></bl-msg-sender-img>
-                <bl-msg-sender-name>ilhp10</bl-msg-sender-name>
-            </bl-msg-sender>
- 
-
-         <bl-msg>
-            whats up
-         </bl-msg>
-         <bl-msg>
-            i was thinking we should add some cooler fire effects with clones and stuff
-         </bl-msg>
-
-         <bl-msg>
-          thotz?
-         </bl-msg>
-
-         <bl-msg-sender class="mymsg">
-            <bl-msg-sender-img></bl-msg-sender-img>
-            <bl-msg-sender-name>PokeNinjaGuy</bl-msg-sender-name>
-        </bl-msg-sender>
-
-        <bl-msg class="mymsg">
-            ye sure!
-           </bl-msg>
-
         </bl-chat-msgs>
         <bl-chat-send>
             <bl-chat-input contenteditable="true"></bl-chat-input>
@@ -45,6 +16,11 @@
         </bl-chat-send>
 
       </bl-chat>
+
+
+      <div class="bl-chat-toggle-button">
+    <span class="textbubbleemoji" onclick="toggleChat()">💬</span>
+      </div>
     </body>
 </html>
 
@@ -53,6 +29,26 @@
 html{
     background-image: url(https://www.snapfiles.com/screenfiles/scratch.png);
 }
+.textbubbleemoji{
+    font-size: 27px;
+}
+.bl-chat-toggle-button{
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width:33.59px;
+    height:33.59px;
+    border-radius: 100%;
+    border: solid rgb(203, 203, 203) 3px;
+    background-color: rgb(255, 255, 255);
+    transition: 0.2s;
+}
+.bl-chat-toggle-button:hover{
+    box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8);
+}
+
+
 .mymsg{
     align-self: flex-end;
 }
@@ -167,6 +163,10 @@ bl-chat-head-x{
     background-color: rgb(200, 1, 104);
     margin-right:6px;
     color:white;
+    transition: 0.2s scale;
+}
+bl-chat-head-x:hover{
+    scale: 112%;
 }
 bl-chat-head-filler{
     display: flex;
@@ -208,13 +208,14 @@ bl-chat{
 
     box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.75);
 
+
 }
 </style>
 
 <script>
     let chatbox = document.querySelector('bl-chat')
 dragElement(chatbox)
-// chatbox.style.scale = '90    %'
+// chatbox.style.scale = '80%'
 
 
 

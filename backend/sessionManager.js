@@ -169,6 +169,7 @@ class ProjectWrapper {
             linkedWith:this.linkedWith,
             owner:this.owner,
             sharedWith:this.sharedWith,
+            chat:this.chat,
         }
         return ret;
     }
@@ -204,6 +205,8 @@ class ProjectWrapper {
     owner
     sharedWith = []
 
+    chat = []
+
     constructor(owner,scratchId,projectJson,blId,title) {
         if(owner == '&') {return}
         this.id = blId
@@ -213,6 +216,15 @@ class ProjectWrapper {
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
+    }
+
+
+    onChat(msg,socket) {
+        this.chat.push(msg.msg)
+        this.session.sendChangeFrom(socket,msg,true)
+    }
+    getChat() {
+        return this.chat
     }
 
     // scratchSaved(id,version) {

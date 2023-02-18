@@ -1,4 +1,5 @@
 console.log('CollabLive Editor Inject Running...')
+apiUrl = 'https://spore.us.to:4000'
 
 // get exId
 const exId = document.querySelector(".blocklive-ext").dataset.exId
@@ -119,6 +120,7 @@ async function startBlocklive(creatingNew) {
     liveMessage({meta:"myId",id:blId})
     activateBlocklive()
     injectLoadingOverlay()
+    addChat()
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
@@ -301,6 +303,8 @@ setInterval(reconnectIfNeeded,1000)
             if(readyToRecieveChanges){getAndPlayNewChanges()}
         } else if(msg.meta == 'version++') {
             blVersion++;
+        } else if(msg.meta == 'chat') {
+            addMessage(msg.msg)
         }
         } catch (e) {console.error(e)}
     }
@@ -1984,7 +1988,6 @@ let shareDropdown = `
 
 `
 let shareScript = `{
-let apiUrl = 'https://spore.us.to:4000'
 
 opening = false
 let result = document.querySelector('#resultName')
@@ -2580,7 +2583,8 @@ function reloadOnlineUsers() {
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
         blCursors = res
         clearActive()
-        displayActive(res)
+        try{displayActive(res)}catch(e){console.error(e)}
+        addChatButton()
     })
 }
 
@@ -2678,4 +2682,341 @@ function injectLoadingOverlay() {
     loadingOverlay.innerHTML = overlayHTML
     document.body.appendChild(loadingOverlay)
 }    catch (e) {console.error(e)}
+}
+
+
+
+let chatCss = `.textbubbleemoji{
+    font-size: 27px;
+}
+.bl-chat-toggle-button{
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width:33.59px;
+    height:33.59px;
+    border-radius: 100%;
+    border: solid rgb(203, 203, 203) 3px;
+    background-color: rgb(255, 255, 255);
+    transition: 0.2s;
+
+    margin-left:10px;
+}
+.bl-chat-toggle-button:hover{
+    box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8);
+}
+
+
+.mymsg{
+    align-self: flex-end;
+}
+bl-msg-space{height:20px}
+bl-msg{
+    border:solid rgba(0, 0, 0, 0.189);
+    border-radius: 10px;
+    padding: 5px;
+    max-width: 80%;
+    margin-left: 15px;
+    background-color: rgb(255, 255, 255);
+}
+bl-msg-sender-name{
+    font-style:italic;
+    color:rgb(73, 73, 73);
+}
+bl-msg-sender{
+    display: flex;
+    flex-direction: row;
+    gap:5px;
+}
+bl-msg-sender-img{
+    background-image: url(https://uploads.scratch.mit.edu/get_image/user/5097744_60x60.png);
+    background-size: contain;
+    width:25px;
+    height:25px;
+    border-radius: 10px;
+}
+
+bl-chat-send-button{
+    user-select: none;
+    min-width: 34px;
+    height: 34px;
+    line-height: 35px;
+    background-color: rgb(255, 54, 171);
+    color:white;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.4);
+
+    transition: 0.2s scale;
+}
+bl-chat-send-button:hover{
+    scale: 112%;
+}
+bl-chat-send{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin:10px;
+    margin-top:1px;
+    gap:7px;
+    /* min-height:24px; */
+    /* max-height:150px; */
+}
+
+bl-chat-input{
+    flex-grow: 1;
+    border-radius: 16px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.4);
+    max-height:150px;
+    min-height:40px;
+    overflow-y: scroll;
+    text-overflow: clip;
+    overflow-wrap: break-word;
+
+
+    font-size:17px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    padding:6px;
+    background-color: white;
+
+    /* text-align: center; */
+}
+bl-chat-input:focus{
+    outline: none;
+}
+
+bl-chat-msgs{
+    display: flex;
+    flex-shrink:1;
+    flex-direction: column;
+    padding:10px;
+    overflow-y: scroll;
+    /* height:400px; */
+    flex-grow:1;
+
+    /* min-height: 15px; */
+    /* width: 100%; */
+    padding-top:5px;
+    font-family: Tahoma, sans-serif;
+    font-size: 20px;
+    line-height: 20px;
+    color:rgb(38, 38, 38);
+    gap:3px;
+    align-items: flex-start;
+}
+bl-chat-msgs::-webkit-scrollbar { width: 0 !important }
+bl-chat-msgs { overflow: -moz-scrollbars-none; }
+
+bl-chat-head-x{
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 22px;
+    transform: rotate(45deg);
+    font-weight: bold;
+
+    border-radius: 100%;
+    padding:5px;
+    width:20px;
+    height:20px;
+    line-height: 16px;
+    text-align: center;
+    background-color: rgb(200, 1, 104);
+    margin-right:6px;
+    color:white;
+    transition: 0.2s scale;
+}
+bl-chat-head-x:hover{
+    scale: 112%;
+}
+bl-chat-head-filler{
+    display: flex;
+    flex-grow:1;
+}
+bl-chat-head-text{
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    margin-left: 20px;
+    color:white;
+}
+bl-chat-head {
+    user-select: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    height:45px;
+    flex-shrink:0;
+    /* min-height:45px; */
+    background-color: rgb(255, 0, 157);
+    border-radius: 7px;
+    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.5);
+}
+
+bl-chat{
+    z-index:1000;
+    position: absolute;
+    border-radius: 20px;
+
+    display:flex;
+    width:215px;
+    height:302px;
+    min-width:176px;
+    min-height:176px;
+    flex-direction: column;
+
+    background-color: rgb(248, 248, 248);
+
+    overflow: hidden;
+
+    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.75);
+    resize: both;
+
+}`
+function injectChatCSS() {
+    try{
+        let styleInj = document.createElement('style')
+        styleInj.innerHTML = chatCss
+        document.head.appendChild(styleInj)
+}    catch (e) {console.error(e)}
+}
+function addChat() {
+try{
+    injectChatCSS()
+
+    let blChat = document.createElement('bl-chat')
+    blChat.id = 'bl-chat'
+    blChat.innerHTML = blChatHTML
+    blChat.style.visibility = 'hidden'
+    document.body.appendChild(blChat)
+
+    let chatbox = document.querySelector('bl-chat')
+    dragElement(chatbox)
+
+    document.querySelector('bl-chat-input').addEventListener('keydown',(e)=>{
+        if(e.keyCode == 13) {
+            postMessageBubble()
+            e.preventDefault()
+        }
+    })
+    document.querySelector('bl-chat-send-button').onclick = postMessageBubble
+    chatbox.style.scale = '80%'
+
+    //// get chat
+
+    fetch(apiUrl + '/chat/' + blId).then(async res=>{
+        let chatHistory = await res.json()
+        chatHistory.forEach(chat=>addMessage(msg))
+    })
+} catch (e) {console.error(e)}
+}
+function addChatButton() {
+    try{
+        let chatElem = document.createElement('div')
+        chatElem.classList.add('bl-chat-toggle-button')
+        chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()">💬</span>`
+        document.getElementById('blUsersPanel').appendChild(chatElem)
+    }catch(e) {console.error(e)}
+}
+
+let blChatHTML = `
+<bl-chat-head id="bl-chat-banner">
+    <bl-chat-head-text>Blocklive Chat</bl-chat-head-text>
+    <bl-chat-head-filler></bl-chat-head-filler>
+    <bl-chat-head-x onclick="toggleChat(false)">+</bl-chat-head-x>
+</bl-chat-head>
+<bl-chat-msgs>
+    <bl-msg-space></bl-msg-space>
+</bl-chat-msgs>
+<bl-chat-send>
+    <bl-chat-input contenteditable="true"></bl-chat-input>
+    <bl-chat-send-button>⬆</bl-chat-send-button>
+</bl-chat-send>`
+
+
+
+function dragElement(elmnt) {
+  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  if (document.getElementById(elmnt.id + "-banner")) {
+    // if present, the header is where you move the DIV from:
+    document.getElementById(elmnt.id + "-banner").onmousedown = dragMouseDown;
+  } else {
+    // otherwise, move the DIV from anywhere inside the DIV:
+    elmnt.onmousedown = dragMouseDown;
+  }
+
+  function dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // get the mouse cursor position at startup:
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    // call a function whenever the cursor moves:
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // calculate the new cursor position:
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    // set the element's new position:
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    // stop moving when mouse button is released:
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+// msg: {text, sender}
+lastSender = ''
+uname = 'ilhp10'
+function addMessage(msg) {
+    let msgsElem = document.querySelector('bl-chat-msgs')
+    if(msg.sender != lastSender) {
+        let unameElem = document.createElement('bl-msg-sender')
+        unameElem.innerHTML = `
+        <bl-msg-sender-img></bl-msg-sender-img>
+        <bl-msg-sender-name>${msg.sender}</bl-msg-sender-name>`
+        lastSender = msg.sender
+        if(msg.sender == uname) {unameElem.classList.add('mymsg')}
+        msgsElem.appendChild(unameElem)
+    }
+    let msgElem = document.createElement('bl-msg')
+    msgElem.innerText = msg.text 
+    if(msg.sender == uname) {msgElem.classList.add('mymsg')}
+    msgsElem.appendChild(msgElem)
+
+    msgsElem.scrollTop = msgsElem.scrollHeight;
+
+}
+function postMessageBubble() {
+    let inputElem = document.querySelector('bl-chat-input')
+    let messageText = inputElem.innerText
+    messageText = messageText.trim()
+    if(messageText=='') {return}
+
+    
+    let messageObj = {sender:uname,text:messageText};
+    addMessage(messageObj);
+    liveMessage({meta:'chat',msg:messageObj})
+
+    inputElem.innerText = ''
+}
+
+function toggleChat(state) {
+    let chatbox = document.querySelector('bl-chat')
+    if(state===undefined) {
+        chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
+    } else {
+        chatbox.style.visibility = state ? 'visible' : 'hidden'
+    }
 }
