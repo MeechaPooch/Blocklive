@@ -22,7 +22,7 @@ export function saveMapToFolder(obj, dir) {
     if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
     let promises = []
     Object.entries(obj).forEach(entry=>{
-         entry[0] = sanitize(entry[0])
+         entry[0] = sanitize(entry[0] + '')
          if(entry[0] == '') {return}
          try{
               fs.writeFileSync(dir+path.sep+entry[0],JSON.stringify(entry[1]));

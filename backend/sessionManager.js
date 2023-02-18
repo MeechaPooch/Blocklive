@@ -303,10 +303,10 @@ export default class SessionManager{
     reloadProject(id) {
         if(!(id in this.blocklive)) {
             try {
-                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
+                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id + ''))
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
-                this.blocklive[sanitize(id)] = project
+                this.blocklive[sanitize(id + '')] = project
             } catch (e) {
                 console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
             }
@@ -403,7 +403,7 @@ export default class SessionManager{
         project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase())).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
             delete this.scratchprojects[proj.scratchId]
-            let projectPatch = 'scratchprojects' + path.sep + sanitize(proj.scratchId);
+            let projectPatch = 'scratchprojects' + path.sep + sanitize(proj.scratchId + '');
             if(fs.existsSync(projectPatch)) {
                 try{ fs.rmSync(projectPatch) } catch(e){console.error(e)} 
             }

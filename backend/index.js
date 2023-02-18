@@ -155,7 +155,7 @@ io.on('connection', (client) => {
 
 app.post('/newProject/:scratchId/:owner',(req,res)=>{
      console.log('yeetee')
-     if(sanitize(req.params.scratchId) == '') {res.send({err:'invalid scratch id'}); return}
+     if(sanitize(req.params.scratchId + '') == '') {res.send({err:'invalid scratch id'}); return}
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
      let json = req.body;
      if(!project) {
