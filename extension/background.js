@@ -203,7 +203,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     }
 
     console.log(msg)
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap") {
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap" ||msg.meta=='version++') {
       let blIdd = portIds[port.name]
       
       playChange(blIdd,msg,port)
