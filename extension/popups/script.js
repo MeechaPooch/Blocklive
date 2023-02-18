@@ -1,4 +1,22 @@
-chrome.runtime.sendMessage({meta:"getUsername"},function(username){
+chrome.runtime.sendMessage({meta:"getUsernamePlus"},function(info){
+    let username = info.uname
+
+
+    function setSignedin(info) {
+    if(info.signedin) {
+        document.querySelector('#loggedout').style.display = 'none'
+        document.querySelector('#normal').style.display = 'unset'
+    } else {
+        document.querySelector('#loggedout').style.display = 'unset'
+        document.querySelector('#normal').style.display = 'none'
+    }
+    }
+    setSignedin(info)
+
+setTimeout(()=>{chrome.runtime.sendMessage({meta:"getUsernamePlus"},setSignedin)},1000)
+
+    document.querySelector('#listtitle').innerHTML = username + "'s Allow&nbsp;List"
+
 
     let alreadyAdded = {}
 

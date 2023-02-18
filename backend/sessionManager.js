@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
+import { blocklivePath, saveMapToFolder } from './filesave.js';
 
 class BlockliveProject {
 
@@ -34,18 +35,41 @@ class BlockliveProject {
     }
 
     recordChange(change) {
+        this.trimBitmapChanges(change)
         this.changes.push(change)
         this.version++;
         this.lastTime = Date.now()
+    }
+
+    // removes previous bitmap updates of same sprite to save loading time
+    trimBitmapChanges(newchange) {
+        if(newchange.meta == "vm.updateBitmap") {
+            let target = newchange.target
+            let costumeIndex = newchange.costumeIndex
+            let limit = 20;
+            for(let i=changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
+                let change = changes[i];
+                let spn = change?.data?.name
+                if(spn == "reordercostume" || spn == 'renamesprite') {break}
+                if(change.meta == "vm.updateBitmap" && change.target == target && change.costumeIndex == costumeIndex) {
+                    changes[i] = {meta:'version++'}
+                }
+            }
+        }
     }
 
     getChangesSinceVersion(lastVersion) {
         return this.changes.slice(Math.max(0,lastVersion-this.indexZeroVersion))
     }
 
-    trimChanges() {
-        this.indexZeroVersion += this.changes.length;
-        this.changes = []
+    // trim changes to lenght n
+    trimChanges(n) {
+        // bound n: 0 < n < total changes lenght
+        if(!n) {n=0}
+        n = Math.min(n,this.changes.length);
+
+        this.indexZeroVersion += this.changes.length - n;
+        this.changes = this.changes.slice(-n)
         // LOL DONT
         // for(let i=0; i<this.version-1; i++) {
         //     this.changes[i] = {r:1}
@@ -89,7 +113,9 @@ class BlockliveSess {
         this.connectedClients[client.id()] = client
     }
     removeClient(id) {
+        let username = this.connectedClients[id]?.username
         delete this.connectedClients[id]
+        return username
     }
 
     getClientFromSocket(socket) {
@@ -110,7 +136,7 @@ class BlockliveSess {
     sendChangeFrom(socket,msg,excludeVersion) {
         Object.values(this.connectedClients).forEach(client=>{
             if(socket.id != client.id()){ 
-                console.log('sending message to client: ' + client.id() + " | type: " + msg.type)
+                // console.log('sending message to: ' + client.username + " | type: " + msg.type)
                 client.trySendMessage({
                 type:'projectChange',
                 blId:this.id,
@@ -197,6 +223,11 @@ class ProjectWrapper {
     //     console.log('linkedWith length', this.linkedWith.length)
     //     this.linkedWith.find(proj=>proj.scratchId == id).version = version
     // }
+
+    isSharedWith(username) {
+        return username==this.owner || this.sharedWith.includes(username)
+    }
+
     scratchSavedJSON(json,version) {
         if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
         this.projectJson = json
@@ -262,6 +293,26 @@ export default class SessionManager{
         SessionManager.inst = this
     }
 
+    offloadProject(id) {
+        try{
+            let toSaveBlocklive = {id:this.blocklive[id]}
+            saveMapToFolder(toSaveBlocklive,blocklivePath);
+            delete this.blocklive[id]
+        } catch (e) {console.error(e)}
+    }
+    reloadProject(id) {
+        if(!(id in this.blocklive)) {
+            try {
+                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
+                let json = JSON.parse(file)
+                let project = ProjectWrapper.fromJSON(json);
+                this.blocklive[sanitize(id)] = project
+            } catch (e) {
+                console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
+            }
+        }
+    }
+
     linkProject(id,scratchId,owner,version) {
         let project = this.getProject(id)
         if(!project) {return}
@@ -290,11 +341,12 @@ export default class SessionManager{
         if(this.socketMap[socket.id].projects.indexOf(project.id) == -1){
             this.socketMap[socket.id].projects.push(project.id)
         }
+        console.log(username + ' joined | blId: ' + id + ', scratchId: ' + project.scratchId)
     }
     leave(socket,id,voidMap) {
         let project = this.getProject(id)
         if(!project) {return}
-        project.session.removeClient(socket.id)
+        let username = project.session.removeClient(socket.id)
         if(socket.id in this.socketMap && !voidMap) {
             let array = this.socketMap[socket.id].projects
 
@@ -304,8 +356,10 @@ export default class SessionManager{
             }
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
-            project.project.trimChanges()
+            project.project.trimChanges(10)
+            this.offloadProject(id)
         }
+        console.log(username + ' LEFT | blId: ' + id + ', scratchId: ' + project.scratchId)
     } 
 
     disconnectSocket(socket) {
@@ -332,9 +386,9 @@ export default class SessionManager{
     }
 
     getProject(blId) {
+        this.reloadProject(blId)
         return this.blocklive[blId]
     }
-
     shareProject(id,user,pk) {
         console.log(`sessMngr: sharing ${id} with ${user} (usrId ${pk})`)
         let project = this.getProject(id)
@@ -349,7 +403,10 @@ export default class SessionManager{
         project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase())).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
             delete this.scratchprojects[proj.scratchId]
-            fs.rmSync('scratchprojects' + path.sep + sanitize(proj.scratchId))
+            let projectPatch = 'scratchprojects' + path.sep + sanitize(proj.scratchId);
+            if(fs.existsSync(projectPatch)) {
+                try{ fs.rmSync(projectPatch) } catch(e){console.error(e)} 
+            }
         })
 
         if(project.owner.toLowerCase() == user.toLowerCase()) {

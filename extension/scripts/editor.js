@@ -70,7 +70,7 @@ var isConnected = false;
 function liveMessage(message,res) {
     reconnectIfNeeded()
     let msg = message
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap" ||msg.meta=="version++") {
         blVersion++
     }
     port.postMessage(message,res)
@@ -124,6 +124,7 @@ async function startBlocklive(creatingNew) {
         await joinExistingBlocklive(blId)
         pauseEventHandling = false
     } else {
+        injectLoadingOverlay()
         vm.runtime.on("PROJECT_LOADED", async () => { // todo catch this running after project loads
             if(projectReplaceInitiated) { return }
             await joinExistingBlocklive(blId)
@@ -160,6 +161,7 @@ onTabLoad()
 async function joinExistingBlocklive(id) {
     projectReplaceInitiated = true
     console.log('joining blocklive id',id,)
+    startBLLoadingAnimation()
     // let inpoint = await getInpoint(id)
     let inpoint = await getJson(id)
     let projectJson = inpoint.json;
@@ -171,13 +173,16 @@ async function joinExistingBlocklive(id) {
     await vm.loadProject(projectJson)
         blVersion = inpoint.version
     } catch (e) {
+        finishBLLoadingAnimation()
         prompt(`Scratch couldn't load the project JSON we had saved for this project. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nSend this blocklive id to @ilhp10 on scratch:`,`${blId};`)
+        startBLLoadingAnimation()
         // prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
     }
     //yo wussup poochdawg
 
     console.log('syncing new changes, editingTarget: ',vm.editingTarget)
     await getAndPlayNewChanges() // sync changes since scratch version
+    finishBLLoadingAnimation()
     liveMessage({meta:"joinSession"}) // join sessionManager session
     readyToRecieveChanges = true
     pauseEventHandling = false;
@@ -284,6 +289,9 @@ setInterval(reconnectIfNeeded,1000)
                 blVersion++
                 replaceBlockly(msg)
             }
+        } else if(msg.meta == 'vm.updateBitmap') { // TODO: Do this better-- pass in changes from bg script
+            await updateBitmap(msg)
+            blVersion++;
         } else if(msg.meta=='yourVersion') {
             console.log('version ponged: ' + msg.version)
             blVersion = msg.version
@@ -291,6 +299,8 @@ setInterval(reconnectIfNeeded,1000)
             setTitle(msg.title)
         } else if(msg.meta == 'resync') { // TODO: Do this better-- pass in changes from bg script
             if(readyToRecieveChanges){getAndPlayNewChanges()}
+        } else if(msg.meta == 'version++') {
+            blVersion++;
         }
         } catch (e) {console.error(e)}
     }
@@ -1032,7 +1042,10 @@ function onBlockRecieve(d) {
 }
 
 let oldTargUp = vm.emitTargetsUpdate.bind(vm)
+let etuListeners = []
 vm.emitTargetsUpdate = function(...args) {
+    etuListeners.forEach(e=>e?.())
+    etuListeners = []
     if(pauseEventHandling) {return}
     else {oldTargUp(...args)}
 }
@@ -1089,6 +1102,373 @@ vm.emitWorkspaceUpdate = function() {
     // Blockly.getMainWorkspace().getAllBlocks().forEach(block=>{block.getSvgRoot().style.transition='transform 0.5s';})
 }
 
+//////////////////////////////// load-costume copied (modified to remove dependencies) from https://github.com/LLK/scratch-vm/blob/develop/src/import/load-costume.js ////////////////////////////////// 
+
+let BL_load_costume = {};
+{
+const canvasPool = (function () {
+    /**
+     * A pool of canvas objects that can be reused to reduce memory
+     * allocations. And time spent in those allocations and the later garbage
+     * collection.
+     */
+    class CanvasPool {
+        constructor () {
+            this.pool = [];
+            this.clearSoon = null;
+        }
+
+        /**
+         * After a short wait period clear the pool to let the VM collect
+         * garbage.
+         */
+        clear () {
+            if (!this.clearSoon) {
+                this.clearSoon = new Promise(resolve => setTimeout(resolve, 1000))
+                    .then(() => {
+                        this.pool.length = 0;
+                        this.clearSoon = null;
+                    });
+            }
+        }
+
+        /**
+         * Return a canvas. Create the canvas if the pool is empty.
+         * @returns {HTMLCanvasElement} A canvas element.
+         */
+        create () {
+            return this.pool.pop() || document.createElement('canvas');
+        }
+
+        /**
+         * Release the canvas to be reused.
+         * @param {HTMLCanvasElement} canvas A canvas element.
+         */
+        release (canvas) {
+            this.clear();
+            this.pool.push(canvas);
+        }
+    }
+
+    return new CanvasPool();
+}());
+
+/**
+ * Return a promise to fetch a bitmap from storage and return it as a canvas
+ * If the costume has bitmapResolution 1, it will be converted to bitmapResolution 2 here (the standard for Scratch 3)
+ * If the costume has a text layer asset, which is a text part from Scratch 1.4, then this function
+ * will merge the two image assets. See the issue LLK/scratch-vm#672 for more information.
+ * @param {!object} costume - the Scratch costume object.
+ * @param {!Runtime} runtime - Scratch runtime, used to access the v2BitmapAdapter
+ * @param {?object} rotationCenter - optionally passed in coordinates for the center of rotation for the image. If
+ *     none is given, the rotation center of the costume will be set to the middle of the costume later on.
+ * @property {number} costume.bitmapResolution - the resolution scale for a bitmap costume.
+ * @returns {?Promise} - a promise which will resolve to an object {canvas, rotationCenter, assetMatchesBase},
+ *     or reject on error.
+ *     assetMatchesBase is true if the asset matches the base layer; false if it required adjustment
+ */
+const fetchBitmapCanvas_ = function (costume, runtime, rotationCenter) {
+    if (!costume || !costume.asset) { // TODO: We can probably remove this check...
+        return Promise.reject('Costume load failed. Assets were missing.');
+    }
+    if (!runtime.v2BitmapAdapter) {
+        return Promise.reject('No V2 Bitmap adapter present.');
+    }
+
+    return Promise.all([costume.asset, costume.textLayerAsset].map(asset => {
+        if (!asset) {
+            return null;
+        }
+
+        if (typeof createImageBitmap !== 'undefined') {
+            return createImageBitmap(
+                new Blob([asset.data], {type: asset.assetType.contentType})
+            );
+        }
+
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = function () {
+                resolve(image);
+                image.onload = null;
+                image.onerror = null;
+            };
+            image.onerror = function () {
+                reject('Costume load failed. Asset could not be read.');
+                image.onload = null;
+                image.onerror = null;
+            };
+            image.src = asset.encodeDataURI();
+        });
+    }))
+        .then(([baseImageElement, textImageElement]) => {
+            const mergeCanvas = canvasPool.create();
+
+            const scale = costume.bitmapResolution === 1 ? 2 : 1;
+            mergeCanvas.width = baseImageElement.width;
+            mergeCanvas.height = baseImageElement.height;
+
+            const ctx = mergeCanvas.getContext('2d');
+            ctx.drawImage(baseImageElement, 0, 0);
+            if (textImageElement) {
+                ctx.drawImage(textImageElement, 0, 0);
+            }
+            // Track the canvas we merged the bitmaps onto separately from the
+            // canvas that we receive from resize if scale is not 1. We know
+            // resize treats mergeCanvas as read only data. We don't know when
+            // resize may use or modify the canvas. So we'll only release the
+            // mergeCanvas back into the canvas pool. Reusing the canvas from
+            // resize may cause errors.
+            let canvas = mergeCanvas;
+            if (scale !== 1) {
+                canvas = runtime.v2BitmapAdapter.resize(mergeCanvas, canvas.width * scale, canvas.height * scale);
+            }
+
+            // By scaling, we've converted it to bitmap resolution 2
+            if (rotationCenter) {
+                rotationCenter[0] = rotationCenter[0] * scale;
+                rotationCenter[1] = rotationCenter[1] * scale;
+                costume.rotationCenterX = rotationCenter[0];
+                costume.rotationCenterY = rotationCenter[1];
+            }
+            costume.bitmapResolution = 2;
+
+            // Clean up the costume object
+            delete costume.textLayerMD5;
+            delete costume.textLayerAsset;
+
+            return {
+                canvas,
+                mergeCanvas,
+                rotationCenter,
+                // True if the asset matches the base layer; false if it required adjustment
+                assetMatchesBase: scale === 1 && !textImageElement
+            };
+        })
+        .finally(() => {
+            // Clean up the text layer properties if it fails to load
+            delete costume.textLayerMD5;
+            delete costume.textLayerAsset;
+        });
+};
+
+const loadBitmap_ = function (costume, runtime, _rotationCenter) {
+    return fetchBitmapCanvas_(costume, runtime, _rotationCenter)
+        .then(fetched => {
+            const updateCostumeAsset = function (dataURI) {
+                if (!runtime.v2BitmapAdapter) {
+                    // TODO: This might be a bad practice since the returned
+                    // promise isn't acted on. If this is something we should be
+                    // creating a rejected promise for we should also catch it
+                    // somewhere and act on that error (like logging).
+                    //
+                    // Return a rejection to stop executing updateCostumeAsset.
+                    return Promise.reject('No V2 Bitmap adapter present.');
+                }
+
+                const storage = runtime.storage;
+                costume.asset = storage.createAsset(
+                    storage.AssetType.ImageBitmap,
+                    storage.DataFormat.PNG,
+                    runtime.v2BitmapAdapter.convertDataURIToBinary(dataURI),
+                    null,
+                    true // generate md5
+                );
+                costume.dataFormat = storage.DataFormat.PNG;
+                costume.assetId = costume.asset.assetId;
+                costume.md5 = `${costume.assetId}.${costume.dataFormat}`;
+            };
+
+            if (!fetched.assetMatchesBase) {
+                updateCostumeAsset(fetched.canvas.toDataURL());
+            }
+
+            return fetched;
+        })
+        .then(({canvas, mergeCanvas, rotationCenter}) => {
+            // createBitmapSkin does the right thing if costume.rotationCenter is undefined.
+            // That will be the case if you upload a bitmap asset or create one by taking a photo.
+            let center;
+            if (rotationCenter) {
+                // fetchBitmapCanvas will ensure that the costume's bitmap resolution is 2 and its rotation center is
+                // scaled to match, so it's okay to always divide by 2.
+                center = [
+                    rotationCenter[0] / 2,
+                    rotationCenter[1] / 2
+                ];
+            }
+
+            // TODO: costume.bitmapResolution will always be 2 at this point because of fetchBitmapCanvas_, so we don't
+            // need to pass it in here.
+            costume.skinId = runtime.renderer.createBitmapSkin(canvas, costume.bitmapResolution, center);
+            canvasPool.release(mergeCanvas);
+            const renderSize = runtime.renderer.getSkinSize(costume.skinId);
+            costume.size = [renderSize[0] * 2, renderSize[1] * 2]; // Actual size, since all bitmaps are resolution 2
+
+            if (!rotationCenter) {
+                rotationCenter = runtime.renderer.getSkinRotationCenter(costume.skinId);
+                // Actual rotation center, since all bitmaps are resolution 2
+                costume.rotationCenterX = rotationCenter[0] * 2;
+                costume.rotationCenterY = rotationCenter[1] * 2;
+                costume.bitmapResolution = 2;
+            }
+            return costume;
+        });
+};
+
+// Handle all manner of costume errors with a Gray Question Mark (default costume)
+// and preserve as much of the original costume data as possible
+// Returns a promise of a costume
+const handleCostumeLoadError = function (costume, runtime) {
+    // Keep track of the old asset information until we're done loading the default costume
+    const oldAsset = costume.asset; // could be null
+    const oldAssetId = costume.assetId;
+    const oldRotationX = costume.rotationCenterX;
+    const oldRotationY = costume.rotationCenterY;
+    const oldBitmapResolution = costume.bitmapResolution;
+    const oldDataFormat = costume.dataFormat;
+
+    const AssetType = runtime.storage.AssetType;
+    const isVector = costume.dataFormat === AssetType.ImageVector.runtimeFormat;
+                
+    // Use default asset if original fails to load
+    costume.assetId = isVector ?
+        runtime.storage.defaultAssetId.ImageVector :
+        runtime.storage.defaultAssetId.ImageBitmap;
+    costume.asset = runtime.storage.get(costume.assetId);
+    costume.md5 = `${costume.assetId}.${costume.asset.dataFormat}`;
+    
+    const defaultCostumePromise = (isVector) ?
+        loadVector_(costume, runtime) : loadBitmap_(costume, runtime);
+
+    return defaultCostumePromise.then(loadedCostume => {
+        loadedCostume.broken = {};
+        loadedCostume.broken.assetId = oldAssetId;
+        loadedCostume.broken.md5 = `${oldAssetId}.${oldDataFormat}`;
+
+        // Should be null if we got here because the costume was missing
+        loadedCostume.broken.asset = oldAsset;
+        loadedCostume.broken.dataFormat = oldDataFormat;
+        
+        loadedCostume.broken.rotationCenterX = oldRotationX;
+        loadedCostume.broken.rotationCenterY = oldRotationY;
+        loadedCostume.broken.bitmapResolution = oldBitmapResolution;
+        return loadedCostume;
+    });
+};
+
+/**
+ * Initialize a costume from an asset asynchronously.
+ * Do not call this unless there is a renderer attached.
+ * @param {!object} costume - the Scratch costume object.
+ * @property {int} skinId - the ID of the costume's render skin, once installed.
+ * @property {number} rotationCenterX - the X component of the costume's origin.
+ * @property {number} rotationCenterY - the Y component of the costume's origin.
+ * @property {number} [bitmapResolution] - the resolution scale for a bitmap costume.
+ * @property {!Asset} costume.asset - the asset of the costume loaded from storage.
+ * @param {!Runtime} runtime - Scratch runtime, used to access the storage module.
+ * @param {?int} optVersion - Version of Scratch that the costume comes from. If this is set
+ *     to 2, scratch 3 will perform an upgrade step to handle quirks in SVGs from Scratch 2.0.
+ * @returns {?Promise} - a promise which will resolve after skinId is set, or null on error.
+ */
+const loadCostumeFromAsset = function (costume, runtime, optVersion) {
+    costume.assetId = costume.asset.assetId;
+    const renderer = runtime.renderer;
+    if (!renderer) {
+        log.warn('No rendering module present; cannot load costume: ', costume.name);
+        return Promise.resolve(costume);
+    }
+    const AssetType = runtime.storage.AssetType;
+    let rotationCenter;
+    // Use provided rotation center and resolution if they are defined. Bitmap resolution
+    // should only ever be 1 or 2.
+    if (typeof costume.rotationCenterX === 'number' && !isNaN(costume.rotationCenterX) &&
+            typeof costume.rotationCenterY === 'number' && !isNaN(costume.rotationCenterY)) {
+        rotationCenter = [costume.rotationCenterX, costume.rotationCenterY];
+    }
+    return loadBitmap_(costume, runtime, rotationCenter, optVersion)
+        .catch(error => {
+            log.warn(`Error loading bitmap image: ${error}`);
+            return handleCostumeLoadError(costume, runtime);
+        });
+};
+
+
+/**
+ * Load a costume's asset into memory asynchronously.
+ * Do not call this unless there is a renderer attached.
+ * @param {!string} md5ext - the MD5 and extension of the costume to be loaded.
+ * @param {!object} costume - the Scratch costume object.
+ * @property {int} skinId - the ID of the costume's render skin, once installed.
+ * @property {number} rotationCenterX - the X component of the costume's origin.
+ * @property {number} rotationCenterY - the Y component of the costume's origin.
+ * @property {number} [bitmapResolution] - the resolution scale for a bitmap costume.
+ * @param {!Runtime} runtime - Scratch runtime, used to access the storage module.
+ * @param {?int} optVersion - Version of Scratch that the costume comes from. If this is set
+ *     to 2, scratch 3 will perform an upgrade step to handle quirks in SVGs from Scratch 2.0.
+ * @returns {?Promise} - a promise which will resolve after skinId is set, or null on error.
+ */
+const loadCostume = function (md5ext, costume, runtime, optVersion) {
+    const idParts = md5ext.split('.')
+    const md5 = idParts[0];
+    const ext = idParts[1].toLowerCase();
+    costume.dataFormat = ext;
+
+    if (costume.asset) {
+        // Costume comes with asset. It could be coming from image upload, drag and drop, or file
+        return loadCostumeFromAsset(costume, runtime, optVersion);
+    }
+
+    // Need to load the costume from storage. The server should have a reference to this md5.
+    if (!runtime.storage) {
+        log.warn('No storage module present; cannot load costume asset: ', md5ext);
+        return Promise.resolve(costume);
+    }
+
+    if (!runtime.storage.defaultAssetId) {
+        log.warn(`No default assets found`);
+        return Promise.resolve(costume);
+    }
+
+    const AssetType = runtime.storage.AssetType;
+    const assetType = (ext === 'svg') ? AssetType.ImageVector : AssetType.ImageBitmap;
+
+    const costumePromise = runtime.storage.load(assetType, md5, ext);
+
+    let textLayerPromise;
+    if (costume.textLayerMD5) {
+        textLayerPromise = runtime.storage.load(AssetType.ImageBitmap, costume.textLayerMD5, 'png');
+    } else {
+        textLayerPromise = Promise.resolve(null);
+    }
+
+    return Promise.all([costumePromise, textLayerPromise])
+        .then(assetArray => {
+            if (assetArray[0]) {
+                costume.asset = assetArray[0];
+            } else {
+                return handleCostumeLoadError(costume, runtime);
+            }
+
+            if (assetArray[1]) {
+                costume.textLayerAsset = assetArray[1];
+            }
+            return loadCostumeFromAsset(costume, runtime, optVersion);
+        })
+        .catch(error => {
+            // Handle case where storage.load rejects with errors
+            // instead of resolving null
+            log.warn('Error loading costume: ', error);
+            return handleCostumeLoadError(costume, runtime);
+        });
+};
+BL_load_costume = {
+    loadCostume,
+    loadCostumeFromAsset
+};
+};
+//////////////////////////////////////////// end load-costume ////////////////////////////////////////////// 
+
 // vm.editingTarget = a;
 // vm.emitTargetsUpdate(false /* Don't emit project change */);
 // vm.emitWorkspaceUpdate();
@@ -1128,7 +1508,7 @@ vm.addSound = proxy(vm.addSound,"addsound",
         return {target:targetName}
     },
     (data)=>{
-        let ret = [data.args[0],nameToTarget(data.extrargs.target).id]
+        let ret = [data.args[0],nameToTarget(data.extrargs.target)?.id]
         if(ret[0]?.asset?.data) {
             // adapted from scratch source 'file-uploader'
             ret[0].asset = vm.runtime.storage.createAsset(
@@ -1167,6 +1547,9 @@ vm.reorderCostume = proxy(vm.reorderCostume,"reordercostume",
     (args)=>({target:targetToName(vm.runtime.getTargetById(args[0]))}),
     (data)=>[nameToTarget(data.extrargs.target).id,data.args[1],data.args[2]],null,
     ()=>{vm.emitTargetsUpdate()})
+vm.shareCostumeToTarget = editingProxy(vm.shareCostumeToTarget,'sharecostume',null,null,(args)=>({
+    targettarget:BL_UTILS.targetToName(vm.runtime.getTargetById(args[1]))
+}),(data)=>([data.args[0],BL_UTILS.nameToTarget(data.extrargs.targettarget)?.id]))
 vm.addCostume = proxy(vm.addCostume,"addcostume",
     (args)=>{
         let targetName
@@ -1192,8 +1575,17 @@ vm.addCostume = proxy(vm.addCostume,"addcostume",
         return ret
     }
 )
-// vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",
-//     (args)=>({h:args[1].height,w:args[1].width}),
+// vm.updateBitmap = editingProxy(vm.updateBitmap,"updatebitmap",null,(_a,_b,data)=>{
+//     let costumeIndex = getSelectedCostumeIndex()
+//     // console.log(data)
+//     // update paint editor if reciever is editing the costume
+//     if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+//         // todo use some other method of refreshing the canvas
+//         document.getElementById('react-tabs-4').click()
+//         document.getElementById('react-tabs-2').click()
+//     }
+// },
+//     (args)=>({height:args[1].height,width:args[1].width}),
 //     (data)=>{
 //         let args = data.args;
 //         args[1] = new ImageData(Uint8ClampedArray.from(Object.values(args[1].data)), data.extrargs.width, data.extrargs.height);
@@ -1203,7 +1595,8 @@ vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
     let costumeIndex = getSelectedCostumeIndex()
     // console.log(data)
     // update paint editor if reciever is editing the costume
-    if(targetToName(vm.editingTarget) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
+    // todo: instead of checking with vm.editingTarget, use _a or _b
+    if(targetToName(_a) == data.extrargs.target && costumeIndex != -1 && costumeIndex == data.args[0]) {
         let costume = vm.editingTarget.getCostumes()[costumeIndex]
         let paper = getPaper()
         console.log('switching paper costume')
@@ -1217,6 +1610,88 @@ vm.updateSvg = editingProxy(vm.updateSvg,"updatesvg",null,(_a,_b,data)=>{
             paper.props.zoomLevelId)
     }
 })
+let oldUpdateBitmap = vm.updateBitmap
+vm.updateBitmap = (...args)=>{
+    // args: costumeIndex, bitmap, rotationCenterX, rotationCenterY, bitmapResolution
+    oldUpdateBitmap.bind(vm)(...args);
+    // vm runs emitTargetsUpdate after creating new asset
+    etuListeners.push(async()=>{
+        let target = BL_UTILS.targetToName(vm.editingTarget);
+
+        let costumeIndex = args[0]
+        let bitmapResolution = args[4]
+        let costume = vm.editingTarget.getCostumes()[costumeIndex];
+        let sendCostume = JSON.parse(JSON.stringify(costume))
+        delete sendCostume.asset
+        console.log(costume)
+        let asset = costume.asset;
+    
+        let bitmap = args[1]
+        let w=bitmap.sourceWidth === 0 ? 0 : bitmap.width;
+        let h=bitmap.sourceHeight === 0 ? 0 : bitmap.height;
+
+        // send costume to scratch servers
+        let stored = await vm.runtime.storage.store(asset.assetType,asset.dataFormat,asset.data,asset.assetId);
+        // get costume info to send
+
+        liveMessage({meta:'vm.updateBitmap',costume:sendCostume,target,costumeIndex,assetType:asset.assetType,h,w,bitmapResolution})
+    })
+}
+async function updateBitmap(msg) {
+    console.log(msg)
+    console.log(msg.costume.assetId)
+    let target = BL_UTILS.nameToTarget(msg.target)
+    let costume = target.getCostumes()[msg.costumeIndex]
+    asset = await vm.runtime.storage.load(msg.assetType,msg.costume.assetId,msg.costume.dataFormat)
+
+    costume.asset = asset
+        Object.entries(msg.costume).forEach(entry=>{
+            costume[entry[0]] = entry[1]
+        }
+    )
+
+    vm.emitTargetsUpdate()
+
+    // update paper 
+    let selectedCostumeIndex = getSelectedCostumeIndex()
+    if(BL_UTILS.targetToName(vm.editingTarget) == msg.target && selectedCostumeIndex != -1 && msg.costumeIndex == selectedCostumeIndex) {
+        let costume = vm.editingTarget.getCostumes()[msg.costumeIndex]
+        let paper = getPaper()
+        console.log('switching paper costume')
+        if(!paper) {return;}
+        paper.switchCostume(
+            costume.dataFormat,
+            costume.asset.encodeDataURI(),
+            costume.rotationCenterX,
+            costume.rotationCenterY,
+            paper.props.zoomLevelId,
+            paper.props.zoomLevelId)
+    }
+
+    // update renderer costume skins [VERY IMPORTANT FOR RENDER!]
+    await BL_load_costume.loadCostume(costume.md5,costume,vm.runtime)
+    target.updateAllDrawableProperties()
+
+    // image = new ImageData(new Uint8ClampedArray(asset.data.buffer),msg.w,msg.h)
+    // console.log(image)
+
+    /// TODO GET BITMAP SHOWING UP IN RENDER
+    // const tmpCanvas = document.createElement('canvas');
+    // tmpCanvas.width = msg.w;
+    // tmpCanvas.height = msg.h;
+    // const tmpCtx = tmpCanvas.getContext('2d');
+    // const imageData = tmpCtx.createImageData(msg.w, msg.h);
+    // imageData.data.set(asset.data);
+    // tmpCtx.putImageData(imageData, 0, 0);
+    // console.log(imageData)
+
+    // vm.runtime.renderer.updateBitmapSkin(
+    //     costume.skinId,
+    //     tmpCanvas,
+    //     msg.bitmapResolution,
+    //     [costume.rotationCenterX / msg.bitmapResolution, costume.rotationCenterY / msg.bitmapResolution]
+    // );
+}
 // vm.updateBitmap = proxy(vm.updateBitmap,"updatebit",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 // vm.updateSvg = proxy(vm.updateSvg,"updatesvg",null,null,null,()=>{vm.emitTargetsUpdate();vm.emitWorkspaceUpdate()})
 newTargetEvents = {} // targetName => [events...] //todo make let statement
@@ -1232,7 +1707,7 @@ vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEdit
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
-    (data)=>[nameToTarget(data.extrargs.name).id],
+    (data)=>[nameToTarget(data.extrargs.name)?.id],
     ()=>{pauseEventHandling = true},
     ((a,b,n,result)=>{
         vm.setEditingTarget(a.id)
@@ -1310,9 +1785,6 @@ function doShareBlocksMessage(msg) {
     if(!isWorkspaceAccessable()){return}
     getWorkspace().getToolbox().refreshSelection()
 }
-
-
-// vm.shareCostumeToTarget
 
 // no sure what this does but it might be useful at some point this.editingTarget.fixUpVariableReferences();
 
@@ -2110,3 +2582,91 @@ function reloadOnlineUsers() {
 
 setInterval(reloadOnlineUsers,2500)
 setTimeout(reloadOnlineUsers,500)
+
+
+//////////////////// LOADING OVERLAY ////////////////////
+
+const overlayHTML = `
+<loading-content>
+<img src="https://assets.scratch.mit.edu/9a5f5b45565e6e517bc39bba7d90395e.svg" id="bl-load-logo">
+<div class="bl-loading-text">Loading blocklive...</div>
+</loading-content>
+</img>`
+const overlayCSS = `
+loading-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    height: 100%;;
+}
+blocklive-loading{
+    z-index:10000;
+    position:fixed;
+    width: 100vw;
+    height: 100vh;
+    /* backdrop-filter: blur(12px); */
+
+    transition: 0.34s;
+}
+.bl-loading-text{
+    animation: .6s ease-in-out 0.3s infinite alternate bl-logo-loading;
+    /* animation: name duration timing-function delay iteration-count direction fill-mode; */
+
+    font-family: 'Helvetica Neue','Helvetica',Arial,sans-serif;
+    font-style: italic;
+    font-weight:500;
+    font-size: 40px;
+    color:rgb(255, 0, 217);
+
+    transition: 0.34s;
+    opacity: 0%;
+
+
+}
+#bl-load-logo{
+    display: flex;
+    animation: .6s ease-in-out infinite alternate bl-logo-loading;
+    scale:400%;
+    opacity: 0%;
+    transition: 0.34s;
+
+}
+
+@keyframes bl-logo-loading {
+    from{
+        transform: perspective(400px) rotateX(0deg) rotateY(5deg);
+    }
+    to{
+        transform: perspective(400px) rotateX(0deg) rotateY(-5deg);
+    }
+}
+`
+function finishBLLoadingAnimation() {
+    document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
+    document.querySelector('#bl-load-logo').style.scale = '400%'
+    document.querySelector('#bl-load-logo').style.opacity = '0%'
+    document.querySelector('.bl-loading-text').style.opacity = '0%'
+
+    setTimeout(()=>{document.querySelector('blocklive-loading').style.display = 'none'},601)
+
+}
+
+function startBLLoadingAnimation() {
+    document.querySelector('blocklive-loading').style.display = 'block'
+    document.querySelector('blocklive-loading').style.backdropFilter = ' blur(12px)'
+    document.querySelector('#bl-load-logo').style.scale = '100%'
+    document.querySelector('#bl-load-logo').style.opacity = '100%'
+    document.querySelector('.bl-loading-text').style.opacity = '100%'
+}
+
+function injectLoadingOverlay() {
+    let styleInj = document.createElement('style')
+    styleInj.innerHTML = overlayCSS
+    document.head.appendChild(styleInj)
+
+    let loadingOverlay = document.createElement('blocklive-loading')
+    loadingOverlay.innerHTML = overlayHTML
+    document.body.appendChild(loadingOverlay)
+}

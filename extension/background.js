@@ -141,6 +141,7 @@ upk = upk ? upk : undefined
 
 
 let lastUnameRefresh = null
+let signedin = true;
 async function refreshUsername(force) {
   // if(!force && uname!='*' && Date.now() - lastUnameRefresh < 1000 * 10) {return uname} // limit to refreshing once every 10 seconds
   lastUnameRefresh = Date.now()
@@ -150,7 +151,11 @@ async function refreshUsername(force) {
       },
     });
 let json = await res.json()
-if(!json.user) {return uname;}
+if(!json.user) {
+  signedin = false;
+  return uname;
+}
+signedin = true;
 uname = json.user.username
 upk = json.user.id
 chrome.storage.local.set({uname,upk})
@@ -203,7 +208,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     }
 
     console.log(msg)
-    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks") {
+    if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap" ||msg.meta=='version++') {
       let blIdd = portIds[port.name]
       
       playChange(blIdd,msg,port)
@@ -315,6 +320,9 @@ chrome.runtime.onMessageExternal.addListener(
   chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     if(request.meta == 'getUsername') {
       sendResponse(uname)
+    } else if(request.meta == 'getUsernamePlus') {
+      sendResponse({uname,signedin})
+      refreshUsername()
     }
   })
 }
