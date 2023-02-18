@@ -28,7 +28,7 @@ const server = https.createServer({
 import {Server} from 'socket.io'
 const io = new Server(server, {
      cors:{origin:'*'},
-     maxHttpBufferSize:2e90 // scrtch asset size limit
+     maxHttpBufferSize:2e10
 });
 
 import SessionManager from './sessionManager.js'
