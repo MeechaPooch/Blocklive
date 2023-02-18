@@ -34,9 +34,27 @@ class BlockliveProject {
     }
 
     recordChange(change) {
+        this.trimBitmapChanges(change)
         this.changes.push(change)
         this.version++;
         this.lastTime = Date.now()
+    }
+
+    // removes previous bitmap updates of same sprite to save loading time
+    trimBitmapChanges(newchange) {
+        if(newchange.meta == "vm.updateBitmap") {
+            let target = newchange.target
+            let costumeIndex = newchange.costumeIndex
+            let limit = 20;
+            for(let i=changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
+                let change = changes[i];
+                let spn = change?.data?.name
+                if(spn == "reordercostume" || spn == 'renamesprite' || spn == '') {break}
+                if(change.meta == "vm.updateBitmap" && change.target == target && change.costumeIndex == costumeIndex) {
+                    changes[i] = {meta:'version++'}
+                }
+            }
+        }
     }
 
     getChangesSinceVersion(lastVersion) {
