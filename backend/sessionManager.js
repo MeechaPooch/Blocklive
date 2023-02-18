@@ -50,7 +50,7 @@ class BlockliveProject {
             for(let i=changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
                 let change = changes[i];
                 let spn = change?.data?.name
-                if(spn == "reordercostume" || spn == 'renamesprite' || spn == '') {break}
+                if(spn == "reordercostume" || spn == 'renamesprite') {break}
                 if(change.meta == "vm.updateBitmap" && change.target == target && change.costumeIndex == costumeIndex) {
                     changes[i] = {meta:'version++'}
                 }
