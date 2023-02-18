@@ -124,6 +124,7 @@ async function startBlocklive(creatingNew) {
         await joinExistingBlocklive(blId)
         pauseEventHandling = false
     } else {
+        injectLoadingOverlay()
         vm.runtime.on("PROJECT_LOADED", async () => { // todo catch this running after project loads
             if(projectReplaceInitiated) { return }
             await joinExistingBlocklive(blId)
@@ -160,6 +161,7 @@ onTabLoad()
 async function joinExistingBlocklive(id) {
     projectReplaceInitiated = true
     console.log('joining blocklive id',id,)
+    startBLLoadingAnimation()
     // let inpoint = await getInpoint(id)
     let inpoint = await getJson(id)
     let projectJson = inpoint.json;
@@ -171,13 +173,16 @@ async function joinExistingBlocklive(id) {
     await vm.loadProject(projectJson)
         blVersion = inpoint.version
     } catch (e) {
+        finishBLLoadingAnimation()
         prompt(`Scratch couldn't load the project JSON we had saved for this project. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nSend this blocklive id to @ilhp10 on scratch:`,`${blId};`)
+        startBLLoadingAnimation()
         // prompt(`Blocklive cannot load project data! The scratch api might be blocked by your network. Clicking OK or EXIT will attempt to load the project from the changelog, which may take a moment. \n\nHere are your ids if you want to report this to @ilhp10:`,`BLOCKLIVE_ID: ${blId}; SCRATCH_REAL_ID: ${scratchId}; INPOINT_ID: ${inpoint.scratchId}`)
     }
     //yo wussup poochdawg
 
     console.log('syncing new changes, editingTarget: ',vm.editingTarget)
     await getAndPlayNewChanges() // sync changes since scratch version
+    finishBLLoadingAnimation()
     liveMessage({meta:"joinSession"}) // join sessionManager session
     readyToRecieveChanges = true
     pauseEventHandling = false;
@@ -2577,3 +2582,91 @@ function reloadOnlineUsers() {
 
 setInterval(reloadOnlineUsers,2500)
 setTimeout(reloadOnlineUsers,500)
+
+
+//////////////////// LOADING OVERLAY ////////////////////
+
+const overlayHTML = `
+<loading-content>
+<img src="https://assets.scratch.mit.edu/9a5f5b45565e6e517bc39bba7d90395e.svg" id="bl-load-logo">
+<div class="bl-loading-text">Loading blocklive...</div>
+</loading-content>
+</img>`
+const overlayCSS = `
+loading-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    height: 100%;;
+}
+blocklive-loading{
+    z-index:10000;
+    position:fixed;
+    width: 100vw;
+    height: 100vh;
+    /* backdrop-filter: blur(12px); */
+
+    transition: 0.34s;
+}
+.bl-loading-text{
+    animation: .6s ease-in-out 0.3s infinite alternate bl-logo-loading;
+    /* animation: name duration timing-function delay iteration-count direction fill-mode; */
+
+    font-family: 'Helvetica Neue','Helvetica',Arial,sans-serif;
+    font-style: italic;
+    font-weight:500;
+    font-size: 40px;
+    color:rgb(255, 0, 217);
+
+    transition: 0.34s;
+    opacity: 0%;
+
+
+}
+#bl-load-logo{
+    display: flex;
+    animation: .6s ease-in-out infinite alternate bl-logo-loading;
+    scale:400%;
+    opacity: 0%;
+    transition: 0.34s;
+
+}
+
+@keyframes bl-logo-loading {
+    from{
+        transform: perspective(400px) rotateX(0deg) rotateY(5deg);
+    }
+    to{
+        transform: perspective(400px) rotateX(0deg) rotateY(-5deg);
+    }
+}
+`
+function finishBLLoadingAnimation() {
+    document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
+    document.querySelector('#bl-load-logo').style.scale = '400%'
+    document.querySelector('#bl-load-logo').style.opacity = '0%'
+    document.querySelector('.bl-loading-text').style.opacity = '0%'
+
+    setTimeout(()=>{document.querySelector('blocklive-loading').style.display = 'none'},601)
+
+}
+
+function startBLLoadingAnimation() {
+    document.querySelector('blocklive-loading').style.display = 'block'
+    document.querySelector('blocklive-loading').style.backdropFilter = ' blur(12px)'
+    document.querySelector('#bl-load-logo').style.scale = '100%'
+    document.querySelector('#bl-load-logo').style.opacity = '100%'
+    document.querySelector('.bl-loading-text').style.opacity = '100%'
+}
+
+function injectLoadingOverlay() {
+    let styleInj = document.createElement('style')
+    styleInj.innerHTML = overlayCSS
+    document.head.appendChild(styleInj)
+
+    let loadingOverlay = document.createElement('blocklive-loading')
+    loadingOverlay.innerHTML = overlayHTML
+    document.body.appendChild(loadingOverlay)
+}
