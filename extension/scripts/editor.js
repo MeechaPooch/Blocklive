@@ -2526,7 +2526,7 @@ async function displayActive(users) {
             }
 
             let workspace = BL_UTILS.getWorkspace()
-            store.getState().scratchGui.editorTab.activeTabIndex = u.cursor.editorTab
+            if(!isNaN(u.cursor.editorTab)) {store.getState().scratchGui.editorTab.activeTabIndex = u.cursor.editorTab}
             if(u.cursor.scale && u.cursor.scrollX && u.cursor.scrollY) {
             if(!BL_UTILS.getWorkspace().startDragMetrics) {
                 BL_UTILS.getWorkspace().startDragMetrics = BL_UTILS.getWorkspace().scrollbar.oldHostMetrics_
