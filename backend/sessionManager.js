@@ -47,12 +47,12 @@ class BlockliveProject {
             let target = newchange.target
             let costumeIndex = newchange.costumeIndex
             let limit = 20;
-            for(let i=changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
-                let change = changes[i];
+            for(let i=this.changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
+                let change = this.changes[i];
                 let spn = change?.data?.name
                 if(spn == "reordercostume" || spn == 'renamesprite') {break}
                 if(change.meta == "vm.updateBitmap" && change.target == target && change.costumeIndex == costumeIndex) {
-                    changes[i] = {meta:'version++'}
+                    this.changes[i] = {meta:'version++'}
                 }
             }
         }
