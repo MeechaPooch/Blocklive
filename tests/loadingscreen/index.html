@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <blocklive-loading>
+            <loading-content>
+            <img src="../../img/vectorlogo.svg" id="bl-load-logo">
+            <div class="bl-loading-text">Loading blocklive...</div>
+        </loading-content>
+        </img>
+        </blocklive-loading>
+    </body>
+</html>
+
+<style>
+
+html{
+    background-image: url(https://www.snapfiles.com/screenfiles/scratch.png);
+}
+
+loading-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    height: 100%;;
+}
+blocklive-loading{
+    position:fixed;
+    width: 100vw;
+    height: 100vh;
+    /* backdrop-filter: blur(12px); */
+
+    transition: 0.34s;
+}
+.bl-loading-text{
+    animation: .6s ease-in-out 0.3s infinite alternate bl-logo-loading;
+    /* animation: name duration timing-function delay iteration-count direction fill-mode; */
+
+    font-family: 'Helvetica Neue','Helvetica',Arial,sans-serif;
+    font-style: italic;
+    font-weight:500;
+    font-size: 40px;
+    color:rgb(255, 0, 217);
+
+    transition: 0.34s;
+    opacity: 0%;
+
+
+}
+#bl-load-logo{
+    display: flex;
+    animation: .6s ease-in-out infinite alternate bl-logo-loading;
+    scale:400%;
+    opacity: 0%;
+    transition: 0.34s;
+
+}
+
+@keyframes bl-logo-loading {
+    from{
+        transform: perspective(400px) rotateX(0deg) rotateY(5deg);
+    }
+    to{
+        transform: perspective(400px) rotateX(0deg) rotateY(-5deg);
+    }
+}
+
+</style>
+
+<script>
+    function finishLoading() {
+        document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
+        document.querySelector('#bl-load-logo').style.scale = '400%'
+        document.querySelector('#bl-load-logo').style.opacity = '0%'
+        document.querySelector('.bl-loading-text').style.opacity = '0%'
+    }
+
+    function startLoading() {
+        document.querySelector('blocklive-loading').style.backdropFilter = ' blur(12px)'
+        document.querySelector('#bl-load-logo').style.scale = '100%'
+        document.querySelector('#bl-load-logo').style.opacity = '100%'
+        document.querySelector('.bl-loading-text').style.opacity = '100%'
+    }
+</script>
