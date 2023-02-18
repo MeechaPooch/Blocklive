@@ -286,6 +286,7 @@ setInterval(reconnectIfNeeded,1000)
             }
         } else if(msg.meta == 'vm.updateBitmap') { // TODO: Do this better-- pass in changes from bg script
             await updateBitmap(msg)
+            blVersion++;
         } else if(msg.meta=='yourVersion') {
             console.log('version ponged: ' + msg.version)
             blVersion = msg.version
