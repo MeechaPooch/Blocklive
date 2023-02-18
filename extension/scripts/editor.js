@@ -1503,7 +1503,7 @@ vm.addSound = proxy(vm.addSound,"addsound",
         return {target:targetName}
     },
     (data)=>{
-        let ret = [data.args[0],nameToTarget(data.extrargs.target).id]
+        let ret = [data.args[0],nameToTarget(data.extrargs.target)?.id]
         if(ret[0]?.asset?.data) {
             // adapted from scratch source 'file-uploader'
             ret[0].asset = vm.runtime.storage.createAsset(
@@ -1542,6 +1542,9 @@ vm.reorderCostume = proxy(vm.reorderCostume,"reordercostume",
     (args)=>({target:targetToName(vm.runtime.getTargetById(args[0]))}),
     (data)=>[nameToTarget(data.extrargs.target).id,data.args[1],data.args[2]],null,
     ()=>{vm.emitTargetsUpdate()})
+vm.shareCostumeToTarget = editingProxy(vm.shareCostumeToTarget,'sharecostume',null,null,(args)=>({
+    targettarget:BL_UTILS.targetToName(vm.runtime.getTargetById(args[1]))
+}),(data)=>([data.args[0],BL_UTILS.nameToTarget(data.extrargs.targettarget)?.id]))
 vm.addCostume = proxy(vm.addCostume,"addcostume",
     (args)=>{
         let targetName
@@ -1699,7 +1702,7 @@ vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEdit
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
-    (data)=>[nameToTarget(data.extrargs.name).id],
+    (data)=>[nameToTarget(data.extrargs.name)?.id],
     ()=>{pauseEventHandling = true},
     ((a,b,n,result)=>{
         vm.setEditingTarget(a.id)
@@ -1777,9 +1780,6 @@ function doShareBlocksMessage(msg) {
     if(!isWorkspaceAccessable()){return}
     getWorkspace().getToolbox().refreshSelection()
 }
-
-
-// vm.shareCostumeToTarget
 
 // no sure what this does but it might be useful at some point this.editingTarget.fixUpVariableReferences();
 
