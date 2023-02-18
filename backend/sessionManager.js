@@ -13,12 +13,12 @@ class BlockliveProject {
         return ret;
     }
 
-    toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
-        let ret = {...this}
-        ret.indexZeroVersion += ret.changes.length
-        ret.changes = [];
-        return ret;
-    }
+    // toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
+    //     let ret = {...this}
+    //     ret.indexZeroVersion += ret.changes.length
+    //     ret.changes = [];
+    //     return ret;
+    // }
 
 
     // projectJSON
@@ -356,7 +356,7 @@ export default class SessionManager{
             }
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
-            project.project.trimChanges(10)
+            project.project.trimChanges(20)
             this.offloadProject(id)
         }
         console.log(username + ' LEFT | blId: ' + id + ', scratchId: ' + project.scratchId)

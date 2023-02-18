@@ -118,13 +118,13 @@ async function startBlocklive(creatingNew) {
     pauseEventHandling = true
     liveMessage({meta:"myId",id:blId})
     activateBlocklive()
+    injectLoadingOverlay()
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
         await joinExistingBlocklive(blId)
         pauseEventHandling = false
     } else {
-        injectLoadingOverlay()
         vm.runtime.on("PROJECT_LOADED", async () => { // todo catch this running after project loads
             if(projectReplaceInitiated) { return }
             await joinExistingBlocklive(blId)
@@ -2644,29 +2644,34 @@ blocklive-loading{
 }
 `
 function finishBLLoadingAnimation() {
+    try{
     document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
     document.querySelector('#bl-load-logo').style.scale = '400%'
     document.querySelector('#bl-load-logo').style.opacity = '0%'
     document.querySelector('.bl-loading-text').style.opacity = '0%'
 
     setTimeout(()=>{document.querySelector('blocklive-loading').style.display = 'none'},601)
-
+    } catch (e) {console.error(e)}
 }
 
 function startBLLoadingAnimation() {
-    document.querySelector('blocklive-loading').style.display = 'block'
-    document.querySelector('blocklive-loading').style.backdropFilter = ' blur(12px)'
-    document.querySelector('#bl-load-logo').style.scale = '100%'
-    document.querySelector('#bl-load-logo').style.opacity = '100%'
-    document.querySelector('.bl-loading-text').style.opacity = '100%'
+    try{
+        document.querySelector('blocklive-loading').style.display = 'block'
+        document.querySelector('blocklive-loading').style.backdropFilter = ' blur(12px)'
+        document.querySelector('#bl-load-logo').style.scale = '100%'
+        document.querySelector('#bl-load-logo').style.opacity = '100%'
+        document.querySelector('.bl-loading-text').style.opacity = '100%'
+    } catch (e) {console.error(e)}
 }
 
 function injectLoadingOverlay() {
-    let styleInj = document.createElement('style')
+    try{
+        let styleInj = document.createElement('style')
     styleInj.innerHTML = overlayCSS
     document.head.appendChild(styleInj)
 
     let loadingOverlay = document.createElement('blocklive-loading')
     loadingOverlay.innerHTML = overlayHTML
     document.body.appendChild(loadingOverlay)
+}    catch (e) {console.error(e)}
 }
