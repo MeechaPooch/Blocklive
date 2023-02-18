@@ -13,12 +13,12 @@ class BlockliveProject {
         return ret;
     }
 
-    toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
-        let ret = {...this}
-        ret.indexZeroVersion += ret.changes.length
-        ret.changes = [];
-        return ret;
-    }
+    // toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
+    //     let ret = {...this}
+    //     ret.indexZeroVersion += ret.changes.length
+    //     ret.changes = [];
+    //     return ret;
+    // }
 
 
     // projectJSON
@@ -47,12 +47,12 @@ class BlockliveProject {
             let target = newchange.target
             let costumeIndex = newchange.costumeIndex
             let limit = 20;
-            for(let i=changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
-                let change = changes[i];
+            for(let i=this.changes.length-1; i>=0 && i>=this.changes.length-limit; i--) {
+                let change = this.changes[i];
                 let spn = change?.data?.name
                 if(spn == "reordercostume" || spn == 'renamesprite') {break}
                 if(change.meta == "vm.updateBitmap" && change.target == target && change.costumeIndex == costumeIndex) {
-                    changes[i] = {meta:'version++'}
+                    this.changes[i] = {meta:'version++'}
                 }
             }
         }
@@ -303,10 +303,10 @@ export default class SessionManager{
     reloadProject(id) {
         if(!(id in this.blocklive)) {
             try {
-                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id))
+                let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id + ''))
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
-                this.blocklive[sanitize(id)] = project
+                this.blocklive[sanitize(id + '')] = project
             } catch (e) {
                 console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
             }
@@ -356,7 +356,7 @@ export default class SessionManager{
             }
         }
         if(Object.keys(project.session.connectedClients).length == 0) {
-            project.project.trimChanges(10)
+            project.project.trimChanges(20)
             this.offloadProject(id)
         }
         console.log(username + ' LEFT | blId: ' + id + ', scratchId: ' + project.scratchId)
@@ -403,7 +403,7 @@ export default class SessionManager{
         project.linkedWith.filter(proj=>(proj.owner.toLowerCase() == user.toLowerCase())).forEach(proj=>{
             project.linkedWith.splice(project.linkedWith.indexOf(proj))
             delete this.scratchprojects[proj.scratchId]
-            let projectPatch = 'scratchprojects' + path.sep + sanitize(proj.scratchId);
+            let projectPatch = 'scratchprojects' + path.sep + sanitize(proj.scratchId + '');
             if(fs.existsSync(projectPatch)) {
                 try{ fs.rmSync(projectPatch) } catch(e){console.error(e)} 
             }
