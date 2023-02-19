@@ -211,6 +211,7 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     if(msg.meta=="blockly.event" || msg.meta=="sprite.proxy"||msg.meta=="vm.blockListen"||msg.meta=="vm.shareBlocks" ||msg.meta=="vm.replaceBlocks" ||msg.meta=="vm.updateBitmap" ||msg.meta=='version++') {
       let blIdd = portIds[port.name]
       
+      msg.user = uname
       playChange(blIdd,msg,port)
 
       // send to websocket
