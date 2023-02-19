@@ -16,7 +16,7 @@ class BlockliveProject {
     toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
         let ret = {...this}
 
-        n = 15; // trim changes on save
+        let n = 15; // trim changes on save
         n = Math.min(n,ret.changes.length);
 
         ret.indexZeroVersion += ret.changes.length - n;
