@@ -1009,7 +1009,9 @@ function onBlockRecieve(d) {
             // highlight blocks
             if(['create','move','change'].indexOf(bEvent.type)) {
                 let blockId = bEvent.blockId
-                outlineBlock(blockId, d.user)
+                try{
+                    outlineBlock(blockId, d.user)
+                } catch (e) {console.error(e)}
             }
             // 'comment_create','comment_change','comment_move'
 
