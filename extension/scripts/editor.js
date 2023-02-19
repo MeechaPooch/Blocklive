@@ -118,9 +118,10 @@ let readyToRecieveChanges = false
 async function startBlocklive(creatingNew) {
     pauseEventHandling = true
     liveMessage({meta:"myId",id:blId})
-    activateBlocklive()
     injectLoadingOverlay()
-    addChat()
+
+    activateBlocklive()
+    
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
@@ -215,6 +216,8 @@ function fetchTitle(blId) {
 let getAndPlayNewChanges
 
 async function activateBlocklive() {
+
+    addChat()
 
     playChanges = async (changes)=>{
         pauseEventHandling = true
@@ -2645,7 +2648,6 @@ blocklive-loading{
     width: 100vw;
     height: 100vh;
     /* backdrop-filter: blur(12px); */
-
     transition: 0.34s;
 }
 .bl-loading-text{
@@ -2711,6 +2713,7 @@ function injectLoadingOverlay() {
     let loadingOverlay = document.createElement('blocklive-loading')
     loadingOverlay.innerHTML = overlayHTML
     document.body.appendChild(loadingOverlay)
+
 }    catch (e) {console.error(e)}
 }
 
