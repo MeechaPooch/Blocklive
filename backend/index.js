@@ -39,6 +39,7 @@ import sanitize from 'sanitize-filename';
 
 import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchprojectsPath, usersPath} from './filesave.js'
 import { Filter } from './profanity-filter.js';
+import { postText } from './discord-webhook.js';
 // Load session and user manager objects
 
 
@@ -146,14 +147,18 @@ let messageHandlers = {
 
           if(filter.isVulgar(text)) {
                let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
-               console.error('🔴 FILTERED CHAT: ' + sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId)
-               return;
+               let loggingMsg = '🔴 FILTERED CHAT: ' + sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId
+               console.error(loggingMsg)
+               postText(loggingMsg)
+          return;
           }
 
           project?.onChat(data.msg,client)
           // logging
           let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
-          console.log(sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId)
+          let loggingMsg = sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId
+          console.log(loggingMsg)
+          postText(loggingMsg)
      }
 }
 
