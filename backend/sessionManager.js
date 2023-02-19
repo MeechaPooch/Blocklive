@@ -258,6 +258,7 @@ class ProjectWrapper {
         if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
         this.projectJson = json
         this.jsonVersion = version
+        this.project.trimChanges(10)
         // console.log('linkedWith length', this.linkedWith.length)
         // this.linkedWith.find(proj=>proj.scratchId == id).version = version
     }
