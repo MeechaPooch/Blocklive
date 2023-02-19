@@ -336,7 +336,8 @@ export default class SessionManager{
                 let project = ProjectWrapper.fromJSON(json);
                 this.blocklive[sanitize(id + '')] = project
             } catch (e) {
-                console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
+                // if(!id) {return}
+                // console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
             }
         }
     }
