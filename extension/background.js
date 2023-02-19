@@ -276,7 +276,9 @@ chrome.runtime.onMessageExternal.addListener(
     // } else if(request.meta =='getInpoint') {
     //   sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getJson') {
+      try{
       sendResponse(await (await fetch(`${apiUrl}/projectJSON/${request.blId}`)).json())
+    } catch(e) {sendResponse({err:'blocklive id does not exist'})}
     } else if(request.meta =='getChanges') {
       sendResponse(await (await fetch(`${apiUrl}/changesSince/${request.blId}/${request.version}`)).json())
     } else if(request.meta == 'getUsername') {

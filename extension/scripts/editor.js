@@ -166,8 +166,12 @@ async function joinExistingBlocklive(id) {
     startBLLoadingAnimation()
     // let inpoint = await getInpoint(id)
     let inpoint = await getJson(id)
+
     let projectJson = inpoint.json;
-    if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);return;}
+    if(inpoint.err) {alert('issue joining blocklive id: ' + id + '\n error: ' + inpoint.err);
+        finishBLLoadingAnimation()
+        return;
+    }
     pauseEventHandling = true
     try {
     // console.log('downloading scratch id',inpoint.scratchId)
