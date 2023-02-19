@@ -50,6 +50,7 @@ let sessionsObj = {}
 sessionsObj.blocklive = {};
 sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
+let banned = fs.existsSync('storage/banned') ? fs.readFileSync('storage/banned').toString().split('\n') : []
 console.log(sessionsObj)
 
 // sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
@@ -152,6 +153,8 @@ let messageHandlers = {
                postText(loggingMsg)
           return;
           }
+
+          if(banned?.includes?.(sender)) {return;}
 
           project?.onChat(data.msg,client)
           // logging
