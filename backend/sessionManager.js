@@ -255,7 +255,7 @@ class ProjectWrapper {
     }
 
     scratchSavedJSON(json,version) {
-        if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
+        if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion);return}
         this.projectJson = json
         this.jsonVersion = version
         this.project.trimChanges(10)
