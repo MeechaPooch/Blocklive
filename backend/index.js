@@ -224,7 +224,7 @@ app.get('/projectTitle/:id',(req,res)=>{
 // })
 app.post('/projectSavedJSON/:blId/:version',(req,res)=>{
      let json = req.body;
-     console.log('saving project, blId: ',req.params.blId, ' version: ',req.params.version,'json:',json)
+     console.log('saving project, blId: ',req.params.blId, ' version: ',req.params.version, 'json is null?: ' + !json)
      let project = sessionManager.getProject(req.params.blId)
      if(!project) {console.log('could not find project!!!');
           res.send('not as awesome awesome :)')
