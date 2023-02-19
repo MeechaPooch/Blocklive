@@ -222,9 +222,16 @@ class ProjectWrapper {
     onChat(msg,socket) {
         this.chat.push(msg.msg)
         this.session.sendChangeFrom(socket,msg,true)
+        this.trimChat(100)
     }
     getChat() {
         return this.chat
+    }
+    trimChat(n) {
+        // bound n: 0 < n < total changes lenght
+        if(!n) {n=0}
+        n = Math.min(n,this.chat.length);
+        this.chat = this.chat.slice(-n)
     }
 
     // scratchSaved(id,version) {

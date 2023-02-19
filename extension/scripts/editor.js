@@ -2730,7 +2730,7 @@ bl-msg-sender{
     gap:5px;
 }
 bl-msg-sender-img{
-    background-image: url(https://uploads.scratch.mit.edu/get_image/user/5097744_60x60.png);
+    background-image: url(https://uploads.scratch.mit.edu/get_image/user/default_60x60.png);
     background-size: contain;
     width:25px;
     height:25px;
@@ -2859,8 +2859,8 @@ bl-chat{
     border-radius: 20px;
 
     display:flex;
-    width:215px;
-    height:302px;
+    width:242px;
+    height:365px;
     min-width:176px;
     min-height:176px;
     flex-direction: column;
@@ -2902,12 +2902,15 @@ try{
     document.querySelector('bl-chat-send-button').onclick = postMessageBubble
     chatbox.style.scale = '80%'
 
-    //// get chat
-
-    fetch(apiUrl + '/chat/' + blId).then(async res=>{
-        let chatHistory = await res.json()
-        chatHistory.forEach(chat=>addMessage(msg))
+    //// get own username, then populate chat history
+    chrome.runtime.sendMessage(exId,{meta:'getUsername'},(username)=>{
+        uname = username;
+        fetch(apiUrl + '/chat/' + blId).then(async res=>{
+            let chatHistory = await res.json()
+            chatHistory.forEach(msg=>addMessage(msg))
+        })
     })
+    
 } catch (e) {console.error(e)}
 }
 function addChatButton() {
@@ -2978,8 +2981,8 @@ function dragElement(elmnt) {
 
 // msg: {text, sender}
 lastSender = ''
-uname = 'ilhp10'
-function addMessage(msg) {
+uname = ''
+async function addMessage(msg) {
     let msgsElem = document.querySelector('bl-chat-msgs')
     if(msg.sender != lastSender) {
         let unameElem = document.createElement('bl-msg-sender')
@@ -2989,6 +2992,8 @@ function addMessage(msg) {
         lastSender = msg.sender
         if(msg.sender == uname) {unameElem.classList.add('mymsg')}
         msgsElem.appendChild(unameElem)
+        
+        {(async()=>{unameElem.querySelector('bl-msg-sender-img').style.backgroundImage = `url(${(await getUserInfo(msg.sender)).pic})`})()}
     }
     let msgElem = document.createElement('bl-msg')
     msgElem.innerText = msg.text 
@@ -2996,6 +3001,7 @@ function addMessage(msg) {
     msgsElem.appendChild(msgElem)
 
     msgsElem.scrollTop = msgsElem.scrollHeight;
+
 
 }
 function postMessageBubble() {
