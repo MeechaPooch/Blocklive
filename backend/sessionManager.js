@@ -211,6 +211,7 @@ class ProjectWrapper {
     sharedWith = []
 
     chat = []
+    static defaultChat = {sender:'blocklive',msg:'Welcome! Chat is public, monitored, and filtered. Report inappropriate things to @ilhp10. Drag the top of this chatbox to move it and drag the bottom right to resize it!'}
 
     constructor(owner,scratchId,projectJson,blId,title) {
         if(owner == '&') {return}
@@ -221,6 +222,7 @@ class ProjectWrapper {
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
+        this.chat.push(ProjectWrapper.defaultChat)
     }
 
 
