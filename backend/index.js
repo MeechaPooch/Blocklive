@@ -148,7 +148,7 @@ let messageHandlers = {
 
           if(filter.isVulgar(text)) {
                let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
-               let loggingMsg = '🔴 FILTERED CHAT: ' + sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId
+               let loggingMsg = '🔴 FILTERED CHAT: ' + '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId
                console.error(loggingMsg)
                postText(loggingMsg)
           return;
@@ -159,7 +159,7 @@ let messageHandlers = {
           project?.onChat(data.msg,client)
           // logging
           let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
-          let loggingMsg = sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId
+          let loggingMsg = '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId
           console.log(loggingMsg)
           postText(loggingMsg)
      }
