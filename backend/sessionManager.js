@@ -314,7 +314,8 @@ export default class SessionManager{
 
     offloadProject(id) {
         try{
-            let toSaveBlocklive = {id:this.blocklive[id]}
+            let toSaveBlocklive = {}
+            toSaveBlocklive[id] = this.blocklive[id]
             saveMapToFolder(toSaveBlocklive,blocklivePath);
             delete this.blocklive[id]
         } catch (e) {console.error(e)}
