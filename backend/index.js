@@ -38,6 +38,7 @@ import { ppid } from 'process';
 import sanitize from 'sanitize-filename';
 
 import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchprojectsPath, usersPath} from './filesave.js'
+import { Filter } from './profanity-filter.js';
 // Load session and user manager objects
 
 
@@ -96,6 +97,8 @@ async function saveLoop() {
 }
 saveLoop()
 
+const filter = new Filter()
+filter.loadDefault()
 
 let messageHandlers = {
      'joinSession':(data,client)=>{
@@ -137,7 +140,20 @@ let messageHandlers = {
           })
      },
      'chat':(data,client)=>{
-          sessionManager.getProject(data.blId)?.onChat(data.msg,client)
+          let text = data.msg.msg.text
+          let sender = data.msg.msg.sender
+          let project = sessionManager.getProject(data.blId)
+
+          if(filter.isVulgar(text)) {
+               let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
+               console.error('🔴 FILTERED CHAT: ' + sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId)
+               return;
+          }
+
+          project?.onChat(data.msg,client)
+          // logging
+          let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
+          console.log(sender + '->' + sentTo.join(',') + ': ' + text + '| ' + project.scratchId)
      }
 }
 
@@ -270,7 +286,7 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
           let ownedProject = project.getOwnersProject(req.params.username)
           if(!!ownedProject) {
                res.send({goto:ownedProject.scratchId})
-          } else if(project.isSharedWith(req.params.username) || req.params.username=='ilhp10') {
+          } else if(project.isSharedWith(req.params.username) || req.params.username=='ilhp10' || req.params.username=='rgantzos') {
                res.send({goto:'new', blId:project.id})
           } else {
                res.send({goto:'none',notshared:true})
