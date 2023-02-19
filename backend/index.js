@@ -28,7 +28,7 @@ const server = https.createServer({
 import {Server} from 'socket.io'
 const io = new Server(server, {
      cors:{origin:'*'},
-     maxHttpBufferSize:2e10
+     maxHttpBufferSize:2e7
 });
 
 import SessionManager from './sessionManager.js'
@@ -135,6 +135,9 @@ let messageHandlers = {
           Object.entries(data.cursor).forEach(e=>{
                if(e[0] in cursor) { cursor[e[0]] = e[1] }
           })
+     },
+     'chat':(data,client)=>{
+          sessionManager.getProject(data.blId)?.onChat(data.msg,client)
      }
 }
 
@@ -234,6 +237,13 @@ app.get('/changesSince/:id/:version',(req,res)=>{
      if(!project) {res.send([])}
      else {
           res.send(project.project.getChangesSinceVersion(parseFloat(req.params.version)))
+     }
+})
+app.get('/chat/:id/',(req,res)=>{
+     let project = sessionManager.getProject(req.params.id)
+     if(!project) {res.send([])}
+     else {
+          res.send(project.getChat())
      }
 })
 app.put('/linkScratch/:scratchId/:blId/:owner',(req,res)=>{

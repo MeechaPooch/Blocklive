@@ -13,12 +13,17 @@ class BlockliveProject {
         return ret;
     }
 
-    // toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
-    //     let ret = {...this}
-    //     ret.indexZeroVersion += ret.changes.length
-    //     ret.changes = [];
-    //     return ret;
-    // }
+    toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
+        let ret = {...this}
+
+        let n = 15; // trim changes on save
+        n = Math.min(n,ret.changes.length);
+
+        ret.indexZeroVersion += ret.changes.length - n;
+        ret.changes = ret.changes.slice(-n)
+
+        return ret;
+    }
 
 
     // projectJSON
@@ -82,7 +87,7 @@ class BlockliveClient {
     username
     socket
 
-    cursor = {targetName:null,scale:1,scrollX:0,scrollY:0,cursorX:0,cursorY:0}
+    cursor = {targetName:null,scale:1,scrollX:0,scrollY:0,cursorX:0,cursorY:0,editorTab:0}
 
     constructor(socket, username) {
         this.socket = socket
@@ -169,6 +174,7 @@ class ProjectWrapper {
             linkedWith:this.linkedWith,
             owner:this.owner,
             sharedWith:this.sharedWith,
+            chat:this.chat,
         }
         return ret;
     }
@@ -204,6 +210,8 @@ class ProjectWrapper {
     owner
     sharedWith = []
 
+    chat = []
+
     constructor(owner,scratchId,projectJson,blId,title) {
         if(owner == '&') {return}
         this.id = blId
@@ -213,6 +221,22 @@ class ProjectWrapper {
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
+    }
+
+
+    onChat(msg,socket) {
+        this.chat.push(msg.msg)
+        this.session.sendChangeFrom(socket,msg,true)
+        this.trimChat(100)
+    }
+    getChat() {
+        return this.chat
+    }
+    trimChat(n) {
+        // bound n: 0 < n < total changes lenght
+        if(!n) {n=0}
+        n = Math.min(n,this.chat.length);
+        this.chat = this.chat.slice(-n)
     }
 
     // scratchSaved(id,version) {
@@ -295,7 +319,8 @@ export default class SessionManager{
 
     offloadProject(id) {
         try{
-            let toSaveBlocklive = {id:this.blocklive[id]}
+            let toSaveBlocklive = {}
+            toSaveBlocklive[id] = this.blocklive[id]
             saveMapToFolder(toSaveBlocklive,blocklivePath);
             delete this.blocklive[id]
         } catch (e) {console.error(e)}
