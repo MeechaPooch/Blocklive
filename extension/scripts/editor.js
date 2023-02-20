@@ -2905,6 +2905,8 @@ bl-chat{
     box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.75);
     resize: both;
 
+    transition: 0.2s scale;
+
 }`
 function injectChatCSS() {
     try{
@@ -2920,7 +2922,7 @@ try{
     let blChat = document.createElement('bl-chat')
     blChat.id = 'bl-chat'
     blChat.innerHTML = blChatHTML
-    blChat.style.visibility = 'hidden'
+    // blChat.style.visibility = 'hidden'
     document.body.appendChild(blChat)
 
     let chatbox = document.querySelector('bl-chat')
@@ -2933,7 +2935,7 @@ try{
         }
     })
     document.querySelector('bl-chat-send-button').onclick = postMessageBubble
-    chatbox.style.scale = '80%'
+    chatbox.style.scale = 0
 
     //// get own username, then populate chat history
     chrome.runtime.sendMessage(exId,{meta:'getUsername'},(username)=>{
@@ -3054,8 +3056,10 @@ function postMessageBubble() {
 function toggleChat(state) {
     let chatbox = document.querySelector('bl-chat')
     if(state===undefined) {
-        chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
+        // chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
+        chatbox.style.scale = chatbox.style.scale==0.8 ? 0 : 0.8
     } else {
-        chatbox.style.visibility = state ? 'visible' : 'hidden'
+        // chatbox.style.visibility = state ? 'visible' : 'hidden'
+        chatbox.style.scale = state ? 0.8 : 0
     }
 }
