@@ -3140,7 +3140,7 @@ let spriteDisplayCSS = `
 
 function moveMyBubble() {
     try{
-        blCursors.find(b=>b.username=uname).cursor.targetName=BL_UTILS.targetToName(vm.editingTarget)
+        blCursors.find(b=>b.username==uname).cursor.targetName=BL_UTILS.targetToName(vm.editingTarget)
         clearActive()
         try{displayActive(blCursors)}catch(e){console.error(e)}
         addChatButton()
