@@ -1065,7 +1065,7 @@ vm.emitTargetsUpdate = function(...args) {
     else {oldTargUp(...args)}
 
     // move my bubble
-   moveMyBubble()
+//    moveMyBubble()
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
@@ -2568,7 +2568,9 @@ async function displayActive(users) {
     bl_dudes.forEach(dude=>dude?.remove())
     bl_dudes = []
     users?.forEach(user=>{
-        bl_dudes.push(addDude(user?.cursor?.targetName,user.username))
+        if(user.username != uname) {
+            bl_dudes.push(addDude(user?.cursor?.targetName,user.username))
+        }
     })
 
     if(!document.getElementById('blUsersPanel')) {return}
@@ -2646,7 +2648,7 @@ function reloadOnlineUsers() {
         clearActive()
         try{displayActive(res)}catch(e){console.error(e)}
         addChatButton()
-        moveMyBubble()
+        // moveMyBubble()
     })
 }
 
@@ -3101,7 +3103,7 @@ function getSpriteBoxElem(spriteName) {
 }
 function addDude(spritename,dudename) {
     let spriteBox = getSpriteBoxElem(spritename);
-    if(spritename==BL_UTILS.stageName) {spriteBox = document.querySelector("#app > div > div.gui_body-wrapper_-N0sA.box_box_2jjDp > div > div.gui_stage-and-target-wrapper_69KBf.box_box_2jjDp > div.gui_target-wrapper_36Gbz.box_box_2jjDp > div > div.target-pane_stage-selector-wrapper_qekSW > div.stage-selector_stage-selector_3oWOr.stage-selector_is-selected_2x2r_.box_box_2jjDp")}
+    if(spritename==BL_UTILS.stageName) {spriteBox = document.querySelector("#app > div > div.gui_body-wrapper_-N0sA.box_box_2jjDp > div > div.gui_stage-and-target-wrapper_69KBf.box_box_2jjDp > div.gui_target-wrapper_36Gbz.box_box_2jjDp > div > div.target-pane_stage-selector-wrapper_qekSW > div.stage-selector_stage-selector_3oWOr.box_box_2jjDp")}
     if(!spriteBox) {return}
     let panel = spriteBox?.querySelector('.sdPanel');
     if(!panel) {
