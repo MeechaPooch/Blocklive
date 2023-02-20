@@ -426,6 +426,7 @@ BL_UTILS = {
     nameToTarget,
     getSelectedCostumeIndex,
 }
+BL_UTILS.stageName = stageName
 
 // send to api when project saved and name change
 let lastProjectState = store.getState().scratchGui.projectState.loadingState
@@ -1062,6 +1063,9 @@ vm.emitTargetsUpdate = function(...args) {
     etuListeners = []
     if(pauseEventHandling) {return}
     else {oldTargUp(...args)}
+
+    // move my bubble
+   moveMyBubble()
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
@@ -2417,6 +2421,10 @@ function injectJSandCSS() {
     let styleInj = document.createElement('style')
     styleInj.innerHTML = shareCSS
     document.head.appendChild(styleInj)
+
+    let styleInj2 = document.createElement('style')
+    styleInj2.innerHTML = spriteDisplayCSS
+    document.head.appendChild(styleInj2)
 }
 
 let blActivateClick = async ()=>{
@@ -2553,7 +2561,16 @@ function clearActive() {
     document.getElementById('blUsersPanel').appendChild(activeText)
 }
 
+let bl_dudes = []
 async function displayActive(users) {
+
+    // console.log('activeusers',users)
+    bl_dudes.forEach(dude=>dude?.remove())
+    bl_dudes = []
+    users?.forEach(user=>{
+        bl_dudes.push(addDude(user?.cursor?.targetName,user.username))
+    })
+
     if(!document.getElementById('blUsersPanel')) {return}
     if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
     else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
@@ -2629,6 +2646,7 @@ function reloadOnlineUsers() {
         clearActive()
         try{displayActive(res)}catch(e){console.error(e)}
         addChatButton()
+        moveMyBubble()
     })
 }
 
@@ -2651,7 +2669,8 @@ loading-content{
     align-items: center;
     justify-items: center;
     justify-content: center;
-    height: 100%;;
+    height: 100%;
+    scale:70%;
 }
 blocklive-loading{
     z-index:10000;
@@ -2697,7 +2716,7 @@ blocklive-loading{
 function finishBLLoadingAnimation() {
     try{
     document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
-    document.querySelector('#bl-load-logo').style.scale = '400%'
+    document.querySelector('#bl-load-logo').style.scale = '500%'
     document.querySelector('#bl-load-logo').style.opacity = '0%'
     document.querySelector('.bl-loading-text').style.opacity = '0%'
 
@@ -3073,4 +3092,57 @@ function toggleChat(state) {
         // chatbox.style.visibility = state ? 'visible' : 'hidden'
         chatbox.style.scale = state ? 0.8 : 0
     }
+}
+
+
+function getSpriteBoxElem(spriteName) {
+    let elem = Array.from(document.getElementsByClassName('sprite-selector_scroll-wrapper_3NNnc box_box_2jjDp')[0].querySelectorAll('div')).find(elem=>elem.innerHTML==spriteName)
+    return elem?.parentElement?.parentElement
+}
+function addDude(spritename,dudename) {
+    let spriteBox = getSpriteBoxElem(spritename);
+    if(spritename==BL_UTILS.stageName) {spriteBox = document.querySelector("#app > div > div.gui_body-wrapper_-N0sA.box_box_2jjDp > div > div.gui_stage-and-target-wrapper_69KBf.box_box_2jjDp > div.gui_target-wrapper_36Gbz.box_box_2jjDp > div > div.target-pane_stage-selector-wrapper_qekSW > div.stage-selector_stage-selector_3oWOr.stage-selector_is-selected_2x2r_.box_box_2jjDp")}
+    if(!spriteBox) {return}
+    let panel = spriteBox?.querySelector('.sdPanel');
+    if(!panel) {
+        // add sd panel
+        panel = document.createElement('div')
+        panel.classList.add('sdPanel')
+        spriteBox.appendChild(panel)
+    }
+    let dude = document.createElement('div')
+    dude.classList.add('sdCircle')
+    panel.appendChild(dude)
+    getUserInfo(dudename).then(info=>dude.style.backgroundImage=`url(${info.pic})`)
+
+    return dude;
+}
+
+let spriteDisplayCSS = `
+.sdPanel{
+    display:flex;
+    flex-wrap:wrap;
+    flex-direction:row;
+    width:70%;
+    position:absolute;
+    left:3px;
+    top:3px;
+    gap:-1px;
+}
+.sdCircle{
+    width:20px;
+    height:20px;
+    border-radius:100%;
+    outline: solid 2px #ff24e2;
+    background-size:cover;
+}
+`
+
+function moveMyBubble() {
+    try{
+        blCursors.find(b=>b.username=uname).cursor.targetName=BL_UTILS.targetToName(vm.editingTarget)
+        clearActive()
+        try{displayActive(blCursors)}catch(e){console.error(e)}
+        addChatButton()
+    }catch(e){console.error(e)}
 }
