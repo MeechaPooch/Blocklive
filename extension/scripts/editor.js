@@ -2749,6 +2749,7 @@ bl-msg{
     max-width: 80%;
     margin-left: 15px;
     background-color: rgb(255, 255, 255);
+    overflow-wrap: break-word;
 }
 bl-msg-sender-name{
     font-style:italic;
@@ -3027,13 +3028,58 @@ async function addMessage(msg) {
     }
     let msgElem = document.createElement('bl-msg')
     msgElem.innerText = msg.text 
+    addReportFunction(msgElem)
     if(msg.sender == uname) {msgElem.classList.add('mymsg')}
     msgsElem.appendChild(msgElem)
-
     msgsElem.scrollTop = msgsElem.scrollHeight;
-
+    
 
 }
+
+function addReportFunction(msg) {
+    msg.addEventListener("contextmenu", function(e) {
+        e.preventDefault()
+        if (!document.querySelector(".report-chat")) {
+            var reportChatModal = document.createElement("div")
+            reportChatModal.className = "report-chat"
+            reportChatModal.innerHTML = `
+                <h3>Would you like to report this chat to the Blocklive team?</h3><p>Please don't false report, it takes up our time and it isn't actually that funny :(</p>
+                <button class="button">Report</button><button class="button">Cancel</button>
+            `
+            document.body.appendChild(reportChatModal)
+            var style = document.createElement("style")
+            style.textContent = `
+            .report-chat {
+                width: 40vw;
+                height: 40vh;
+                background-color: white;
+                border-radius: .5rem;
+                box-shadow: 0 0 11px black;
+                z-index: 9999999;
+                left: 30vw;
+                top: 30vh;
+                position: fixed;
+                padding: 1rem;
+            }
+
+            .report-chat button {
+            margin-right: .5rem;
+            }
+            `
+            document.body.appendChild(style)
+            reportChatModal.querySelectorAll("button")[0].onclick = async function() {
+                reportChatModal.remove()
+                await fetch("https://spore.us.to:4000/report/chat/"+bl_projectId+"/", {
+        method: "POST",
+                })
+            }
+            reportChatModal.querySelectorAll("button")[1].onclick = function() {
+                reportChatModal.remove()
+            }
+            }
+    })
+}
+
 function postMessageBubble() {
     let inputElem = document.querySelector('bl-chat-input')
     let messageText = inputElem.innerText
