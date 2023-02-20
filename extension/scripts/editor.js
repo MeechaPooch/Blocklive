@@ -1951,7 +1951,7 @@ function outlineBlock(blockId, username) {
 /////........................ GUI INJECTS .........................//////
 console.log('running gui inject...')
 let shareDropdown = `
-<container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; padding-left:15px; padding-right:15px;border-radius: 17px;">
+<container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; border-radius: 17px;">
 <div  style="color:white;font-weight:normal;font-face='Helvetica Neue','Helvetica',Arial,sans-serif">   
 <sharedWith style="display:flex;flex-direction: column;">
         <text style="display:flex;align-self: left;padding-left:4px; padding-top:5px;padding-bottom:5px;font-size: large;">
