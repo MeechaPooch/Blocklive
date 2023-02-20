@@ -2934,7 +2934,7 @@ bl-chat{
 
     overflow: hidden;
 
-    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.75);
+    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.5);
     resize: both;
 
     transition: 0.2s scale;
