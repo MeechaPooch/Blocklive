@@ -714,9 +714,9 @@ function getStringEventRep(e) {
     let rep = e.type + e.blockId + e.commentId + e.varId
     switch(e.type) {
         case 'move':
-            rep += Math.round(e.newCoordinate?.x)
-            + Math.round(e.newCoordinate?.y)
-            + e.newParentId
+            rep += parseInt(e.newCoordinate?.x) + ''
+            + parseInt(e.newCoordinate?.y) + ''
+            + e.newParentId + ''
             break;
         case 'change':
             rep += e.name + e.newValue + e.element
@@ -864,6 +864,8 @@ function blockListener(e) {
             }
             if(!!message){
                 liveMessage(message)
+                console.log('sending',message,getStringEventRep(message.event)) // toremove
+
                 // setTimeout(()=>{liveMessage(message)},5000)
             }
         }
@@ -1095,7 +1097,16 @@ vm.emitWorkspaceUpdate = function() {
     })
     // add creates for all blocks in new workspace
     Object.keys(vm.editingTarget.blocks._blocks).forEach(blockId=>{
-        blockliveEvents[getStringEventRep({type:'create',blockId})] = true
+        blockliveEvents[getStringEventRep({type:'create',blockId})] = true;
+        let block = vm.editingTarget.blocks._blocks[blockId]
+        let moveRep = getStringEventRep({
+            type:'move',
+            blockId,
+            newCoordinate:{x:block.x,y:block.y},
+            newParentId:block.parent
+        })
+        console.log(moveRep)
+        blockliveEvents[moveRep] = true
     })
     // add var creates and deletes
     Object.entries(vm.editingTarget.variables).forEach(varr=>{
