@@ -16,7 +16,7 @@ class BlockliveProject {
     toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
         let ret = {...this}
 
-        let n = 15; // trim changes on save
+        let n = 5; // trim changes on save
         n = Math.min(n,ret.changes.length);
 
         ret.indexZeroVersion += ret.changes.length - n;
@@ -116,6 +116,7 @@ class BlockliveSess {
 
     addClient(client) {
         this.connectedClients[client.id()] = client
+        this.getWonkySockets()
     }
     removeClient(id) {
         let username = this.connectedClients[id]?.username
@@ -159,6 +160,22 @@ class BlockliveSess {
         this.project.recordChange(msg)
         this.project.lastUser = client ? client.username : this.project.lastUser
         this.sendChangeFrom(socket,msg)
+    }
+
+    getWonkySockets() {
+        let wonkyKeys = []
+        Object.entries(this.connectedClients).forEach(entry=>{
+            let socket = entry[1].socket
+            if(socket.disconnected || socket.id!=entry[0]) {
+                wonkyKeys.push(entry[0])
+                console.log('WONKINESS DETECTED! disconnected:',socket.disconnected,'wrong id', ocket.id!=entry[0])
+            }
+            // if(Object.keys(this.connectedClients).length == 0) {
+            //     // project.project.trimChanges(20)
+            //      this.offloadProject(id) // find way to access this function
+            // }
+        })
+        return wonkyKeys
     }
 }
 
@@ -322,6 +339,7 @@ export default class SessionManager{
 
     offloadProject(id) {
         try{
+            console.log('offloading project ' + id)
             let toSaveBlocklive = {}
             toSaveBlocklive[id] = this.blocklive[id]
             saveMapToFolder(toSaveBlocklive,blocklivePath);
@@ -331,6 +349,7 @@ export default class SessionManager{
     reloadProject(id) {
         if(!(id in this.blocklive)) {
             try {
+                console.log('reloading blocklive ' + id)
                 let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id + ''))
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
