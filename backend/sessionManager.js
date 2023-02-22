@@ -2,6 +2,7 @@ import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
 import { blocklivePath, saveMapToFolder } from './filesave.js';
+import {Blob} from 'node:buffer'
 
 class BlockliveProject {
 
@@ -25,7 +26,7 @@ class BlockliveProject {
         // if the changes list string is more than 20 mb, dont write changes
         if(new Blob([JSON.stringify(ret.changes)]).size > 2e7) {
             ret.indexZeroVersion += ret.changes.length
-            ret.changes = []
+            ret.changes = [];
         }
 
         return ret;
