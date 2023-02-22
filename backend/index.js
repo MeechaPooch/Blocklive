@@ -148,7 +148,7 @@ let messageHandlers = {
           let project = sessionManager.getProject(data.blId)
 
           if(filter.isVulgar(text)) {
-               let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
+               let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender?.toLowerCase())
                let loggingMsg = '🔴 FILTERED CHAT: ' + '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId + ']'
                console.error(loggingMsg)
                postText(loggingMsg)
