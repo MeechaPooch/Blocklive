@@ -1,4 +1,5 @@
 import fs from 'fs'
+import fsp from 'fs/promises'
 import path from 'path';
 import sanitize from 'sanitize-filename';
 
@@ -32,6 +33,19 @@ export function saveMapToFolder(obj, dir) {
          }
     })
 }
+export async function saveMapToFolderAsync(obj, dir) {
+     // if obj is null, return
+     if(!obj) {console.warn('tried to save null object to dir: ' + dir); return}
+     // make directory if it doesnt exist
+     if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
+     let promises = []
+     Object.entries(obj).forEach(entry=>{
+          entry[0] = sanitize(entry[0] + '')
+          if(entry[0] == '') {return}
+          promises.push(fsp.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1])).catch(e=>console.error('Error when saving filename: ' + e)))
+     });
+     await Promise.all(promises)
+ }
 export function loadMapFromFolder(dir) {
     let obj = {}
     // check that directory exists, otherwise return empty obj
