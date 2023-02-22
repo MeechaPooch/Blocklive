@@ -2841,7 +2841,7 @@ bl-chat-input{
     min-height:40px;
     overflow-y: scroll;
     text-overflow: clip;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
 
 
     font-size:17px;
