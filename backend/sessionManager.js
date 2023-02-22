@@ -337,6 +337,16 @@ export default class SessionManager{
         SessionManager.inst = this
     }
 
+    offloadStaleProjects() {
+        Object.entries(this.blocklive).forEach(entry=>{
+            let project = entry[1]
+            let id = entry[0]
+            if(Object.keys(project.session.connectedClients).length == 0) {
+                project.project.trimChanges(20)
+                this.offloadProject(id)
+            }
+        })
+    }
     offloadProject(id) {
         try{
             console.log('offloading project ' + id)
