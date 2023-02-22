@@ -22,6 +22,12 @@ class BlockliveProject {
         ret.indexZeroVersion += ret.changes.length - n;
         ret.changes = ret.changes.slice(-n)
 
+        // if the changes list string is more than 20 mb, dont write changes
+        if(new Blob([JSON.stringify(ret.changes)]).size > 2e7) {
+            ret.indexZeroVersion += ret.changes.length
+            ret.changes = []
+        }
+
         return ret;
     }
 
