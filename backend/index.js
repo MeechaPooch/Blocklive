@@ -159,7 +159,7 @@ let messageHandlers = {
 
           project?.onChat(data.msg,client)
           // logging
-          let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender)
+          let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender?.toLowerCase())
           let loggingMsg = '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId + ']'
           console.log(loggingMsg)
           postText(loggingMsg)
