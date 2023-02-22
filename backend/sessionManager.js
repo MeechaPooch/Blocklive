@@ -366,7 +366,7 @@ export default class SessionManager{
     reloadProject(id) {
         if(!(id in this.blocklive)) {
             try {
-                console.log('reloading blocklive ' + id)
+                // console.log('reloading blocklive ' + id)
                 let file = fs.readFileSync(blocklivePath + path.sep + sanitize(id + ''))
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
