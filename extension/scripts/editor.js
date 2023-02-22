@@ -2787,7 +2787,7 @@ bl-msg{
     max-width: 80%;
     margin-left: 15px;
     background-color: rgb(255, 255, 255);
-    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 bl-msg-sender-name{
     font-style:italic;
