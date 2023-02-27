@@ -3,6 +3,21 @@ import Lines from 'n-readlines'
 export class WordCompressor {
     collapseMap = {}
     removeWords = []
+    okWords = {}
+
+    addOkWord(word) {
+        this.okWords[word] = true
+    }
+    removeOkWords(phrase) {
+        phrase.split(' ').forEach(word=>{
+            word = word.toLowerCase()
+            if(word in this.okWords) {
+                phrase = phrase.replace(word,'')
+            }
+        })
+        return phrase
+    }
+
     addMapping(list, to) {
         list.forEach(key => {
             this.collapseMap[key] = to
@@ -147,6 +162,19 @@ export class SubstringTester {
 
 export class Filter {
 
+    spaceWords = {}
+    addSpaceWord(word) {
+        this.spaceWords[word] = true;
+    }
+
+    hasSpaceWord(phrase) {
+        for(let word of phrase.split(' ')) {
+            if(word in this.spaceWords) {return true} // hello -> hello
+            if(this.compressor.compress(word) in this.spaceWords) {return true} // jjjjacket -> jacket
+        }
+        return false;
+    }
+
     constructor() {
         this.compressor = new WordCompressor();
         this.tester = new SubstringTester();
@@ -183,6 +211,16 @@ export class Filter {
         while (line = lines.next()) {
             this.compressor.addRemove(line.toString('ascii').toLowerCase());
         }
+
+        lines = new Lines('./filterwords/spacewords.txt')
+        while (line = lines.next()) {
+            this.addSpaceWord(line.toString('ascii'))
+        }
+
+        lines = new Lines('./filterwords/okWordsSpace.txt')
+        while (line = lines.next()) {
+            this.compressor.addOkWord(line.toString('ascii'))
+        }
     }
 
     addWord(word) {
@@ -195,6 +233,6 @@ export class Filter {
     }
 
     isVulgar(string) {
-        return this.tester.containsWord(this.compressor.compress(string.toLowerCase())) || this.tester.containsWord(this.compressor.shear(string.toLowerCase() + " "))
+        return this.tester.containsWord(this.compressor.compress(string.toLowerCase())) || this.tester.containsWord(this.compressor.shear(string.toLowerCase() + " ")) || this.hasSpaceWord(string.toLowerCase())
     }
 }
