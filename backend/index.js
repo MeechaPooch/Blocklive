@@ -361,8 +361,8 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
 
 app.put('/leaveScratchId/:scratchId/:username',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
-     sessionManager.unshareProject(project.id, req.params.username)
      userManager.unShare(req.params.username, project.id)
+     sessionManager.unshareProject(project.id, req.params.username)
      res.send('uncool beans!!!! /|/|/|')
 })
 
