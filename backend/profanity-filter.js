@@ -9,10 +9,10 @@ export class WordCompressor {
         this.okWords[word] = true
     }
     removeOkWords(phrase) {
-        phrase.split(' ').forEach(word=>{
-            word = word.toLowerCase()
+        phrase.split(' ').forEach(originalWord=>{
+            let word = originalWord.toLowerCase()
             if(word in this.okWords) {
-                phrase = phrase.replace(word,'')
+                phrase = phrase.replace(originalWord,'')
             }
         })
         return phrase
@@ -233,6 +233,7 @@ export class Filter {
     }
 
     isVulgar(string) {
+        string = this.compressor.removeOkWords(string)
         return this.tester.containsWord(this.compressor.compress(string.toLowerCase())) || this.tester.containsWord(this.compressor.shear(string.toLowerCase() + " ")) || this.hasSpaceWord(string.toLowerCase())
     }
 }
