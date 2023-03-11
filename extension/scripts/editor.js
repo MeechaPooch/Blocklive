@@ -1730,10 +1730,12 @@ function addNewTargetEvent(targetName, event) {
 }
 
 // ()=>{pauseEventHandling = true},(
-vm.addSprite = proxy(vm.addSprite,"addsprite",(args)=>{
-    console.log('addsprite',args);
-  return {spritearray:Array.from(new Uint8Array(args[0]))}
-},(data)=>([Uint8Array.from(data.extrargs.spritearray).buffer]),null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+// vm.addSprite = proxy(vm.addSprite,"addsprite",(args)=>{
+//     console.log(args)
+//     console.log('addsprite',args);
+//   return {spritearray:Array.from(new Uint8Array(args[0]))}
+// },(data)=>([Uint8Array.from(data.extrargs.spritearray).buffer]),null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
