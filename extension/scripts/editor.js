@@ -3153,52 +3153,14 @@ function moveMyBubble() {
     }catch(e){console.error(e)}
 }
 
-
-
-//// popup backspace not work in costumes/sounds tab """"""""fix"""""""
-// todo: find a better more general way to do this in the future!!
 function backspaceFix() {
-function backSpace()
-{
-    p = document.querySelector('#bl-chat > bl-chat-send > bl-chat-input');
-    cs = getCaretPosition(p);console.log( getCaretPosition(p));
-    c = cs[0]
-    str= document.querySelector('#bl-chat > bl-chat-send > bl-chat-input').innerText;
-    if(c>-1 && c<= str.length){
-      document.querySelector('#bl-chat > bl-chat-send > bl-chat-input').innerText = str.slice(0,cs[0]==cs[1]?cs[0]-1:cs[0])+str.slice(cs[1])
-    
-  
-  p.focus();
-var textNode = p.firstChild;
-var caret = Math.max(cs[0]==cs[1]?c-1:c,0) ; // insert caret after the 10th character say
-var range = document.createRange();
-range.setStart(textNode, caret);
-range.setEnd(textNode, caret);
-var sel = window.getSelection();
-sel.removeAllRanges();
-sel.addRange(range);
-    } 
-}
-
-
-function getCaretPosition(editableDiv) {
-  var caretPos = 0,
-sel, range;
-  if (window.getSelection) {
-sel = window.getSelection();
-if (sel.rangeCount) {
-  range = sel.getRangeAt(0);
-  if (range.commonAncestorContainer.parentNode == editableDiv) {
-    // caretPos = range.endOffset;
-    caretPos=[range.startOffset,range.endOffset]
-  }
-}
-  }
-  return caretPos;
-}
-
-document.querySelector("#bl-chat > bl-chat-send > bl-chat-input").addEventListener('keydown',(e)=>{
-    if(e.key=='Backspace' && store.getState().scratchGui.editorTab.activeTabIndex!=0) {
-        backSpace()
-}})
+    document.querySelector("#bl-chat > bl-chat-send > bl-chat-input").addEventListener('keydown',(e)=>{
+        e.stopPropagation();
+    })
+    document.addEventListener('mousedown',e=>{
+        if(e.target!=document.querySelector("#bl-chat > bl-chat-send > bl-chat-input") && 
+            document.activeElement==document.querySelector("#bl-chat > bl-chat-send > bl-chat-input")) {
+                document.activeElement.blur()
+        }
+    })
 }
