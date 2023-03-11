@@ -2878,6 +2878,7 @@ bl-chat-msgs::-webkit-scrollbar { width: 0 !important }
 bl-chat-msgs { overflow: -moz-scrollbars-none; }
 
 bl-chat-head-x{
+    cursor:pointer;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 22px;
     transform: rotate(45deg);
@@ -2909,6 +2910,7 @@ bl-chat-head-text{
     color:white;
 }
 bl-chat-head {
+    cursor:move;
     user-select: none;
     display: flex;
     flex-direction: row;
@@ -2942,6 +2944,7 @@ bl-chat{
     resize: both;
 
     transition: 0.2s scale;
+    transform-origin: center;
 
 }`
 function injectChatCSS() {
@@ -3094,9 +3097,11 @@ function toggleChat(state) {
     if(state===undefined) {
         // chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
         chatbox.style.scale = chatbox.style.scale==0.8 ? 0 : 0.8
+        // chatbox.style.scale = chatbox.style.transformOrigin='top left'
     } else {
         // chatbox.style.visibility = state ? 'visible' : 'hidden'
         chatbox.style.scale = state ? 0.8 : 0
+        // chatbox.style.scale = chatbox.style.transformOrigin='center'
     }
 }
 
