@@ -64,14 +64,10 @@ export default class UserManager {
         username = username?.toLowerCase()
         console.log(`usrMngr: unsharing ${blId} with ${username}`)
         let map = this.getUser(username)?.sharedTo
-        console.log('map',map)
-        console.log('blId',blId)
         if(!map) {return}
         delete map[blId]
 
         let ownedIndex = this.getUser(username)?.myProjects.indexOf(blId)
-        console.log('myProjects',this.getUser(username)?.myProjects)
-        console.log('ownedIndex',ownedIndex)
         if(ownedIndex != -1) {
             this.getUser(username)?.myProjects.splice(ownedIndex,1)
         }
