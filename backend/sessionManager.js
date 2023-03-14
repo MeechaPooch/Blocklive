@@ -388,7 +388,7 @@ export default class SessionManager{
     // constructor(owner,scratchId,json,blId,title) {
     newProject(owner,scratchId,json,title) {
         if(scratchId in this.scratchprojects) {return this.getProject(this.scratchprojects[scratchId].blId)}
-        let id = new String(this.getNextId())
+        let id = String(this.getNextId())
         let project = new ProjectWrapper(owner,scratchId,json,id,title)
         this.blocklive[id] = project
         this.scratchprojects[scratchId] = {owner,blId:id}
