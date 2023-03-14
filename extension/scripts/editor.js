@@ -1103,14 +1103,16 @@ vm.emitWorkspaceUpdate = function() {
     Object.keys(vm.editingTarget.blocks._blocks).forEach(blockId=>{
         blockliveEvents[getStringEventRep({type:'create',blockId})] = true;
         let block = vm.editingTarget.blocks._blocks[blockId]
-        let moveRep = getStringEventRep({
-            type:'move',
-            blockId,
-            newCoordinate:{x:block.x,y:block.y},
-            newParentId:block.parent
-        })
-        console.log(moveRep)
-        blockliveEvents[moveRep] = true
+        if(!block.parent) {
+            let moveRep = getStringEventRep({
+                type:'move',
+                blockId,
+                newCoordinate:{x:block.x,y:block.y},
+                newParentId:block.parent
+            })
+            console.log(moveRep)
+            blockliveEvents[moveRep] = true
+        }
     })
     // add var creates and deletes
     Object.entries(vm.editingTarget.variables).forEach(varr=>{
