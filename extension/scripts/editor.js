@@ -311,7 +311,7 @@ setInterval(reconnectIfNeeded,1000)
         } else if(msg.meta == 'version++') {
             blVersion++;
         } else if(msg.meta == 'chat') {
-            addMessage(msg.msg)
+            addMessage(msg.msg,true)
         }
         } catch (e) {console.error(e)}
     }
@@ -2328,7 +2328,7 @@ async function getUserInfo(username) {
     return user
 }
 function getWithPic(user) {
-    user.pic = `https://cdn2.scratch.mit.edu/get_image/user/${user.pk}_60x60.png`
+    user.pic = `https://uploads.scratch.mit.edu/get_image/user/${user.pk}_60x60.png`
     return user
 }
 
@@ -2526,10 +2526,13 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
    
     let topBar = accountInfo.parentElement;
 
+    // add panel
     let panel = document.createElement('div')
     panel.id = 'blUsersPanel'
     panel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px; overflow: auto;"
     topBar.insertBefore(panel,accountInfo)
+    // add chat
+    addChatButton()
 
     let activeText = document.createElement('div')
     activeText.innerHTML = 'online:'
@@ -2544,7 +2547,7 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
 
     if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
     else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
-    reloadOnlineUsers();
+    showCachedOnlineUsers();
 })
 }
 
@@ -2570,6 +2573,7 @@ function clearActive() {
 
 let bl_dudes = []
 async function displayActive(users) {
+    if(!users) {return}
 
     // console.log('activeusers',users)
     bl_dudes.forEach(dude=>dude?.remove())
@@ -2624,7 +2628,7 @@ async function displayActive(users) {
         if(!users[i].pk) {
             user.src = (await getUserInfo(users[i].username)).pic
         } else {
-            user.src = `https://cdn2.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
+            user.src = `https://uploads.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
         }
         user.style.borderRadius = '10px'
         // user.style.height = '100%'
@@ -2648,15 +2652,19 @@ async function displayActive(users) {
     }
 }
 
-
+blCursors=null;
 function reloadOnlineUsers() {
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
+        if(JSON.stringify(blCursors)==JSON.stringify(res)) {return}
         blCursors = res
         clearActive()
         try{displayActive(res)}catch(e){console.error(e)}
-        addChatButton()
         // moveMyBubble()
     })
+}
+function showCachedOnlineUsers() {
+    clearActive()
+    try{displayActive(blCursors)}catch(e){console.error(e)}
 }
 
 setInterval(reloadOnlineUsers,2500)
@@ -2758,8 +2766,30 @@ function injectLoadingOverlay() {
 
 
 
-let chatCss = `.textbubbleemoji{
+let chatCss = `
+
+.chatdot {
+    visibility:hidden;
+    position: absolute;
+    height: 1.05em;
+    /* width: 15px; */
+    /* min-width: 15px; */
+    left: 17px;
+    top: -3px;
+    background-color: red;
+    border-radius: 1em;
+    display: inline-block;
+    font-size: 16px;
+    text-align: center;
+    /* padding-left: 4px; */
+    /* border-right: 4px solid; */
+    padding: 0 0.25em;
+    line-height: 1em;
+}
+
+.textbubbleemoji{
     font-size: 27px;
+    position:relative;
 }
 .bl-chat-toggle-button{
     user-select: none;
@@ -2776,7 +2806,15 @@ let chatCss = `.textbubbleemoji{
     margin-left:10px;
 }
 .bl-chat-toggle-button:hover{
-    box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8);
+    /* box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8); */
+    box-shadow: 5px 5px 3.4px 0px rgba(0,0,0,0.5);
+    transform:translate(-3px,-3px)
+}
+.bl-chat-toggle-button:active{
+    /* box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8); */
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,0.5);
+    transform: none;
+    transition:0.1s;
 }
 
 
@@ -2995,9 +3033,28 @@ function addChatButton() {
     try{
         let chatElem = document.createElement('div')
         chatElem.classList.add('bl-chat-toggle-button')
-        chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()">💬</span>`
-        document.getElementById('blUsersPanel').appendChild(chatElem)
+        chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()"><span>💬</span><span class="chatdot"></span></span>`
+        let panel = document.getElementById('blUsersPanel')
+
+        let newPanel = document.createElement('div')
+        newPanel.id='noRefreshPanel'
+        newPanel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px;"
+        panel.parentElement.insertBefore(newPanel,panel.nextElementSibling)
+
+        newPanel.appendChild(chatElem)
+
+        setChatUnread(chatUnreadCount)
     }catch(e) {console.error(e)}
+}
+let chatUnreadCount = 0
+function incChatUnread() {
+    setChatUnread(chatUnreadCount+1)
+}
+function setChatUnread(num) {
+    chatUnreadCount = num;
+    let chatdot=document.querySelector('.chatdot');
+    chatdot.innerHTML = num;
+    chatdot.style.visibility = num==0 ? 'hidden' : 'visible'
 }
 
 let blChatHTML = `
@@ -3060,7 +3117,7 @@ function dragElement(elmnt) {
 // msg: {text, sender}
 lastSender = ''
 uname = ''
-async function addMessage(msg) {
+async function addMessage(msg, notif) {
     let msgsElem = document.querySelector('bl-chat-msgs')
     if(msg.sender != lastSender) {
         let unameElem = document.createElement('bl-msg-sender')
@@ -3081,6 +3138,14 @@ async function addMessage(msg) {
     msgsElem.scrollTop = msgsElem.scrollHeight;
 
 
+    if(notif) {
+        if(!isChatOpen()) {
+            incChatUnread();
+        }
+        if(!isChatOpen() || !document.hasFocus()) {
+            liveMessage({meta:"chatnotif",project:store.getState().preview.projectInfo.title, sender:msg.sender, text:msg.text, avatar:(await getUserInfo(msg.sender)).pic})
+        }
+    }
 }
 function postMessageBubble() {
     let inputElem = document.querySelector('bl-chat-input')
@@ -3107,6 +3172,11 @@ function toggleChat(state) {
         chatbox.style.scale = state ? 0.8 : 0
         // chatbox.style.scale = chatbox.style.transformOrigin='center'
     }
+    if(isChatOpen()) {setChatUnread(0)}
+}
+function isChatOpen() {
+    let chatbox = document.querySelector('bl-chat')
+    return chatbox.style.scale = chatbox.style.scale==0.8
 }
 
 
@@ -3158,7 +3228,6 @@ function moveMyBubble() {
         blCursors.find(b=>b.username==uname).cursor.targetName=BL_UTILS.targetToName(vm.editingTarget)
         clearActive()
         try{displayActive(blCursors)}catch(e){console.error(e)}
-        addChatButton()
     }catch(e){console.error(e)}
 }
 
