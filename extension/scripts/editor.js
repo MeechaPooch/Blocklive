@@ -121,6 +121,7 @@ async function startBlocklive(creatingNew) {
     injectLoadingOverlay()
 
     activateBlocklive()
+    setTopbarButtonVisibility()
     
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
@@ -211,6 +212,17 @@ function getChanges(Id,version) {
 }
 function fetchTitle(blId) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getTitle',blId},res)})
+}
+
+function setTopbarButtonVisibility() {
+    try{
+        if(!blId || typeof blCursors == 'undefined' || Object.entries(Object(blCursors)).length==0) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
+        else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
+    try{
+        if(!blId) {document.getElementById('blChatButton').style.visibility = 'hidden'}
+        else {document.getElementById('blChatButton').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
 }
 
 let getAndPlayNewChanges
@@ -2545,8 +2557,8 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+   setTopbarButtonVisibility()
+
     showCachedOnlineUsers();
 })
 }
@@ -2585,8 +2597,7 @@ async function displayActive(users) {
     })
 
     if(!document.getElementById('blUsersPanel')) {return}
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    setTopbarButtonVisibility()
 
     let yo = yo_1
     let panel = document.getElementById('blUsersPanel')
@@ -3032,6 +3043,7 @@ try{
 function addChatButton() {
     try{
         let chatElem = document.createElement('div')
+        chatElem.id = 'blChatButton'
         chatElem.classList.add('bl-chat-toggle-button')
         chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()"><span>💬</span><span class="chatdot"></span></span>`
         let panel = document.getElementById('blUsersPanel')
@@ -3044,6 +3056,10 @@ function addChatButton() {
         newPanel.appendChild(chatElem)
 
         setChatUnread(chatUnreadCount)
+
+        if(!blId) {chatElem.style.visibility = 'hidden'}
+        else {chatElem.style.visibility = 'visible'}
+
     }catch(e) {console.error(e)}
 }
 let chatUnreadCount = 0
