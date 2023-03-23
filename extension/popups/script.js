@@ -72,3 +72,27 @@ document.getElementById('discord').onclick = ()=>{
 document.getElementById('support').onclick = ()=>{
     chrome.tabs.create({url: `https://www.buymeacoffee.com/ilhp10`});
 }
+
+
+/// request permissions
+(async()=>{
+document.querySelector('#notifs').checked = (await chrome.storage.local.get(['notifs'])).notifs ?? false
+})()
+document.querySelector('#notifs').addEventListener('change', (event) => {
+    let on = event.currentTarget.checked;
+    chrome.storage.local.set({notifs:on})
+    // Permissions must be requested from inside a user gesture, like a button's
+    // click handler.
+    chrome.permissions.request({
+      permissions: ['notifications'],
+    }, (granted) => {
+      // The callback argument will be true if the user granted the permissions.
+      if (granted) {
+        // doSomething();
+      } else {
+        chrome.storage.local.set({notifs:false})
+        document.querySelector('#notifs').checked = false;
+      }
+    });
+  });
+  
