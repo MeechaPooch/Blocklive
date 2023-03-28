@@ -72,7 +72,12 @@ document.getElementById('discord').onclick = ()=>{
 document.getElementById('support').onclick = ()=>{
     chrome.tabs.create({url: `https://www.buymeacoffee.com/ilhp10`});
 }
-
+document.getElementById('rgantzos').onclick = ()=>{
+    chrome.tabs.create({url: `https://scratch.mit.edu/users/rgantzos`});
+}
+document.getElementById('ilhp10').onclick = ()=>{
+    chrome.tabs.create({url: `https://scratch.mit.edu/users/ilhp10`});
+}
 
 /// request permissions
 (async()=>{
