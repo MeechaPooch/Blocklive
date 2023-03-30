@@ -12,10 +12,10 @@ body {
 html{
     min-width:320px;
     max-width:320px;
-    min-height:285px;
+    /* min-height:285px;
     max-height:500px;
     padding:0;
-    margin:0
+    margin:0 */
 }
 
 #search {
