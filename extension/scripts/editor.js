@@ -135,6 +135,9 @@ async function startBlocklive(creatingNew) {
             pauseEventHandling = false
         })
     }
+    if(creatingNew) {
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
+    }
 }
 
 async function onTabLoad() {
@@ -2448,6 +2451,34 @@ function injectJSandCSS() {
     document.head.appendChild(styleInj2)
 }
 
+function addToCredits(text) {
+    try{
+    let oldDesc = store.getState().preview.projectInfo.description
+    if(oldDesc.includes(text)) {return}
+    let newDesc = oldDesc + (oldDesc=='' ? '' : '\n') + text;
+
+    fetch(`https://api.scratch.mit.edu/projects/${scratchId}`, {
+        "headers": {
+            "accept": "application/json",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "x-token": store.getState().session.session.user.token
+        },
+        "referrer": "https://scratch.mit.edu/",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "body": `{\"description\":${JSON.stringify(newDesc)}}`,
+        "method": "PUT",
+        "mode": "cors",
+        "credentials": "omit"
+        });
+        store.getState().preview.projectInfo.description = newDesc;
+    } catch(e){
+        console.error(e)
+    }
+}
+
 let blActivateClick = async ()=>{
     // change onclick
     blockliveButton.onclick = undefined
@@ -2474,6 +2505,10 @@ let blActivateClick = async ()=>{
         liveMessage({meta:"joinSession"})
         readyToRecieveChanges = true
         await refreshShareModal()
+
+        // add blocklive ref in instructions credits
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
+
         // stop spinny
         document.querySelector('loader.blockliveloader').style.display = 'none'
 
