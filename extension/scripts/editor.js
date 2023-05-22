@@ -2929,7 +2929,7 @@ bl-chat-input{
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.4);
     max-height:150px;
     min-height:40px;
-    overflow-y: scroll;
+    overflow-y: auto;
     text-overflow: clip;
     overflow-wrap: anywhere;
 
