@@ -253,7 +253,7 @@ class ProjectWrapper {
     onChat(msg,socket) {
         this.chat.push(msg.msg)
         this.session.sendChangeFrom(socket,msg,true)
-        this.trimChat(100)
+        this.trimChat(500)
     }
     getChat() {
         return this.chat
