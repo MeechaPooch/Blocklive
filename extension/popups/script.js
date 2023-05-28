@@ -81,7 +81,7 @@ document.getElementById('ilhp10').onclick = ()=>{
 
 /// request permissions
 (async()=>{
-document.querySelector('#notifs').checked = (await chrome.storage.local.get(['notifs'])).notifs ?? false
+document.querySelector('#notifs').checked = (await chrome.storage.local.get(['notifs']))?.notifs ?? false
 })()
 document.querySelector('#notifs').addEventListener('change', (event) => {
     let on = event.currentTarget.checked;
