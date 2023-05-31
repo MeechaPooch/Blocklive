@@ -33,7 +33,7 @@ setTimeout(()=>{chrome.runtime.sendMessage({meta:"getUsernamePlus"},setSignedin)
 
         let item = document.createElement('li')
         item.username = name
-        item.innerHTML = `${name}  <span class="x" href="page2.html">(x)</span>`;
+        item.innerHTML = `@${name}  <span class="x" href="page2.html">x</span>`;
         item.children[0].onclick = ()=>{removeFriend(name)}
         document.querySelector('#friends').appendChild(item)
     }

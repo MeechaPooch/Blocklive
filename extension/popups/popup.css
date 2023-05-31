@@ -105,12 +105,15 @@ ul{
     cursor: pointer;
     padding-top: 0.15rem;
     position: relative;
-    top: 0px;
+    top: -.25rem;
     transition: top .3s;
+    float: right;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 .x:hover {
-    top: .25rem;
+    top: -.1rem;
 }
 
 button.viewall {
@@ -123,11 +126,26 @@ button.viewall {
     border: 0px;
     margin-bottom: 2rem;
     position: relative;
-    top: 0px;
+    top: 0;
     transition: top .3s;
     cursor: pointer;
+    margin-top: 1.5rem;
 }
 
 button.viewall:hover {
     top: .5rem;
+}
+
+ul {
+    list-style-type: none; /* Remove bullets */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margins */
+}
+
+li {
+    width: calc(100% - 1rem);
+    margin-top: 0.25rem;
+    border-radius: 0.25rem;
+    background-color: #eaeaea;
+    padding: 0.5rem;
 }
