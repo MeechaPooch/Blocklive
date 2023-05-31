@@ -1,3 +1,9 @@
+document.querySelector("button.viewall").addEventListener("click", function() {
+    chrome.tabs.create({
+        url: "/projects/index.html"
+    })
+})
+
 chrome.runtime.sendMessage({meta:"getUsernamePlus"},function(info){
     let username = info.uname
 
