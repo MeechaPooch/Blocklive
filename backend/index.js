@@ -156,6 +156,10 @@ io.on('connection', (client) => {
      })
 });
 
+app.post("/report/chat//:project/", async function(req, res) {
+     console.log(`A USER JUST REPORTED THE CHAT IN PROJECT ${req.params.project}`)
+})
+
 app.post('/newProject/:scratchId/:owner',(req,res)=>{
      console.log('yeetee')
      if(sanitize(req.params.scratchId + '') == '') {res.send({err:'invalid scratch id'}); return}
