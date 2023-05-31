@@ -4,6 +4,56 @@ body {
     background-color: rgb(0, 153, 255);  */
     display:flex;
     flex-direction: column;
+    width: 300px;
+    height: calc(500px - 3.5rem);
+    padding-top: 3.5rem;
+}
+
+input#searchh {
+    width: 100%;
+    outline: none;
+    border: 0px;
+    background: #eaeaea;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+button#submit {
+    background: #ff00e6;
+    outline: 0px;
+    border: 0px;
+    border-radius: 0.25rem;
+    position: relative;
+    top: 0px;
+    transition: top .3s;
+    color: white;
+    cursor: pointer;
+    width: 3rem;
+    margin-left: .5rem;
+}
+
+button#submit:hover {
+    top: .5rem;
+}
+
+.nav {
+    background-color: #ff00e6;
+    padding: .5rem;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: calc(100vw - 1rem);
+    text-align: center;
+}
+
+.nav img {
+    height: 2.5rem;
+    transform: rotate(0deg);
+    transition: transform .3s;
+}
+
+.nav img:hover {
+    transform: rotate(360deg);
 }
 
 
@@ -45,6 +95,39 @@ ul{
 }
 
 .x{
-    color:black;
+    color: white;
     font-size: small;
+    background-color: #ff00e6;
+    color: white;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    position: relative;
+    cursor: pointer;
+    padding-top: 0.15rem;
+    position: relative;
+    top: 0px;
+    transition: top .3s;
+}
+
+.x:hover {
+    top: .25rem;
+}
+
+button.viewall {
+    width: 100%;
+    padding: .5rem;
+    border-radius: .25rem;
+    background-color: #ff00e6;
+    color: white;
+    outline: none;
+    border: 0px;
+    margin-bottom: 2rem;
+    position: relative;
+    top: 0px;
+    transition: top .3s;
+    cursor: pointer;
+}
+
+button.viewall:hover {
+    top: .5rem;
 }
