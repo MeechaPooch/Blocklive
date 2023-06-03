@@ -8,6 +8,7 @@ const app = express();
 import cors from 'cors'
 app.use(cors({origin:'*'}))
 app.use(express.json({ limit: '5MB' }))
+import fsp from 'fs/promises'
 ////////////
 // import http from 'http'
 // const server = http.createServer(app);
@@ -88,6 +89,13 @@ function save() {
      saveMapToFolder(sessionManager.scratchprojects,scratchprojectsPath);
      fs.writeFileSync(lastIdPath,(sessionManager.lastId).toString());
      saveMapToFolder(userManager.users,usersPath);
+}
+async function saveAsync() {
+     await sessionManager.offloadStaleProjectsAsync();
+     await saveMapToFolderAsync(sessionManager.blocklive,blocklivePath);
+     await saveMapToFolderAsync(sessionManager.scratchprojects,scratchprojectsPath);
+     await fsp.writeFile(lastIdPath,(sessionManager.lastId).toString());
+     await saveMapToFolderAsync(userManager.users,usersPath);
 }
 saveMapToFolder(sessionManager.blocklive,blocklivePath)
 

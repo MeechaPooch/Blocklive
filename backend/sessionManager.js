@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
-import { blocklivePath, saveMapToFolder } from './filesave.js';
+import { blocklivePath, saveMapToFolder, saveMapToFolderAsync } from './filesave.js';
 import {Blob} from 'node:buffer'
 
 class BlockliveProject {
@@ -354,12 +354,31 @@ export default class SessionManager{
             }
         })
     }
+    async offloadStaleProjectsAsync() {
+        for (let entry in Object.entries(this.blocklive)){
+            let project = entry[1]
+            let id = entry[0]
+            if(Object.keys(project.session.connectedClients).length == 0) {
+                project.project.trimChanges(20)
+                await this.offloadProjectAsync(id)
+            }
+        }
+    }
     offloadProject(id) {
         try{
             console.log('offloading project ' + id)
             let toSaveBlocklive = {}
             toSaveBlocklive[id] = this.blocklive[id]
             saveMapToFolder(toSaveBlocklive,blocklivePath);
+            delete this.blocklive[id]
+        } catch (e) {console.error(e)}
+    }
+    async offloadProjectAsync(id) {
+        try{
+            console.log('offloading project ' + id)
+            let toSaveBlocklive = {}
+            toSaveBlocklive[id] = this.blocklive[id]
+            await saveMapToFolderAsync(toSaveBlocklive,blocklivePath);
             delete this.blocklive[id]
         } catch (e) {console.error(e)}
     }
