@@ -118,9 +118,11 @@ let readyToRecieveChanges = false
 async function startBlocklive(creatingNew) {
     pauseEventHandling = true
     liveMessage({meta:"myId",id:blId})
-    activateBlocklive()
     injectLoadingOverlay()
-    addChat()
+
+    activateBlocklive()
+    setTopbarButtonVisibility()
+    
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
         if(projectReplaceInitiated) { return }
@@ -132,6 +134,9 @@ async function startBlocklive(creatingNew) {
             await joinExistingBlocklive(blId)
             pauseEventHandling = false
         })
+    }
+    if(creatingNew) {
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
     }
 }
 
@@ -212,9 +217,22 @@ function fetchTitle(blId) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getTitle',blId},res)})
 }
 
+function setTopbarButtonVisibility() {
+    try{
+        if(!blId || typeof blCursors == 'undefined' || Object.entries(Object(blCursors)).length==0) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
+        else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
+    try{
+        if(!blId) {document.getElementById('blChatButton').style.visibility = 'hidden'}
+        else {document.getElementById('blChatButton').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
+}
+
 let getAndPlayNewChanges
 
 async function activateBlocklive() {
+
+    addChat()
 
     playChanges = async (changes)=>{
         pauseEventHandling = true
@@ -308,7 +326,7 @@ setInterval(reconnectIfNeeded,1000)
         } else if(msg.meta == 'version++') {
             blVersion++;
         } else if(msg.meta == 'chat') {
-            addMessage(msg.msg)
+            addMessage(msg.msg,true)
         }
         } catch (e) {console.error(e)}
     }
@@ -423,6 +441,7 @@ BL_UTILS = {
     nameToTarget,
     getSelectedCostumeIndex,
 }
+BL_UTILS.stageName = stageName
 
 // send to api when project saved and name change
 let lastProjectState = store.getState().scratchGui.projectState.loadingState
@@ -711,9 +730,9 @@ function getStringEventRep(e) {
     let rep = e.type + e.blockId + e.commentId + e.varId
     switch(e.type) {
         case 'move':
-            rep += Math.round(e.newCoordinate?.x)
-            + Math.round(e.newCoordinate?.y)
-            + e.newParentId
+            rep += parseInt(e.newCoordinate?.x) + ''
+            + parseInt(e.newCoordinate?.y) + ''
+            + e.newParentId + ''
             break;
         case 'change':
             rep += e.name + e.newValue + e.element
@@ -861,6 +880,8 @@ function blockListener(e) {
             }
             if(!!message){
                 liveMessage(message)
+                console.log('sending',message,getStringEventRep(message.event)) // toremove
+
                 // setTimeout(()=>{liveMessage(message)},5000)
             }
         }
@@ -1057,6 +1078,9 @@ vm.emitTargetsUpdate = function(...args) {
     etuListeners = []
     if(pauseEventHandling) {return}
     else {oldTargUp(...args)}
+
+    // move my bubble
+//    moveMyBubble()
 }
 
 let oldEWU = (vm.emitWorkspaceUpdate).bind(vm)
@@ -1092,7 +1116,18 @@ vm.emitWorkspaceUpdate = function() {
     })
     // add creates for all blocks in new workspace
     Object.keys(vm.editingTarget.blocks._blocks).forEach(blockId=>{
-        blockliveEvents[getStringEventRep({type:'create',blockId})] = true
+        blockliveEvents[getStringEventRep({type:'create',blockId})] = true;
+        let block = vm.editingTarget.blocks._blocks[blockId]
+        if(!block.parent) {
+            let moveRep = getStringEventRep({
+                type:'move',
+                blockId,
+                newCoordinate:{x:block.x,y:block.y},
+                newParentId:block.parent
+            })
+            console.log(moveRep)
+            blockliveEvents[moveRep] = true
+        }
     })
     // add var creates and deletes
     Object.entries(vm.editingTarget.variables).forEach(varr=>{
@@ -1712,7 +1747,14 @@ function addNewTargetEvent(targetName, event) {
 }
 
 // ()=>{pauseEventHandling = true},(
-vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+vm.addSprite = proxy(vm.addSprite,"addsprite",(args)=>{
+    if(args[0] instanceof ArrayBuffer) {
+    console.log(args)
+    console.log('addsprite',args);
+  return {spritearray:Array.from(new Uint8Array(args[0]))}
+    } else return {}
+},(data)=>(data.extrargs.spritearray ? [Uint8Array.from(data.extrargs.spritearray).buffer] : [...data.args]),null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+// vm.addSprite = proxy(vm.addSprite,"addsprite",(a)=>{console.log('🧟‍♂️ NEW SPRITE',a);window.sprite=a},null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
@@ -1948,7 +1990,7 @@ function outlineBlock(blockId, username) {
 /////........................ GUI INJECTS .........................//////
 console.log('running gui inject...')
 let shareDropdown = `
-<container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; padding-left:15px; padding-right:15px;border-radius: 17px;">
+<container style="width:200px; row-gap: 5px; display:flex;flex-direction:column;background-color: #4d97ff;padding:10px; border-radius: 17px;">
 <div  style="color:white;font-weight:normal;font-face='Helvetica Neue','Helvetica',Arial,sans-serif">   
 <sharedWith style="display:flex;flex-direction: column;">
         <text style="display:flex;align-self: left;padding-left:4px; padding-top:5px;padding-bottom:5px;font-size: large;">
@@ -2303,7 +2345,7 @@ async function getUserInfo(username) {
     return user
 }
 function getWithPic(user) {
-    user.pic = `https://cdn2.scratch.mit.edu/get_image/user/${user.pk}_60x60.png`
+    user.pic = `https://uploads.scratch.mit.edu/get_image/user/${user.pk}_60x60.png`
     return user
 }
 
@@ -2403,6 +2445,38 @@ function injectJSandCSS() {
     let styleInj = document.createElement('style')
     styleInj.innerHTML = shareCSS
     document.head.appendChild(styleInj)
+
+    let styleInj2 = document.createElement('style')
+    styleInj2.innerHTML = spriteDisplayCSS
+    document.head.appendChild(styleInj2)
+}
+
+function addToCredits(text) {
+    try{
+    let oldDesc = store.getState().preview.projectInfo.description
+    if(oldDesc.includes(text)) {return}
+    let newDesc = oldDesc + (oldDesc=='' ? '' : '\n') + text;
+
+    fetch(`https://api.scratch.mit.edu/projects/${scratchId}`, {
+        "headers": {
+            "accept": "application/json",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "x-token": store.getState().session.session.user.token
+        },
+        "referrer": "https://scratch.mit.edu/",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "body": `{\"description\":${JSON.stringify(newDesc)}}`,
+        "method": "PUT",
+        "mode": "cors",
+        "credentials": "omit"
+        });
+        store.getState().preview.projectInfo.description = newDesc;
+    } catch(e){
+        console.error(e)
+    }
 }
 
 let blActivateClick = async ()=>{
@@ -2431,6 +2505,10 @@ let blActivateClick = async ()=>{
         liveMessage({meta:"joinSession"})
         readyToRecieveChanges = true
         await refreshShareModal()
+
+        // add blocklive ref in instructions credits
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
+
         // stop spinny
         document.querySelector('loader.blockliveloader').style.display = 'none'
 
@@ -2497,10 +2575,13 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
    
     let topBar = accountInfo.parentElement;
 
+    // add panel
     let panel = document.createElement('div')
     panel.id = 'blUsersPanel'
     panel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px; overflow: auto;"
     topBar.insertBefore(panel,accountInfo)
+    // add chat
+    addChatButton()
 
     let activeText = document.createElement('div')
     activeText.innerHTML = 'online:'
@@ -2513,9 +2594,9 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
-    reloadOnlineUsers();
+   setTopbarButtonVisibility()
+
+    showCachedOnlineUsers();
 })
 }
 
@@ -2539,10 +2620,21 @@ function clearActive() {
     document.getElementById('blUsersPanel').appendChild(activeText)
 }
 
+let bl_dudes = []
 async function displayActive(users) {
+    if(!users) {return}
+
+    // console.log('activeusers',users)
+    bl_dudes.forEach(dude=>dude?.remove())
+    bl_dudes = []
+    users?.forEach(user=>{
+        if(user.username != uname) {
+            bl_dudes.push(addDude(user?.cursor?.targetName,user.username))
+        }
+    })
+
     if(!document.getElementById('blUsersPanel')) {return}
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    setTopbarButtonVisibility()
 
     let yo = yo_1
     let panel = document.getElementById('blUsersPanel')
@@ -2584,7 +2676,7 @@ async function displayActive(users) {
         if(!users[i].pk) {
             user.src = (await getUserInfo(users[i].username)).pic
         } else {
-            user.src = `https://cdn2.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
+            user.src = `https://uploads.scratch.mit.edu/get_image/user/${users[i].pk}_60x60.png`
         }
         user.style.borderRadius = '10px'
         // user.style.height = '100%'
@@ -2608,14 +2700,19 @@ async function displayActive(users) {
     }
 }
 
-
+blCursors=null;
 function reloadOnlineUsers() {
     chrome.runtime.sendMessage(exId,{meta:'getActive',id:blId},(res)=>{
+        if(JSON.stringify(blCursors)==JSON.stringify(res)) {return}
         blCursors = res
         clearActive()
         try{displayActive(res)}catch(e){console.error(e)}
-        addChatButton()
+        // moveMyBubble()
     })
+}
+function showCachedOnlineUsers() {
+    clearActive()
+    try{displayActive(blCursors)}catch(e){console.error(e)}
 }
 
 setInterval(reloadOnlineUsers,2500)
@@ -2637,7 +2734,8 @@ loading-content{
     align-items: center;
     justify-items: center;
     justify-content: center;
-    height: 100%;;
+    height: 100%;
+    scale:70%;
 }
 blocklive-loading{
     z-index:10000;
@@ -2645,7 +2743,6 @@ blocklive-loading{
     width: 100vw;
     height: 100vh;
     /* backdrop-filter: blur(12px); */
-
     transition: 0.34s;
 }
 .bl-loading-text{
@@ -2684,7 +2781,7 @@ blocklive-loading{
 function finishBLLoadingAnimation() {
     try{
     document.querySelector('blocklive-loading').style.backdropFilter = ' blur(0px)'
-    document.querySelector('#bl-load-logo').style.scale = '400%'
+    document.querySelector('#bl-load-logo').style.scale = '500%'
     document.querySelector('#bl-load-logo').style.opacity = '0%'
     document.querySelector('.bl-loading-text').style.opacity = '0%'
 
@@ -2711,13 +2808,36 @@ function injectLoadingOverlay() {
     let loadingOverlay = document.createElement('blocklive-loading')
     loadingOverlay.innerHTML = overlayHTML
     document.body.appendChild(loadingOverlay)
+
 }    catch (e) {console.error(e)}
 }
 
 
 
-let chatCss = `.textbubbleemoji{
+let chatCss = `
+
+.chatdot {
+    visibility:hidden;
+    position: absolute;
+    height: 1.05em;
+    /* width: 15px; */
+    /* min-width: 15px; */
+    left: 17px;
+    top: -3px;
+    background-color: red;
+    border-radius: 1em;
+    display: inline-block;
+    font-size: 16px;
+    text-align: center;
+    /* padding-left: 4px; */
+    /* border-right: 4px solid; */
+    padding: 0 0.25em;
+    line-height: 1em;
+}
+
+.textbubbleemoji{
     font-size: 27px;
+    position:relative;
 }
 .bl-chat-toggle-button{
     user-select: none;
@@ -2734,7 +2854,15 @@ let chatCss = `.textbubbleemoji{
     margin-left:10px;
 }
 .bl-chat-toggle-button:hover{
-    box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8);
+    /* box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8); */
+    box-shadow: 5px 5px 3.4px 0px rgba(0,0,0,0.5);
+    transform:translate(-3px,-3px)
+}
+.bl-chat-toggle-button:active{
+    /* box-shadow: 0 0 15px 0 rgba(255, 0, 208, 0.8); */
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,0.5);
+    transform: none;
+    transition:0.1s;
 }
 
 
@@ -2749,6 +2877,7 @@ bl-msg{
     max-width: 80%;
     margin-left: 15px;
     background-color: rgb(255, 255, 255);
+    overflow-wrap: anywhere;
 }
 bl-msg-sender-name{
     font-style:italic;
@@ -2800,9 +2929,9 @@ bl-chat-input{
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.4);
     max-height:150px;
     min-height:40px;
-    overflow-y: scroll;
+    overflow-y: auto;
     text-overflow: clip;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
 
 
     font-size:17px;
@@ -2839,6 +2968,7 @@ bl-chat-msgs::-webkit-scrollbar { width: 0 !important }
 bl-chat-msgs { overflow: -moz-scrollbars-none; }
 
 bl-chat-head-x{
+    cursor:pointer;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 22px;
     transform: rotate(45deg);
@@ -2870,6 +3000,7 @@ bl-chat-head-text{
     color:white;
 }
 bl-chat-head {
+    cursor:move;
     user-select: none;
     display: flex;
     flex-direction: row;
@@ -2899,8 +3030,11 @@ bl-chat{
 
     overflow: hidden;
 
-    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.75);
+    box-shadow: 0px 0px 21px 0px rgba(0,0,0,0.5);
     resize: both;
+
+    transition: 0.2s scale;
+    transform-origin: center;
 
 }`
 function injectChatCSS() {
@@ -2917,7 +3051,7 @@ try{
     let blChat = document.createElement('bl-chat')
     blChat.id = 'bl-chat'
     blChat.innerHTML = blChatHTML
-    blChat.style.visibility = 'hidden'
+    // blChat.style.visibility = 'hidden'
     document.body.appendChild(blChat)
 
     let chatbox = document.querySelector('bl-chat')
@@ -2930,7 +3064,7 @@ try{
         }
     })
     document.querySelector('bl-chat-send-button').onclick = postMessageBubble
-    chatbox.style.scale = '80%'
+    chatbox.style.scale = 0
 
     //// get own username, then populate chat history
     chrome.runtime.sendMessage(exId,{meta:'getUsername'},(username)=>{
@@ -2940,16 +3074,40 @@ try{
             chatHistory.forEach(msg=>addMessage(msg))
         })
     })
-    
+    backspaceFix()
 } catch (e) {console.error(e)}
 }
 function addChatButton() {
     try{
         let chatElem = document.createElement('div')
+        chatElem.id = 'blChatButton'
         chatElem.classList.add('bl-chat-toggle-button')
-        chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()">💬</span>`
-        document.getElementById('blUsersPanel').appendChild(chatElem)
+        chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()"><span>💬</span><span class="chatdot"></span></span>`
+        let panel = document.getElementById('blUsersPanel')
+
+        let newPanel = document.createElement('div')
+        newPanel.id='noRefreshPanel'
+        newPanel.style = "display: flex; jusify-content:center; align-items: center; gap: 3px; max-width: 300px;"
+        panel.parentElement.insertBefore(newPanel,panel.nextElementSibling)
+
+        newPanel.appendChild(chatElem)
+
+        setChatUnread(chatUnreadCount)
+
+        if(!blId) {chatElem.style.visibility = 'hidden'}
+        else {chatElem.style.visibility = 'visible'}
+
     }catch(e) {console.error(e)}
+}
+let chatUnreadCount = 0
+function incChatUnread() {
+    setChatUnread(chatUnreadCount+1)
+}
+function setChatUnread(num) {
+    chatUnreadCount = num;
+    let chatdot=document.querySelector('.chatdot');
+    chatdot.innerHTML = num;
+    chatdot.style.visibility = num==0 ? 'hidden' : 'visible'
 }
 
 let blChatHTML = `
@@ -3012,7 +3170,7 @@ function dragElement(elmnt) {
 // msg: {text, sender}
 lastSender = ''
 uname = ''
-async function addMessage(msg) {
+async function addMessage(msg, notif) {
     let msgsElem = document.querySelector('bl-chat-msgs')
     if(msg.sender != lastSender) {
         let unameElem = document.createElement('bl-msg-sender')
@@ -3033,6 +3191,14 @@ async function addMessage(msg) {
     msgsElem.scrollTop = msgsElem.scrollHeight;
 
 
+    if(notif) {
+        if(!isChatOpen()) {
+            incChatUnread();
+        }
+        if(!isChatOpen() || !document.hasFocus()) {
+            liveMessage({meta:"chatnotif",project:store.getState().preview.projectInfo.title, sender:msg.sender, text:msg.text, avatar:(await getUserInfo(msg.sender)).pic})
+        }
+    }
 }
 function postMessageBubble() {
     let inputElem = document.querySelector('bl-chat-input')
@@ -3051,8 +3217,81 @@ function postMessageBubble() {
 function toggleChat(state) {
     let chatbox = document.querySelector('bl-chat')
     if(state===undefined) {
-        chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
+        // chatbox.style.visibility = chatbox.style.visibility=='hidden' ? 'visible' : 'hidden'
+        chatbox.style.scale = chatbox.style.scale==0.8 ? 0 : 0.8
+        // chatbox.style.scale = chatbox.style.transformOrigin='top left'
     } else {
-        chatbox.style.visibility = state ? 'visible' : 'hidden'
+        // chatbox.style.visibility = state ? 'visible' : 'hidden'
+        chatbox.style.scale = state ? 0.8 : 0
+        // chatbox.style.scale = chatbox.style.transformOrigin='center'
     }
+    if(isChatOpen()) {setChatUnread(0)}
+}
+function isChatOpen() {
+    let chatbox = document.querySelector('bl-chat')
+    return chatbox.style.scale = chatbox.style.scale==0.8
+}
+
+
+function getSpriteBoxElem(spriteName) {
+    let elem = Array.from(document.getElementsByClassName('sprite-selector_scroll-wrapper_3NNnc box_box_2jjDp')[0].querySelectorAll('div')).find(elem=>elem.innerHTML==spriteName)
+    return elem?.parentElement?.parentElement
+}
+function addDude(spritename,dudename) {
+    let spriteBox = getSpriteBoxElem(spritename);
+    if(spritename==BL_UTILS.stageName) {spriteBox = document.querySelector("#app > div > div.gui_body-wrapper_-N0sA.box_box_2jjDp > div > div.gui_stage-and-target-wrapper_69KBf.box_box_2jjDp > div.gui_target-wrapper_36Gbz.box_box_2jjDp > div > div.target-pane_stage-selector-wrapper_qekSW > div.stage-selector_stage-selector_3oWOr.box_box_2jjDp")}
+    if(!spriteBox) {return}
+    let panel = spriteBox?.querySelector('.sdPanel');
+    if(!panel) {
+        // add sd panel
+        panel = document.createElement('div')
+        panel.classList.add('sdPanel')
+        spriteBox.appendChild(panel)
+    }
+    let dude = document.createElement('div')
+    dude.classList.add('sdCircle')
+    panel.appendChild(dude)
+    getUserInfo(dudename).then(info=>dude.style.backgroundImage=`url(${info.pic})`)
+
+    return dude;
+}
+
+let spriteDisplayCSS = `
+.sdPanel{
+    display:flex;
+    flex-wrap:wrap;
+    flex-direction:row;
+    width:70%;
+    position:absolute;
+    left:3px;
+    top:3px;
+    gap:-1px;
+}
+.sdCircle{
+    width:20px;
+    height:20px;
+    border-radius:100%;
+    outline: solid 2px #ff24e2;
+    background-size:cover;
+}
+`
+
+function moveMyBubble() {
+    try{
+        blCursors.find(b=>b.username==uname).cursor.targetName=BL_UTILS.targetToName(vm.editingTarget)
+        clearActive()
+        try{displayActive(blCursors)}catch(e){console.error(e)}
+    }catch(e){console.error(e)}
+}
+
+function backspaceFix() {
+    document.querySelector("#bl-chat > bl-chat-send > bl-chat-input").addEventListener('keydown',(e)=>{
+        e.stopPropagation();
+    })
+    document.addEventListener('mousedown',e=>{
+        if(e.target!=document.querySelector("#bl-chat > bl-chat-send > bl-chat-input") && 
+            document.activeElement==document.querySelector("#bl-chat > bl-chat-send > bl-chat-input")) {
+                document.activeElement.blur()
+        }
+    })
 }

@@ -1,11 +1,15 @@
+/// DECS
+let uname = "*"
+let upk = undefined
+
 let apiUrl = 'https://spore.us.to:4000'
 // let apiUrl = 'http://localhost:4000'
 
 chrome.runtime.onInstalled.addListener((details)=>{
   if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home'})
+    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home#h.lebe3qxxu5ou'})
   } else if (details.reason === chrome.runtime.OnInstalledReason.UPDATE) {
-    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/new-blocklive-version'})
+    // chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/new-blocklive-version'})
   }
 })
 
@@ -134,8 +138,8 @@ socket.on('message',(data)=>{
 })
 
 
-let uname = (await chrome.storage.local.get(['uname'])).uname
-let upk = (await chrome.storage.local.get(['upk'])).upk
+uname = (await chrome.storage.local.get(['uname'])).uname // FIRST DEC
+upk = (await chrome.storage.local.get(['upk'])).upk // FIRST DEC
 uname = uname ? uname : '*'
 upk = upk ? upk : undefined
 
@@ -190,6 +194,14 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
   }
 }
 );
+
+// from chrome runtime documentation
+async function getCurrentTab() {
+  let queryOptions = { active: true, lastFocusedWindow: true };
+  // `tab` will either be a `tabs.Tab` instance or `undefined`.
+  let [tab] = await chrome.tabs.query(queryOptions);
+  return tab;
+}
 
 // Connections to scratch editor instances
 chrome.runtime.onConnectExternal.addListener(function(port) {
@@ -247,6 +259,41 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
       playChange(blId,msg,port)
       // send to websocket
       socket.send({type:'chat',blId,msg})
+    } else if(msg.meta=='chatnotif') {
+      let tab = port.sender.tab;
+      let notifs = (await chrome.storage.local.get(['notifs'])).notifs ?? false;
+      console.log('notifs',notifs)
+      if(notifs) {
+
+        chrome.notifications.create(null,
+          {
+            type:'basic',
+            title:`Blocklive Chat`,
+            contextMessage:`${msg.sender} says in '${msg.project}':`,
+            message:msg.text,
+            // iconUrl:chrome.runtime.getURL('img/blocklivefullres.png'),
+            // iconUrl:msg.avatar,
+            // iconUrl:'https://assets.scratch.mit.edu/981e22b1b61cad530d91ea2cfd5ccec7.svg',
+            // iconUrl:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Red_Circle%28small%29.svg/2048px-Red_Circle%28small%29.svg.png'
+            iconUrl:'img/blocklivefullres.png'
+            // isClickable:true,
+          },
+          (notif)=>{console.log('😱😱😱😱😱😱😱😱😱 DING DING NOTIFICATION',notif);
+          notificationsDb[notif] = {tab:tab.id,window:tab.windowId}
+        console.error(chrome.runtime.lastError)}
+        )
+
+        if(!notifListenerAdded) {
+          chrome.notifications.onClicked.addListener(notif=>{
+            chrome.tabs.update(notificationsDb[notif]?.tab, {selected: true});
+            chrome.windows.update(notificationsDb[notif]?.window, {focused: true});
+          })
+          notifListenerAdded=true
+        }
+      }
+      // if(getCurrentTab()?.id!=tab?.id) {
+      // }
+      
     } else {
       msg.blId = blId ?? msg.blId
       socket.send(msg)
@@ -265,7 +312,8 @@ chrome.runtime.onConnectExternal.addListener(function(port) {
     },5000); // leave socket stuff if page doesnt reconnect in 5 seconds
   })
 });
-
+var notificationsDb={}
+var notifListenerAdded = false;
 
 // Proxy project update messages
 chrome.runtime.onMessageExternal.addListener(

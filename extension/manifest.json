@@ -1,7 +1,7 @@
 {
     "name": "Blocklive: Scratch Realtime Collaboration",
     "description": "Multiple Scratchers Work together in Real Time on a Single Project",
-    "version": "0.1.6.3",
+    "version": "0.1.7.8",
     "icons": {
        "128": "icon128.png" 
     },
@@ -24,8 +24,9 @@
         "tabs",
         "storage"
     ],
+    "optional_permissions":["notifications"],
     "web_accessible_resources" : [{
-        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js","/scripts/turbowarp_editor.js"],
+        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/mystuff.js","/scripts/turbowarp_editor.js","img/blocklivefullres.png"],
         "matches":["<all_urls>"]
     }],
     "externally_connectable": {

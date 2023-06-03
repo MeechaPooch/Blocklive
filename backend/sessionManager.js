@@ -2,6 +2,7 @@ import fs from 'fs'
 import path, { sep } from 'path';
 import sanitize from 'sanitize-filename';
 import { blocklivePath, saveMapToFolder } from './filesave.js';
+import {Blob} from 'node:buffer'
 
 class BlockliveProject {
 
@@ -16,11 +17,17 @@ class BlockliveProject {
     toJSON() { // this function makes it so that the file writer doesnt save the change log. remove it to re-implement saving the change log
         let ret = {...this}
 
-        let n = 15; // trim changes on save
+        let n = 5; // trim changes on save
         n = Math.min(n,ret.changes.length);
 
         ret.indexZeroVersion += ret.changes.length - n;
         ret.changes = ret.changes.slice(-n)
+
+        // if the changes list string is more than 20 mb, dont write changes
+        if(new Blob([JSON.stringify(ret.changes)]).size > 2e7) {
+            ret.indexZeroVersion += ret.changes.length
+            ret.changes = [];
+        }
 
         return ret;
     }
@@ -116,6 +123,7 @@ class BlockliveSess {
 
     addClient(client) {
         this.connectedClients[client.id()] = client
+        this.getWonkySockets()
     }
     removeClient(id) {
         let username = this.connectedClients[id]?.username
@@ -159,6 +167,22 @@ class BlockliveSess {
         this.project.recordChange(msg)
         this.project.lastUser = client ? client.username : this.project.lastUser
         this.sendChangeFrom(socket,msg)
+    }
+
+    getWonkySockets() {
+        let wonkyKeys = []
+        Object.entries(this.connectedClients).forEach(entry=>{
+            let socket = entry[1].socket
+            if(socket.disconnected || socket.id!=entry[0]) {
+                wonkyKeys.push(entry[0])
+                console.log('WONKINESS DETECTED! disconnected:',socket.disconnected,'wrong id', ocket.id!=entry[0])
+            }
+            // if(Object.keys(this.connectedClients).length == 0) {
+            //     // project.project.trimChanges(20)
+            //      this.offloadProject(id) // find way to access this function
+            // }
+        })
+        return wonkyKeys
     }
 }
 
@@ -211,6 +235,7 @@ class ProjectWrapper {
     sharedWith = []
 
     chat = []
+    static defaultChat = {sender:'blocklive',text:'Welcome! Chat is public, monitored, and filtered. Report inappropriate things to @ilhp10. Drag the top of this chatbox to move it and drag the bottom right to resize it!'}
 
     constructor(owner,scratchId,projectJson,blId,title) {
         if(owner == '&') {return}
@@ -221,13 +246,14 @@ class ProjectWrapper {
         this.project = new BlockliveProject(title)
         this.session = new BlockliveSess(this.project,this.id)
         this.linkedWith.push({scratchId,owner})
+        this.chat.push(ProjectWrapper.defaultChat)
     }
 
 
     onChat(msg,socket) {
         this.chat.push(msg.msg)
         this.session.sendChangeFrom(socket,msg,true)
-        this.trimChat(100)
+        this.trimChat(500)
     }
     getChat() {
         return this.chat
@@ -253,9 +279,10 @@ class ProjectWrapper {
     }
 
     scratchSavedJSON(json,version) {
-        if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion, this.projectJson);return}
+        if(version <= this.jsonVersion) {console.log('version too low. not recording. most recent version & id:',this.jsonVersion);return}
         this.projectJson = json
         this.jsonVersion = version
+        this.project.trimChanges(10)
         // console.log('linkedWith length', this.linkedWith.length)
         // this.linkedWith.find(proj=>proj.scratchId == id).version = version
     }
@@ -317,8 +344,19 @@ export default class SessionManager{
         SessionManager.inst = this
     }
 
+    offloadStaleProjects() {
+        Object.entries(this.blocklive).forEach(entry=>{
+            let project = entry[1]
+            let id = entry[0]
+            if(Object.keys(project.session.connectedClients).length == 0) {
+                project.project.trimChanges(20)
+                this.offloadProject(id)
+            }
+        })
+    }
     offloadProject(id) {
         try{
+            console.log('offloading project ' + id)
             let toSaveBlocklive = {}
             toSaveBlocklive[id] = this.blocklive[id]
             saveMapToFolder(toSaveBlocklive,blocklivePath);
@@ -332,8 +370,10 @@ export default class SessionManager{
                 let json = JSON.parse(file)
                 let project = ProjectWrapper.fromJSON(json);
                 this.blocklive[sanitize(id + '')] = project
+                console.log('reloaded blocklive ' + id)
             } catch (e) {
-                console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
+                // if(!id) {return}
+                // console.error("reloadProject: couldn't read project with id: " + id + ". err msg: " + e.message)
             }
         }
     }

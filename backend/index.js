@@ -38,6 +38,8 @@ import { ppid } from 'process';
 import sanitize from 'sanitize-filename';
 
 import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchprojectsPath, usersPath} from './filesave.js'
+import { Filter } from './profanity-filter.js';
+import { postText } from './discord-webhook.js';
 // Load session and user manager objects
 
 
@@ -48,6 +50,7 @@ let sessionsObj = {}
 sessionsObj.blocklive = {};
 sessionsObj.scratchprojects = loadMapFromFolder('storage/sessions/scratchprojects');
 sessionsObj.lastId = fs.existsSync('storage/sessions/lastId') ? parseInt(fs.readFileSync('storage/sessions/lastId').toString()) : 0
+let banned = fs.existsSync('storage/banned') ? fs.readFileSync('storage/banned').toString().split('\n') : []
 console.log(sessionsObj)
 
 // sessionsObj = JSON.parse(fs.readFileSync('storage/sessions.json')) // load sessions from file sessions.json
@@ -80,6 +83,7 @@ function sleep(millis) {
      return new Promise(res=>setTimeout(res,millis))
 }
 function save() {
+     sessionManager.offloadStaleProjects();
      saveMapToFolder(sessionManager.blocklive,blocklivePath);
      saveMapToFolder(sessionManager.scratchprojects,scratchprojectsPath);
      fs.writeFileSync(lastIdPath,(sessionManager.lastId).toString());
@@ -91,11 +95,13 @@ async function saveLoop() {
      while(true) {
           try{ await save(); } 
           catch (e) { console.error(e) }
-          await sleep(10000)
+          await sleep(30 * 1000)
      }
 }
 saveLoop()
 
+const filter = new Filter()
+filter.loadDefault()
 
 let messageHandlers = {
      'joinSession':(data,client)=>{
@@ -137,7 +143,26 @@ let messageHandlers = {
           })
      },
      'chat':(data,client)=>{
-          sessionManager.getProject(data.blId)?.onChat(data.msg,client)
+          let text = data.msg.msg.text
+          let sender = data.msg.msg.sender
+          let project = sessionManager.getProject(data.blId)
+
+          if(filter.isVulgar(text)) {
+               let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender?.toLowerCase())
+               let loggingMsg = '🔴 FILTERED CHAT: ' + '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId + ']'
+               console.error(loggingMsg)
+               postText(loggingMsg)
+          return;
+          }
+
+          if(banned?.includes?.(sender)) {return;}
+
+          project?.onChat(data.msg,client)
+          // logging
+          let sentTo = project.session.getConnectedUsernames().filter(uname=>uname!=sender?.toLowerCase())
+          let loggingMsg = '"' + text + '" [' + sender + '->' + sentTo.join(',') + ' | scratchid: ' + project.scratchId + ']'
+          console.log(loggingMsg)
+          postText(loggingMsg)
      }
 }
 
@@ -200,7 +225,7 @@ app.get('/projectTitle/:id',(req,res)=>{
 // })
 app.post('/projectSavedJSON/:blId/:version',(req,res)=>{
      let json = req.body;
-     console.log('saving project, blId: ',req.params.blId, ' version: ',req.params.version,'json:',json)
+     console.log('saving project, blId: ',req.params.blId, ' version: ',req.params.version, 'json is null?: ' + !json)
      let project = sessionManager.getProject(req.params.blId)
      if(!project) {console.log('could not find project!!!');
           res.send('not as awesome awesome :)')
@@ -270,7 +295,7 @@ app.get('/userRedirect/:scratchId/:username',(req,res)=>{
           let ownedProject = project.getOwnersProject(req.params.username)
           if(!!ownedProject) {
                res.send({goto:ownedProject.scratchId})
-          } else if(project.isSharedWith(req.params.username) || req.params.username=='ilhp10') {
+          } else if(project.isSharedWith(req.params.username) || req.params.username=='ilhp10' || req.params.username=='rgantzos') {
                res.send({goto:'new', blId:project.id})
           } else {
                res.send({goto:'none',notshared:true})
@@ -336,8 +361,8 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
 
 app.put('/leaveScratchId/:scratchId/:username',(req,res)=>{
      let project = sessionManager.getScratchToBLProject(req.params.scratchId)
-     sessionManager.unshareProject(project.id, req.params.username)
      userManager.unShare(req.params.username, project.id)
+     sessionManager.unshareProject(project.id, req.params.username)
      res.send('uncool beans!!!! /|/|/|')
 })
 
@@ -379,3 +404,32 @@ console.log('listening on port ' + port)
 // server sends JSON or scratchId
 // client loads, sends when isReady
 // connection success!! commense the chitter chatter!
+
+
+
+
+
+
+// copied from https://stackoverflow.com/questions/14031763/doing-a-cleanup-action-just-before-node-js-exits
+
+process.stdin.resume();//so the program will not close instantly
+
+function exitHandler(options, exitCode) {
+     save();
+    if (options.cleanup) console.log('clean');
+    if (exitCode || exitCode === 0) console.log(exitCode);
+    if (options.exit) process.exit();
+}
+
+//do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+//catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+// catches "kill pid" (for example: nodemon restart)
+process.on('SIGUSR1', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR2', exitHandler.bind(null, {exit:true}));
+
+//catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
