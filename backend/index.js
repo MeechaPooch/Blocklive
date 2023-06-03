@@ -38,7 +38,7 @@ import fs from 'fs'
 import { ppid } from 'process';
 import sanitize from 'sanitize-filename';
 
-import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, scratchprojectsPath, usersPath} from './filesave.js'
+import { blocklivePath, lastIdPath, loadMapFromFolder, saveMapToFolder, saveMapToFolderAsync, scratchprojectsPath, usersPath} from './filesave.js'
 import { Filter } from './profanity-filter.js';
 import { postText } from './discord-webhook.js';
 // Load session and user manager objects
