@@ -101,7 +101,7 @@ saveMapToFolder(sessionManager.blocklive,blocklivePath)
 
 async function saveLoop() {
      while(true) {
-          try{ await save(); } 
+          try{ await saveAsync(); } 
           catch (e) { console.error(e) }
           await sleep(30 * 1000)
      }
