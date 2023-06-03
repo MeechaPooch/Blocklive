@@ -39,12 +39,11 @@ export async function saveMapToFolderAsync(obj, dir) {
      // make directory if it doesnt exist
      if (!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}
      let promises = []
-     Object.entries(obj).forEach(entry=>{
+     for (entry in Object.entries(obj)) {
           entry[0] = sanitize(entry[0] + '')
           if(entry[0] == '') {return}
-          promises.push(fsp.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1])).catch(e=>console.error('Error when saving filename: ' + e)))
-     });
-     await Promise.all(promises)
+          await fsp.writeFile(dir+path.sep+entry[0],JSON.stringify(entry[1])).catch(e=>console.error('Error when saving filename: ' + e)))
+     }
  }
 export function loadMapFromFolder(dir) {
     let obj = {}
