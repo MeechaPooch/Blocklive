@@ -355,7 +355,7 @@ export default class SessionManager{
         })
     }
     async offloadStaleProjectsAsync() {
-        for (let entry in Object.entries(this.blocklive)){
+        for (let entry of Object.entries(this.blocklive)){
             let project = entry[1]
             let id = entry[0]
             if(Object.keys(project.session.connectedClients).length == 0) {
