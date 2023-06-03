@@ -33,8 +33,12 @@ setTimeout(()=>{chrome.runtime.sendMessage({meta:"getUsernamePlus"},setSignedin)
 
         let item = document.createElement('li')
         item.username = name
-        item.innerHTML = `@${name}  <span class="x" href="page2.html">x</span>`;
-        item.children[0].onclick = ()=>{removeFriend(name)}
+        item.innerHTML = `<span class="friend-name" >@${name}</span>  <span class="x" href="page2.html">x</span>`;
+        item.onclick=(e)=>{
+            if(e.target?.classList?.contains('x')) {removeFriend(name)}
+            else {chrome.tabs.create({url: `https://scratch.mit.edu/users/${name}`});}
+        }
+       
         document.querySelector('#friends').appendChild(item)
     }
 

@@ -5,8 +5,12 @@ body {
     display:flex;
     flex-direction: column;
     width: 300px;
-    height: calc(500px - 3.5rem);
+    /* height: calc(500px - 3.5rem); */
     padding-top: 3.5rem;
+    overflow: hidden;
+}
+body::-webkit-scrollbar{
+    display: none;
 }
 
 input#searchh {
@@ -96,24 +100,27 @@ ul{
 
 .x{
     color: white;
-    font-size: small;
+    font-size: large;
     background-color: #ff00e6;
     color: white;
-    padding: 0.25rem;
-    border-radius: 0.25rem;
+    padding: 0.25em;
+    border-radius: 0.25em;
     position: relative;
     cursor: pointer;
-    padding-top: 0.15rem;
+    padding-top: 0.15em;
     position: relative;
-    top: -.25rem;
+    top: -.25em;
     transition: top .3s;
     float: right;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1em;
+    padding-right: 1em;
 }
 
 .x:hover {
     top: -.1rem;
+}
+.friend-name{
+    text-decoration:none; color:hsv(299, 100, 12); font-size:20px; font-weight:bold;
 }
 
 button.viewall {
@@ -124,23 +131,40 @@ button.viewall {
     color: white;
     outline: none;
     border: 0px;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     position: relative;
     top: 0;
     transition: top .3s;
     cursor: pointer;
-    margin-top: 1.5rem;
+    margin-top: .5rem;
 }
 
 button.viewall:hover {
-    top: .5rem;
+    top: .25rem;
 }
 
 ul {
     list-style-type: none; /* Remove bullets */
   padding: 0; /* Remove padding */
   margin: 0; /* Remove margins */
+  max-height:280px;
+  overflow-y: auto;
 }
+
+/* copied from https://stackoverflow.com/questions/68036783/how-to-hide-scrollbar-track */
+*::-webkit-scrollbar {
+    background-color: transparent;
+    width: 15px;
+  }
+  *::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    border-radius: 20px;
+    border: 4px solid transparent;
+    background-color: rgba(0,0,0,0.2);
+    background-clip: content-box;
+  }
 
 li {
     width: calc(100% - 1rem);
@@ -148,4 +172,17 @@ li {
     border-radius: 0.25rem;
     background-color: #eaeaea;
     padding: 0.5rem;
+    transition-duration: 0.2s;
+    cursor: pointer;
+}
+li:hover{
+    /* scale:105%; */
+    /* transform:translateX(0.5rem); */
+    margin-left:7px;
+    width: calc(100% - 1rem - 7px);
+    /* color:#ff6ff1; */
+    color:#ff00e6;
+    /* background-color: #f3f3f3; */
+    /* background-color: #e2e2e2; */
+    background-color: #ffe1ff;
 }
