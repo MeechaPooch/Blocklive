@@ -121,6 +121,7 @@ async function startBlocklive(creatingNew) {
     injectLoadingOverlay()
 
     activateBlocklive()
+    setTopbarButtonVisibility()
     
     if(creatingNew || store.getState().scratchGui.projectState.loadingState.startsWith('SHOWING')) {
         console.log('project already loaded!')
@@ -133,6 +134,9 @@ async function startBlocklive(creatingNew) {
             await joinExistingBlocklive(blId)
             pauseEventHandling = false
         })
+    }
+    if(creatingNew) {
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
     }
 }
 
@@ -211,6 +215,17 @@ function getChanges(Id,version) {
 }
 function fetchTitle(blId) {
     return new Promise((res)=>{chrome.runtime.sendMessage(exId,{meta:'getTitle',blId},res)})
+}
+
+function setTopbarButtonVisibility() {
+    try{
+        if(!blId || typeof blCursors == 'undefined' || Object.entries(Object(blCursors)).length==0) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
+        else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
+    try{
+        if(!blId) {document.getElementById('blChatButton').style.visibility = 'hidden'}
+        else {document.getElementById('blChatButton').style.visibility = 'visible'}
+    } catch(e) {console.error(e)}
 }
 
 let getAndPlayNewChanges
@@ -1732,12 +1747,14 @@ function addNewTargetEvent(targetName, event) {
 }
 
 // ()=>{pauseEventHandling = true},(
-// vm.addSprite = proxy(vm.addSprite,"addsprite",(args)=>{
-//     console.log(args)
-//     console.log('addsprite',args);
-//   return {spritearray:Array.from(new Uint8Array(args[0]))}
-// },(data)=>([Uint8Array.from(data.extrargs.spritearray).buffer]),null,(a,b)=>{ vm.setEditingTarget(a.id);  })
-vm.addSprite = proxy(vm.addSprite,"addsprite",null,null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+vm.addSprite = proxy(vm.addSprite,"addsprite",(args)=>{
+    if(args[0] instanceof ArrayBuffer) {
+    console.log(args)
+    console.log('addsprite',args);
+  return {spritearray:Array.from(new Uint8Array(args[0]))}
+    } else return {}
+},(data)=>(data.extrargs.spritearray ? [Uint8Array.from(data.extrargs.spritearray).buffer] : [...data.args]),null,(a,b)=>{ vm.setEditingTarget(a.id);  })
+// vm.addSprite = proxy(vm.addSprite,"addsprite",(a)=>{console.log('🧟‍♂️ NEW SPRITE',a);window.sprite=a},null,null,(a,b)=>{ vm.setEditingTarget(a.id);  })
 vm.duplicateSprite = proxy(vm.duplicateSprite,"duplicatesprite",
     // extrargs
     (args)=>({name:targetToName(vm.runtime.getTargetById(args[0]))}),
@@ -2434,6 +2451,34 @@ function injectJSandCSS() {
     document.head.appendChild(styleInj2)
 }
 
+function addToCredits(text) {
+    try{
+    let oldDesc = store.getState().preview.projectInfo.description
+    if(oldDesc.includes(text)) {return}
+    let newDesc = oldDesc + (oldDesc=='' ? '' : '\n') + text;
+
+    fetch(`https://api.scratch.mit.edu/projects/${scratchId}`, {
+        "headers": {
+            "accept": "application/json",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "x-token": store.getState().session.session.user.token
+        },
+        "referrer": "https://scratch.mit.edu/",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "body": `{\"description\":${JSON.stringify(newDesc)}}`,
+        "method": "PUT",
+        "mode": "cors",
+        "credentials": "omit"
+        });
+        store.getState().preview.projectInfo.description = newDesc;
+    } catch(e){
+        console.error(e)
+    }
+}
+
 let blActivateClick = async ()=>{
     // change onclick
     blockliveButton.onclick = undefined
@@ -2460,6 +2505,10 @@ let blActivateClick = async ()=>{
         liveMessage({meta:"joinSession"})
         readyToRecieveChanges = true
         await refreshShareModal()
+
+        // add blocklive ref in instructions credits
+        addToCredits('Collab Using the Blocklive Realtime Collab Extension')
+
         // stop spinny
         document.querySelector('loader.blockliveloader').style.display = 'none'
 
@@ -2545,8 +2594,8 @@ listenForObj("#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_Jcu
     activeText.style.marginRight = '10px'
     panel.appendChild(activeText)
 
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+   setTopbarButtonVisibility()
+
     showCachedOnlineUsers();
 })
 }
@@ -2585,8 +2634,7 @@ async function displayActive(users) {
     })
 
     if(!document.getElementById('blUsersPanel')) {return}
-    if(!blId) {document.getElementById('blUsersPanel').style.visibility = 'hidden'}
-    else {document.getElementById('blUsersPanel').style.visibility = 'visible'}
+    setTopbarButtonVisibility()
 
     let yo = yo_1
     let panel = document.getElementById('blUsersPanel')
@@ -2881,7 +2929,7 @@ bl-chat-input{
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.4);
     max-height:150px;
     min-height:40px;
-    overflow-y: scroll;
+    overflow-y: auto;
     text-overflow: clip;
     overflow-wrap: anywhere;
 
@@ -3032,6 +3080,7 @@ try{
 function addChatButton() {
     try{
         let chatElem = document.createElement('div')
+        chatElem.id = 'blChatButton'
         chatElem.classList.add('bl-chat-toggle-button')
         chatElem.innerHTML = `<span class="textbubbleemoji" onclick="toggleChat()"><span>💬</span><span class="chatdot"></span></span>`
         let panel = document.getElementById('blUsersPanel')
@@ -3044,6 +3093,10 @@ function addChatButton() {
         newPanel.appendChild(chatElem)
 
         setChatUnread(chatUnreadCount)
+
+        if(!blId) {chatElem.style.visibility = 'hidden'}
+        else {chatElem.style.visibility = 'visible'}
+
     }catch(e) {console.error(e)}
 }
 let chatUnreadCount = 0

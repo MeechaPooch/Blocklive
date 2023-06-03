@@ -1,3 +1,9 @@
+document.querySelector("button.viewall").addEventListener("click", function() {
+    chrome.tabs.create({
+        url: "/projects/index.html"
+    })
+})
+
 chrome.runtime.sendMessage({meta:"getUsernamePlus"},function(info){
     let username = info.uname
 
@@ -27,8 +33,12 @@ setTimeout(()=>{chrome.runtime.sendMessage({meta:"getUsernamePlus"},setSignedin)
 
         let item = document.createElement('li')
         item.username = name
-        item.innerHTML = `${name}  <span class="x" href="page2.html">(x)</span>`;
-        item.children[0].onclick = ()=>{removeFriend(name)}
+        item.innerHTML = `<span class="friend-name" >@${name}</span>  <span class="x" href="page2.html">x</span>`;
+        item.onclick=(e)=>{
+            if(e.target?.classList?.contains('x')) {removeFriend(name)}
+            else {chrome.tabs.create({url: `https://scratch.mit.edu/users/${name}`});}
+        }
+       
         document.querySelector('#friends').appendChild(item)
     }
 
@@ -72,11 +82,16 @@ document.getElementById('discord').onclick = ()=>{
 document.getElementById('support').onclick = ()=>{
     chrome.tabs.create({url: `https://www.buymeacoffee.com/ilhp10`});
 }
-
+document.getElementById('rgantzos').onclick = ()=>{
+    chrome.tabs.create({url: `https://scratch.mit.edu/users/rgantzos`});
+}
+document.getElementById('ilhp10').onclick = ()=>{
+    chrome.tabs.create({url: `https://scratch.mit.edu/users/ilhp10`});
+}
 
 /// request permissions
 (async()=>{
-document.querySelector('#notifs').checked = (await chrome.storage.local.get(['notifs'])).notifs ?? false
+document.querySelector('#notifs').checked = (await chrome.storage.local.get(['notifs']))?.notifs ?? false
 })()
 document.querySelector('#notifs').addEventListener('change', (event) => {
     let on = event.currentTarget.checked;
@@ -96,3 +111,8 @@ document.querySelector('#notifs').addEventListener('change', (event) => {
     });
   });
   
+
+let logo = document.getElementById('logo')
+document.addEventListener('mousemove',(e)=>{
+    logo.style.transform = (e.pageX > 190 && e.pageY < 137) ? `rotate(360deg)` : `rotate(0deg)`
+})

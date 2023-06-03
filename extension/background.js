@@ -1,3 +1,7 @@
+/// DECS
+let uname = "*"
+let upk = undefined
+
 let apiUrl = 'https://spore.us.to:4000'
 // let apiUrl = 'http://localhost:4000'
 
@@ -5,7 +9,7 @@ chrome.runtime.onInstalled.addListener((details)=>{
   if(details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/home#h.lebe3qxxu5ou'})
   } else if (details.reason === chrome.runtime.OnInstalledReason.UPDATE) {
-    chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/new-blocklive-version'})
+    // chrome.tabs.create({url:'https://sites.google.com/catlin.edu/blocklive-quickstart-guide/new-blocklive-version'})
   }
 })
 
@@ -134,8 +138,8 @@ socket.on('message',(data)=>{
 })
 
 
-let uname = (await chrome.storage.local.get(['uname'])).uname
-let upk = (await chrome.storage.local.get(['upk'])).upk
+uname = (await chrome.storage.local.get(['uname'])).uname // FIRST DEC
+upk = (await chrome.storage.local.get(['upk'])).upk // FIRST DEC
 uname = uname ? uname : '*'
 upk = upk ? upk : undefined
 
