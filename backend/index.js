@@ -361,6 +361,7 @@ app.get('/userProjectsScratch/:user',(req,res)=>{
           projectObj.title = project.project.title
           projectObj.lastTime = project.project.lastTime
           projectObj.lastUser = project.project.lastUser
+          projectObj.online = project.session.getConnectedUsernames()
 
           return projectObj
      }).filter(Boolean) // filter out non-existant projects // TODO: automatically delete dead pointers like this
