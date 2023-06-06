@@ -345,6 +345,7 @@ app.get('/friends/:user',(req,res)=>{
      res.send(userManager.getUser(req.params.user)?.friends)
 })
 
+// Note: Apparently non-functional:
 // get list of blocklive id's shared with user
 app.get('/userProjects/:user',(req,res)=>{
      res.send(userManager.getShared(req.params.user))
