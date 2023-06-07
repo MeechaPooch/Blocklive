@@ -321,7 +321,7 @@ chrome.runtime.onMessageExternal.addListener(
     console.log("external message:", request);
     if(request.meta == 'getBlId') {
       if(!request.scratchId || request.scratchId == '.') {return ''}
-      sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}`)).text()).replaceAll('"',''))
+      sendResponse((await (await fetch(`${apiUrl}/blId/${request.scratchId}/${uname}`)).text()).replaceAll('"',''))
     // } else if(request.meta =='getInpoint') {
     //   sendResponse(await (await fetch(`${apiUrl}/projectInpoint/${request.blId}`)).json())
     } else if(request.meta =='getJson') {

@@ -205,6 +205,14 @@ app.post('/newProject/:scratchId/:owner',(req,res)=>{
 app.get('/blId/:scratchId',(req,res)=>{
      res.send(sessionManager.scratchprojects[req.params.scratchId]?.blId)
 })
+app.get('/blId/:scratchId/:uname',(req,res)=>{
+     let blId = sessionManager.scratchprojects[req.params.scratchId]?.blId
+     if(!blId) {res.send(blId); return;}
+     let project = sessionManager.getProject(blId)
+     if(!project) {res.send(blId); return;}
+     let hasAccess = ([...project.sharedWith,project.owner]).map(u=>u?.toLowerCase()).includes(req.params.uname?.toLowerCase());
+     res.send(hasAccess ? blId : null);
+})
 app.get('/scratchIdInfo/:scratchId',(req,res)=>{
      if (req.params.scratchId in sessionManager.scratchprojects) {
           res.send(sessionManager.scratchprojects[req.params.scratchId])
