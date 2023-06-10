@@ -19,9 +19,10 @@ fetch(
             text,
         //   'user mention: <@279098137484722176>, role mention: <@&496160161459863552>, channel mention: <#508500699458306049>',
         // enable mentioning of individual users or roles, but not @everyone/@here
-        // allowed_mentions: {
-        //   parse: ['users', 'roles'],
-        // },
+        allowed_mentions: {
+          parse: ['users'],
+          // parse: ['users', 'roles'],
+        },
         // embeds to be sent
         // embeds: [
         //   {
