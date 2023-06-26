@@ -1,9 +1,10 @@
 import fetch from "node-fetch";
+import {chatWebhookUrl} from "./secrets/secrets.js"
 
 export function postText(text) {// node.js versions pre-v0.18.0 do not support the fetch api and require a polyfill
 // const fetch = require('node-fetch');
 fetch(
-    'https://discord.com/api/webhooks/1076983740036816987/_fZ1dIz6L9LcE_im64L9T-vS_F6PyBp7REaW8nexbZ70bu_rFUp9gFE2bX2Baw_8fjNK',
+  chatWebhookUrl,
     {
       method: 'post',
       headers: {
