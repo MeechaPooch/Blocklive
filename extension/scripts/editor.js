@@ -2529,7 +2529,7 @@ function doIOwnThis() {
     return store.getState().session.session.user.id == store.getState().preview.projectInfo.author.id;
 }
 function addButtonInjectors() {
-listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(7) > span',
+listenForObj('#app > div > div.gui_menu-bar-position_3U1T0.menu-bar_menu-bar_JcuHF.box_box_2jjDp > div.menu-bar_main-menu_3wjWH > div:nth-child(4) > span',
     (bc)=>{
         // bc.children[1].children[0].innerHTML = "Become Blajingus"
 
