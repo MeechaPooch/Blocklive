@@ -254,7 +254,7 @@ app.post('/projectSavedJSON/:blId/:version',(req,res)=>{
 app.get('/projectJSON/:blId',(req,res)=>{
      let blId = req.params.blId;
      let project = sessionManager.getProject(blId);
-     if(!project) {res.send(404); return;}
+     if(!project) {res.sendStatus(404); return;}
      let json = project.projectJson;
      let version = project.jsonVersion
      res.send({json,version});
